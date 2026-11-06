@@ -200,6 +200,50 @@ class GhostGateway implements TelegramGateway {
       _inner.sendVoice(chatId, path, seconds);
 
   @override
+  Future<ChatSummary?> joinByLink(String link) => _inner.joinByLink(link);
+
+  @override
+  Future<List<ChatSummary>> blockedUsers() => _inner.blockedUsers();
+
+  @override
+  Future<List<ChatMessage>> searchGlobal(String query) =>
+      _inner.searchGlobal(query);
+
+  @override
+  Future<bool> hasCloudPassword() => _inner.hasCloudPassword();
+
+  @override
+  Future<bool> setCloudPassword(
+          {String oldPassword = '', String newPassword = '', String hint = ''}) =>
+      _inner.setCloudPassword(
+          oldPassword: oldPassword, newPassword: newPassword, hint: hint);
+
+  @override
+  Future<List<StickerSetInfo>> stickerSets() => _inner.stickerSets();
+
+  @override
+  Future<List<StickerItem>> stickerSetItems(int setId) =>
+      _inner.stickerSetItems(setId);
+
+  @override
+  Future<String?> fetchFile(int fileId) => _inner.fetchFile(fileId);
+
+  @override
+  Future<void> sendSticker(int chatId, StickerItem sticker) =>
+      _inner.sendSticker(chatId, sticker);
+
+  @override
+  Future<List<MentionCandidate>> members(int chatId) => _inner.members(chatId);
+
+  @override
+  Future<void> addMember(int chatId, int userId) =>
+      _inner.addMember(chatId, userId);
+
+  @override
+  Future<void> removeMember(int chatId, int userId) =>
+      _inner.removeMember(chatId, userId);
+
+  @override
   Future<void> forwardMessages(int toChatId, int fromChatId, List<int> ids) =>
       _inner.forwardMessages(toChatId, fromChatId, ids);
   @override

@@ -22,6 +22,9 @@ import '../splitter/smart_splitter.dart';
 import '../../core/drafts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'avatar.dart';
+import 'wallpapers.dart';
+import 'sticker_picker.dart';
+import 'package:lottie/lottie.dart';
 import 'info_screen.dart';
 import 'voice_player.dart';
 import 'file_card.dart';
@@ -556,9 +559,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final l = AppLocalizations.of(context);
     final msgs = ref.watch(messagesProvider(widget.chat.id));
     final ghost = ref.watch(settingsProvider).ghostFor(widget.chat.id);
+    final wall = wallpapers[ref.watch(settingsProvider).wallpaper.clamp(0, wallpapers.length - 1)];
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: SafeArea(
+      body: DecoratedBox(
+        decoration: BoxDecoration(gradient: wall),
+        child: SafeArea(
         child: Column(
           children: [
             Padding(
@@ -840,6 +846,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     ),
                     if (_c.text.trim().isEmpty && _editing == null)
                       IconButton(
+                        tooltip: l.stickers,
+                        icon: const Icon(Icons.emoji_emotions_outlined),
+                        onPressed: () => showStickerPicker(context, _gateway,
+                            onPick: (st) => _safe(
+                                () => _gateway.sendSticker(widget.chat.id, st))),
+                      ),
+                    if (_c.text.trim().isEmpty && _editing == null)
+                      IconButton(
                         tooltip: l.kindVoice,
                         icon: const Icon(Icons.mic_none),
                         onPressed: _startRecording,
@@ -856,6 +870,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             ),
           ],
         ),
+      ),
       ),
     );
   }
@@ -965,7 +980,21 @@ class _Bubble extends StatelessWidget {
                   onTap: onOpen,
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(sticker ? 0 : 12),
-                    child: previewPath != null
+                    child: (sticker &&
+                            m.file != null &&
+                            m.file!.name.endsWith('.tgs') &&
+                            m.file!.downloaded &&
+                            m.file!.localPath != null)
+                        ? SizedBox(
+                            width: 150,
+                            height: 150,
+                            child: Lottie.file(File(m.file!.localPath!),
+                                decoder: LottieComposition.decodeGZip,
+                                errorBuilder: (_, _, _) => Center(
+                                    child: Text(m.emoji,
+                                        style: const TextStyle(fontSize: 56)))),
+                          )
+                        : previewPath != null
                         ? Image.file(File(previewPath),
                             width: sticker ? 150 : 220, fit: BoxFit.cover,
                             errorBuilder: (_, _, _) =>

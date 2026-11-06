@@ -734,4 +734,71 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get cancelAction => 'إلغاء';
+
+  @override
+  String get hiddenChatsTitle => 'الشاتات المخفية';
+
+  @override
+  String get noHiddenChats =>
+      'مفيش شاتات مخفية لسه. اضغط مطول على أي شات واختار إخفاء.';
+
+  @override
+  String get joinByLink => 'انضمام برابط دعوة';
+
+  @override
+  String get pasteLink => 'الصق رابط الدعوة';
+
+  @override
+  String get join => 'انضمام';
+
+  @override
+  String get blocked => 'المحظورين';
+
+  @override
+  String get noBlocked => 'مفيش محظورين';
+
+  @override
+  String get twoStep => 'التحقق بخطوتين';
+
+  @override
+  String get twoStepOn => 'مفعّل';
+
+  @override
+  String get twoStepOff => 'متوقف';
+
+  @override
+  String get oldPassword => 'كلمة السر الحالية';
+
+  @override
+  String get newPassword => 'كلمة السر الجديدة (فاضي = إيقاف)';
+
+  @override
+  String get passwordHint => 'تلميح';
+
+  @override
+  String get passwordChanged => 'اتحدثت كلمة السر';
+
+  @override
+  String get passwordFailed => 'كلمة السر غلط أو اترفضت';
+
+  @override
+  String get stickers => 'ستيكرز';
+
+  @override
+  String get members => 'الأعضاء';
+
+  @override
+  String get addMember => 'إضافة عضو';
+
+  @override
+  String get removeMember => 'إزالة';
+
+  @override
+  String get wallpaper => 'خلفية الشات';
+
+  @override
+  String get telegramResults => 'نتائج تليجرام';
+
+  @override
+  String get done => 'تم';
 }

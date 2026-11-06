@@ -734,4 +734,71 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cancelAction => 'Cancel';
+
+  @override
+  String get hiddenChatsTitle => 'Hidden chats';
+
+  @override
+  String get noHiddenChats =>
+      'No hidden chats yet. Long-press any chat and choose Hide.';
+
+  @override
+  String get joinByLink => 'Join by invite link';
+
+  @override
+  String get pasteLink => 'Paste invite link';
+
+  @override
+  String get join => 'Join';
+
+  @override
+  String get blocked => 'Blocked users';
+
+  @override
+  String get noBlocked => 'No blocked users';
+
+  @override
+  String get twoStep => 'Two-step verification';
+
+  @override
+  String get twoStepOn => 'On';
+
+  @override
+  String get twoStepOff => 'Off';
+
+  @override
+  String get oldPassword => 'Current password';
+
+  @override
+  String get newPassword => 'New password (empty = turn off)';
+
+  @override
+  String get passwordHint => 'Hint';
+
+  @override
+  String get passwordChanged => 'Password updated';
+
+  @override
+  String get passwordFailed => 'Wrong password or rejected';
+
+  @override
+  String get stickers => 'Stickers';
+
+  @override
+  String get members => 'Members';
+
+  @override
+  String get addMember => 'Add member';
+
+  @override
+  String get removeMember => 'Remove';
+
+  @override
+  String get wallpaper => 'Chat background';
+
+  @override
+  String get telegramResults => 'Telegram results';
+
+  @override
+  String get done => 'Done';
 }

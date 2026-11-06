@@ -7,6 +7,7 @@ import '../../domain/models.dart';
 import '../../l10n/app_localizations.dart';
 import 'avatar.dart';
 import 'chat_screen.dart';
+import 'members_screen.dart';
 
 /// Profile (private chats) or group / channel details.
 class ChatInfoScreen extends ConsumerWidget {
@@ -68,6 +69,13 @@ class ChatInfoScreen extends ConsumerWidget {
                     PopupMenuItem(value: 86400, child: Text(l.timer1d)),
                   ],
                 ),
+              ),
+            if (chat.type == ChatType.group || chat.type == ChatType.channel)
+              ListTile(
+                leading: const Icon(Icons.group_outlined),
+                title: Text(l.members),
+                onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                    builder: (_) => MembersScreen(chat: chat))),
               ),
             if (i != null) ...[
               if (i.members > 0)

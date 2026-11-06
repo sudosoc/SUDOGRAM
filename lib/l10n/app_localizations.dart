@@ -1489,6 +1489,138 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'إلغاء'**
   String get cancelAction;
+
+  /// No description provided for @hiddenChatsTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'الشاتات المخفية'**
+  String get hiddenChatsTitle;
+
+  /// No description provided for @noHiddenChats.
+  ///
+  /// In ar, this message translates to:
+  /// **'مفيش شاتات مخفية لسه. اضغط مطول على أي شات واختار إخفاء.'**
+  String get noHiddenChats;
+
+  /// No description provided for @joinByLink.
+  ///
+  /// In ar, this message translates to:
+  /// **'انضمام برابط دعوة'**
+  String get joinByLink;
+
+  /// No description provided for @pasteLink.
+  ///
+  /// In ar, this message translates to:
+  /// **'الصق رابط الدعوة'**
+  String get pasteLink;
+
+  /// No description provided for @join.
+  ///
+  /// In ar, this message translates to:
+  /// **'انضمام'**
+  String get join;
+
+  /// No description provided for @blocked.
+  ///
+  /// In ar, this message translates to:
+  /// **'المحظورين'**
+  String get blocked;
+
+  /// No description provided for @noBlocked.
+  ///
+  /// In ar, this message translates to:
+  /// **'مفيش محظورين'**
+  String get noBlocked;
+
+  /// No description provided for @twoStep.
+  ///
+  /// In ar, this message translates to:
+  /// **'التحقق بخطوتين'**
+  String get twoStep;
+
+  /// No description provided for @twoStepOn.
+  ///
+  /// In ar, this message translates to:
+  /// **'مفعّل'**
+  String get twoStepOn;
+
+  /// No description provided for @twoStepOff.
+  ///
+  /// In ar, this message translates to:
+  /// **'متوقف'**
+  String get twoStepOff;
+
+  /// No description provided for @oldPassword.
+  ///
+  /// In ar, this message translates to:
+  /// **'كلمة السر الحالية'**
+  String get oldPassword;
+
+  /// No description provided for @newPassword.
+  ///
+  /// In ar, this message translates to:
+  /// **'كلمة السر الجديدة (فاضي = إيقاف)'**
+  String get newPassword;
+
+  /// No description provided for @passwordHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'تلميح'**
+  String get passwordHint;
+
+  /// No description provided for @passwordChanged.
+  ///
+  /// In ar, this message translates to:
+  /// **'اتحدثت كلمة السر'**
+  String get passwordChanged;
+
+  /// No description provided for @passwordFailed.
+  ///
+  /// In ar, this message translates to:
+  /// **'كلمة السر غلط أو اترفضت'**
+  String get passwordFailed;
+
+  /// No description provided for @stickers.
+  ///
+  /// In ar, this message translates to:
+  /// **'ستيكرز'**
+  String get stickers;
+
+  /// No description provided for @members.
+  ///
+  /// In ar, this message translates to:
+  /// **'الأعضاء'**
+  String get members;
+
+  /// No description provided for @addMember.
+  ///
+  /// In ar, this message translates to:
+  /// **'إضافة عضو'**
+  String get addMember;
+
+  /// No description provided for @removeMember.
+  ///
+  /// In ar, this message translates to:
+  /// **'إزالة'**
+  String get removeMember;
+
+  /// No description provided for @wallpaper.
+  ///
+  /// In ar, this message translates to:
+  /// **'خلفية الشات'**
+  String get wallpaper;
+
+  /// No description provided for @telegramResults.
+  ///
+  /// In ar, this message translates to:
+  /// **'نتائج تليجرام'**
+  String get telegramResults;
+
+  /// No description provided for @done.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم'**
+  String get done;
 }
 
 class _AppLocalizationsDelegate

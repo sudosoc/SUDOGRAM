@@ -136,5 +136,32 @@ abstract class TelegramGateway {
   /// Sends a recorded voice note (OGG/Opus file).
   Future<void> sendVoice(int chatId, String path, int seconds);
 
+  /// Joins a group/channel from an invite link (t.me/+..., t.me/joinchat/...).
+  Future<ChatSummary?> joinByLink(String link);
+
+  /// Blocked users (id = user id); unblock with [blockUser].
+  Future<List<ChatSummary>> blockedUsers();
+
+  /// Server-side search across all chats.
+  Future<List<ChatMessage>> searchGlobal(String query);
+
+  Future<bool> hasCloudPassword();
+
+  /// Sets, changes or (empty [newPassword]) removes the two-step password.
+  /// Returns false when [oldPassword] is wrong or the change is rejected.
+  Future<bool> setCloudPassword(
+      {String oldPassword = '', String newPassword = '', String hint = ''});
+
+  Future<List<StickerSetInfo>> stickerSets();
+  Future<List<StickerItem>> stickerSetItems(int setId);
+
+  /// Downloads a file and returns its local path (null on failure).
+  Future<String?> fetchFile(int fileId);
+  Future<void> sendSticker(int chatId, StickerItem sticker);
+
+  Future<List<MentionCandidate>> members(int chatId);
+  Future<void> addMember(int chatId, int userId);
+  Future<void> removeMember(int chatId, int userId);
+
   Future<void> dispose();
 }

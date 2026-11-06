@@ -85,17 +85,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         .read(vaultUnlockProvider.notifier)
         .unlock(reason: l.vaultAuthReason);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(ok ? l.vaultUnlocked : l.vaultUnavailable),
-      duration: const Duration(seconds: 1),
-    ));
+    if (!ok) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(l.vaultUnavailable),
+        duration: const Duration(seconds: 1),
+      ));
+      return;
+    }
+    await Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (_) => const HiddenChatsScreen()));
   }
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final settings = ref.watch(settingsProvider);
-    final unlocked = ref.watch(vaultUnlockProvider);
     final chats = ref.watch(chatsProvider);
     final demo = ref.watch(gatewayProvider).isDemo;
 
@@ -210,7 +214,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   final inFolder = _folder == null ? null : settings.folders[_folder];
                   final shown = all.where((c) {
                     final hidden = settings.hiddenChats.contains(c.id);
-                    if (hidden && !unlocked) return false;
+                    if (hidden) return false; // hidden chats live on their own screen
                     if (inFolder != null && !inFolder.contains(c.id)) return false;
                     final name =
                         (settings.aliases[c.id] ?? c.title).toLowerCase();
@@ -228,10 +232,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           .read(archiveProvider)
                           .search(q)
                           .where((h) =>
-                              unlocked ||
                               !settings.hiddenChats.contains(h.message.chatId))
                           .toList();
-                  if (shown.isEmpty && hits.isEmpty) {
+                  if (shown.isEmpty && hits.isEmpty && q.isEmpty) {
                     return Center(child: Text(l.noChats));
                   }
                   final byId = {for (final c in all) c.id: c};
@@ -260,6 +263,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           pinned: settings.pinned.contains(c.id),
                           alias: settings.aliases[c.id],
                         ),
+                      if (q.length >= 2)
+                        _GlobalHits(query: q, chats: {for (final c in all) c.id: c}),
                       if (hits.isNotEmpty) ...[
                         Padding(
                           padding: const EdgeInsets.fromLTRB(8, 16, 8, 6),
@@ -455,6 +460,113 @@ class _HitRow extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+
+/// All hidden chats in one place; opened by long-press on search + biometric.
+/// Closes itself whenever the vault locks (app leaves the foreground).
+class HiddenChatsScreen extends ConsumerWidget {
+  const HiddenChatsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context);
+    ref.listen<bool>(vaultUnlockProvider, (_, open) {
+      if (!open && Navigator.of(context).canPop()) {
+        Navigator.of(context).popUntil((r) => r.isFirst);
+      }
+    });
+    final settings = ref.watch(settingsProvider);
+    final all = ref.watch(chatsProvider).value ?? const <ChatSummary>[];
+    final shown = [
+      for (final c in all)
+        if (settings.hiddenChats.contains(c.id)) c
+    ];
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        title: Row(children: [
+          const Icon(Icons.lock_outline, size: 18, color: GlassTokens.ghost),
+          const SizedBox(width: 8),
+          Text(l.hiddenChatsTitle),
+        ]),
+      ),
+      body: shown.isEmpty
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Text(l.noHiddenChats, textAlign: TextAlign.center),
+              ),
+            )
+          : ListView(
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
+              children: [
+                for (final c in shown)
+                  _ChatRow(
+                    chat: c,
+                    hidden: true,
+                    pinned: settings.pinned.contains(c.id),
+                    alias: settings.aliases[c.id],
+                  ),
+              ],
+            ),
+    );
+  }
+}
+
+
+/// Server-side search results ("Telegram results") for the home search box.
+class _GlobalHits extends ConsumerStatefulWidget {
+  const _GlobalHits({required this.query, required this.chats});
+  final String query;
+  final Map<int, ChatSummary> chats;
+
+  @override
+  ConsumerState<_GlobalHits> createState() => _GlobalHitsState();
+}
+
+class _GlobalHitsState extends ConsumerState<_GlobalHits> {
+  Future<List<ChatMessage>>? _f;
+  String _for = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final hidden = ref.watch(settingsProvider).hiddenChats;
+    if (_for != widget.query) {
+      _for = widget.query;
+      _f = Future<void>.delayed(const Duration(milliseconds: 500))
+          .then((_) => _for == widget.query
+              ? ref.read(gatewayProvider).searchGlobal(widget.query)
+              : <ChatMessage>[]);
+    }
+    return FutureBuilder<List<ChatMessage>>(
+      future: _f,
+      builder: (_, snap) {
+        final list = [
+          for (final m in snap.data ?? const <ChatMessage>[])
+            if (!hidden.contains(m.chatId) && widget.chats[m.chatId] != null) m
+        ];
+        if (list.isEmpty) return const SizedBox.shrink();
+        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 16, 8, 6),
+            child: Text(l.telegramResults,
+                style: const TextStyle(color: GlassTokens.textSecondary)),
+          ),
+          for (final m in list)
+            ListTile(
+              dense: true,
+              title: Text(widget.chats[m.chatId]!.title),
+              subtitle: Text(m.text, maxLines: 2, overflow: TextOverflow.ellipsis),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                  builder: (_) => ChatScreen(chat: widget.chats[m.chatId]!))),
+            ),
+        ]);
+      },
     );
   }
 }

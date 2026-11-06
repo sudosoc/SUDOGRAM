@@ -373,3 +373,17 @@ class ProfileInfo {
   final String bio;
   final Attachment? avatar;
 }
+
+
+class StickerSetInfo {
+  const StickerSetInfo(this.id, this.title);
+  final int id;
+  final String title;
+}
+
+class StickerItem {
+  const StickerItem(this.fileId, this.thumbFileId, this.emoji);
+  final int fileId;
+  final int thumbFileId;
+  final String emoji;
+}

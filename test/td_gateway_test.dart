@@ -498,4 +498,45 @@ void main() {
     expect(sent.firstWhere((r) => r['@type'] == 'setChatNotificationSettings')
         ['notification_settings']['mute_for'], greaterThan(0));
   });
+
+  test('invite link, blocked list, global search, 2FA, stickers, members', () async {
+    final sent = <Map<String, dynamic>>[];
+    t.onRequest = (r) {
+      sent.add(r);
+      switch (r['@type']) {
+        case 'joinChatByInviteLink':
+          return {'@type': 'chat', 'id': 77, 'title': 'Joined', 'type': {'@type': 'chatTypeBasicGroup', 'basic_group_id': 3}};
+        case 'getBlockedMessageSenders':
+          return {'@type': 'messageSenders', 'senders': [{'@type': 'messageSenderUser', 'user_id': 8}]};
+        case 'getUser':
+          return {'@type': 'user', 'id': r['user_id'], 'first_name': 'U${r['user_id']}'};
+        case 'getPasswordState':
+          return {'@type': 'passwordState', 'has_password': true};
+        case 'getInstalledStickerSets':
+          return {'@type': 'stickerSets', 'sets': [{'id': '5', 'title': 'Cats'}]};
+        case 'getStickerSet':
+          return {'@type': 'stickerSet', 'stickers': [
+            {'emoji': '😺', 'sticker': {'id': 100}, 'thumbnail': {'file': {'id': 101}}}
+          ]};
+        case 'downloadFile':
+          return {'@type': 'file', 'id': r['file_id'],
+            'local': {'path': '/tmp/x.webp', 'is_downloading_completed': true}};
+      }
+      return {'@type': 'ok'};
+    };
+    final j = await g.joinByLink('https://t.me/+abc');
+    expect(j?.title, 'Joined');
+    expect(j?.type, ChatType.group);
+    expect((await g.blockedUsers()).single.title, 'U8');
+    expect(await g.hasCloudPassword(), isTrue);
+    final sets = await g.stickerSets();
+    expect(sets.single.title, 'Cats');
+    final items = await g.stickerSetItems(sets.single.id);
+    expect(items.single.fileId, 100);
+    expect(await g.fetchFile(items.single.thumbFileId), '/tmp/x.webp');
+    await g.sendSticker(5, items.single);
+    final sticker = sent.lastWhere((r) => r['@type'] == 'sendMessage');
+    expect((sticker['input_message_content'] as Map)['@type'], 'inputMessageSticker');
+    expect(await g.setCloudPassword(oldPassword: 'a', newPassword: 'b'), isTrue);
+  });
 }

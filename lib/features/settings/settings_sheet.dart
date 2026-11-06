@@ -1,7 +1,9 @@
 import '../downloads/keep_alive.dart';
 import 'devices_screen.dart';
+import '../chat/wallpapers.dart';
 import 'profile_screen.dart';
 import 'privacy_screen.dart';
+import 'account_screens.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -58,6 +60,27 @@ class _SettingsSheet extends ConsumerWidget {
                 if (v && !await backgroundAllowed()) await requestBackground();
               },
             ),
+            ListTile(
+              title: Text(l.wallpaper),
+              subtitle: Wrap(spacing: 8, children: [
+                for (var i = 0; i < wallpapers.length; i++)
+                  GestureDetector(
+                    onTap: () => c.setWallpaper(i),
+                    child: Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: wallpapers[i],
+                        color: wallpapers[i] == null ? Colors.white12 : null,
+                        border: Border.all(
+                            color: s.wallpaper == i ? Colors.white : Colors.white24,
+                            width: s.wallpaper == i ? 2.5 : 1),
+                      ),
+                    ),
+                  ),
+              ]),
+            ),
             SwitchListTile(
               title: Text(l.performanceMode),
               value: s.performanceMode,
@@ -73,6 +96,8 @@ class _SettingsSheet extends ConsumerWidget {
               (l.profile, Icons.account_circle_outlined, (_) => const ProfileScreen()),
               (l.devices, Icons.devices_other, (_) => const DevicesScreen()),
               (l.privacy, Icons.shield_outlined, (_) => const PrivacyScreen()),
+              (l.twoStep, Icons.password, (_) => const TwoStepScreen()),
+              (l.blocked, Icons.block, (_) => const BlockedScreen()),
               (l.networkInspector, Icons.network_check,
                   (_) => const NetworkInspectorScreen()),
             ])

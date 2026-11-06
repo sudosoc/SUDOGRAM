@@ -675,6 +675,13 @@ class TdlibGateway implements TelegramGateway {
         final a = content['animation'] as Map?;
         file = a?['animation'] as Map?;
         name = (a?['file_name'] ?? 'animation.mp4').toString();
+      case 'messageSticker':
+        final st = content['sticker'] as Map?;
+        final isTgs = (st?['format'] as Map?)?['@type'] == 'stickerFormatTgs';
+        if (isTgs) {
+          file = st?['sticker'] as Map?;
+          name = 'sticker.tgs';
+        }
       case 'messagePhoto':
         final sizes = ((content['photo'] as Map?)?['sizes'] as List?) ?? const [];
         if (sizes.isNotEmpty) {
@@ -754,6 +761,7 @@ class TdlibGateway implements TelegramGateway {
     final chatId = asInt(m['chat_id']);
     final id = asInt(m['id']);
     if (att != null) _fileOwner[att.fileId] = (chatId, id);
+    if (att != null && att.name.endsWith('.tgs')) _autoDownload(att);
     final (thumb, emoji) = _preview(m['content'] as Map?);
     if (thumb != null) {
       _fileOwner[thumb.fileId] = (chatId, id);
@@ -1494,6 +1502,239 @@ class TdlibGateway implements TelegramGateway {
         'waveform': '',
         'caption': {'@type': 'formattedText', 'text': ''},
       },
+    });
+  }
+
+  @override
+  Future<ChatSummary?> joinByLink(String link) async {
+    final c = await _td.request(
+        {'@type': 'joinChatByInviteLink', 'invite_link': link.trim()});
+    _applyChat(Map<String, dynamic>.from(c));
+    return _summary(_chat(asInt(c['id'])));
+  }
+
+  @override
+  Future<List<ChatSummary>> blockedUsers() async {
+    try {
+      final r = await _td.request({
+        '@type': 'getBlockedMessageSenders',
+        'block_list': {'@type': 'blockListMain'},
+        'offset': 0,
+        'limit': 100,
+      });
+      final out = <ChatSummary>[];
+      for (final x in (r['senders'] as List? ?? const []).whereType<Map>()) {
+        final sender = (x['sender_id'] ?? x) as Map;
+        final id = asInt(sender['user_id']);
+        if (id == 0) continue;
+        if (_users[id] == null) {
+          try {
+            _onUser(Map<String, dynamic>.from(
+                await _td.request({'@type': 'getUser', 'user_id': id})));
+          } on TdError {
+            continue;
+          }
+        }
+        out.add(ChatSummary(
+          id: id,
+          title: _users[id]?['name'] ?? '$id',
+          lastText: '',
+          lastKind: MessageKind.text,
+          lastTime: null,
+          unread: 0,
+        ));
+      }
+      return out;
+    } on TdError {
+      return const [];
+    }
+  }
+
+  @override
+  Future<List<ChatMessage>> searchGlobal(String query) async {
+    if (query.trim().length < 2) return const [];
+    try {
+      final r = await _td.request({
+        '@type': 'searchMessages',
+        'chat_list': {'@type': 'chatListMain'},
+        'query': query,
+        'offset': '',
+        'limit': 30,
+        'min_date': 0,
+        'max_date': 0,
+      });
+      return [
+        for (final m in (r['messages'] as List? ?? const []).whereType<Map>())
+          _parseMessage(Map<String, dynamic>.from(m))
+      ];
+    } on TdError {
+      return const [];
+    }
+  }
+
+  @override
+  Future<bool> hasCloudPassword() async {
+    try {
+      final r = await _td.request({'@type': 'getPasswordState'});
+      return r['has_password'] == true;
+    } on TdError {
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> setCloudPassword(
+      {String oldPassword = '', String newPassword = '', String hint = ''}) async {
+    try {
+      await _td.request({
+        '@type': 'setPassword',
+        'old_password': oldPassword,
+        'new_password': newPassword,
+        'new_hint': hint,
+        'set_recovery_email_address': false,
+        'new_recovery_email_address': '',
+      });
+      return true;
+    } on TdError {
+      return false;
+    }
+  }
+
+  @override
+  Future<List<StickerSetInfo>> stickerSets() async {
+    try {
+      final r = await _td.request({
+        '@type': 'getInstalledStickerSets',
+        'sticker_type': {'@type': 'stickerTypeRegular'},
+      });
+      return [
+        for (final x in (r['sets'] as List? ?? const []).whereType<Map>())
+          StickerSetInfo(asInt(x['id']), (x['title'] ?? '').toString())
+      ];
+    } on TdError {
+      return const [];
+    }
+  }
+
+  @override
+  Future<List<StickerItem>> stickerSetItems(int setId) async {
+    try {
+      final r = await _td.request({'@type': 'getStickerSet', 'set_id': setId});
+      return [
+        for (final x in (r['stickers'] as List? ?? const []).whereType<Map>())
+          StickerItem(
+            asInt((x['sticker'] as Map?)?['id']),
+            asInt(((x['thumbnail'] as Map?)?['file'] as Map?)?['id']),
+            (x['emoji'] ?? '').toString(),
+          )
+      ];
+    } on TdError {
+      return const [];
+    }
+  }
+
+  @override
+  Future<String?> fetchFile(int fileId) async {
+    if (fileId == 0) return null;
+    try {
+      final f = await _td.request({
+        '@type': 'downloadFile',
+        'file_id': fileId,
+        'priority': 8,
+        'offset': 0,
+        'limit': 0,
+        'synchronous': true,
+      });
+      final local = f['local'] as Map?;
+      final path = (local?['path'] ?? '').toString();
+      return local?['is_downloading_completed'] == true && path.isNotEmpty
+          ? path
+          : null;
+    } on TdError {
+      return null;
+    }
+  }
+
+  @override
+  Future<void> sendSticker(int chatId, StickerItem sticker) async {
+    await _td.request({
+      '@type': 'sendMessage',
+      'chat_id': chatId,
+      'input_message_content': {
+        '@type': 'inputMessageSticker',
+        'sticker': {'@type': 'inputFileId', 'id': sticker.fileId},
+        'width': 0,
+        'height': 0,
+        'emoji': sticker.emoji,
+      },
+    });
+  }
+
+  Future<MentionCandidate?> _member(int id) async {
+    if (_users[id] == null) {
+      try {
+        _onUser(Map<String, dynamic>.from(
+            await _td.request({'@type': 'getUser', 'user_id': id})));
+      } on TdError {
+        return null;
+      }
+    }
+    final u = _users[id]!;
+    return MentionCandidate(id, u['name'] ?? '', u['username'] ?? '');
+  }
+
+  @override
+  Future<List<MentionCandidate>> members(int chatId) async {
+    final c = _chats[chatId];
+    if (c == null) return const [];
+    try {
+      final ids = <int>[];
+      if (c.supergroup) {
+        final r = await _td.request({
+          '@type': 'getSupergroupMembers',
+          'supergroup_id': c.groupId,
+          'filter': {'@type': 'supergroupMembersFilterRecent'},
+          'offset': 0,
+          'limit': 200,
+        });
+        for (final m in (r['members'] as List? ?? const []).whereType<Map>()) {
+          ids.add(asInt((m['member_id'] as Map?)?['user_id']));
+        }
+      } else {
+        final r = await _td.request(
+            {'@type': 'getBasicGroupFullInfo', 'basic_group_id': c.groupId});
+        for (final m in (r['members'] as List? ?? const []).whereType<Map>()) {
+          ids.add(asInt((m['member_id'] as Map?)?['user_id']));
+        }
+      }
+      final out = <MentionCandidate>[];
+      for (final id in ids.where((e) => e != 0)) {
+        final m = await _member(id);
+        if (m != null) out.add(m);
+      }
+      return out;
+    } on TdError {
+      return const [];
+    }
+  }
+
+  @override
+  Future<void> addMember(int chatId, int userId) async {
+    await _td.request({
+      '@type': 'addChatMember',
+      'chat_id': chatId,
+      'user_id': userId,
+      'forward_limit': 0,
+    });
+  }
+
+  @override
+  Future<void> removeMember(int chatId, int userId) async {
+    await _td.request({
+      '@type': 'setChatMemberStatus',
+      'chat_id': chatId,
+      'member_id': {'@type': 'messageSenderUser', 'user_id': userId},
+      'status': {'@type': 'chatMemberStatusLeft'},
     });
   }
 

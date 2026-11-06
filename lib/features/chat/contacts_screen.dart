@@ -27,6 +27,34 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
         MaterialPageRoute<void>(builder: (_) => ChatScreen(chat: c)));
   }
 
+  Future<void> _joinLink() async {
+    final l = AppLocalizations.of(context);
+    final c = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(l.joinByLink),
+        content: TextField(
+            controller: c,
+            autofocus: true,
+            decoration: InputDecoration(hintText: l.pasteLink)),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(l.join)),
+        ],
+      ),
+    );
+    if (ok != true || c.text.trim().isEmpty) return;
+    try {
+      await _open(ref.read(gatewayProvider).joinByLink(c.text));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l.sendFailed('$e'))));
+    }
+  }
+
   Future<void> _newGroup() async {
     final l = AppLocalizations.of(context);
     final all = await _future;
@@ -98,6 +126,11 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
                 ),
               ]),
             ),
+          ),
+          ListTile(
+            leading: const CircleAvatar(child: Icon(Icons.link)),
+            title: Text(l.joinByLink),
+            onTap: _joinLink,
           ),
           ListTile(
             leading: const CircleAvatar(child: Icon(Icons.group_add_outlined)),
