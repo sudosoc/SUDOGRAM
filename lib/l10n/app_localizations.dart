@@ -877,6 +877,168 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'صور وفيديوهات'**
   String get attachMedia;
+
+  /// No description provided for @you.
+  ///
+  /// In ar, this message translates to:
+  /// **'أنت'**
+  String get you;
+
+  /// No description provided for @typing.
+  ///
+  /// In ar, this message translates to:
+  /// **'بيكتب…'**
+  String get typing;
+
+  /// No description provided for @online.
+  ///
+  /// In ar, this message translates to:
+  /// **'متصل'**
+  String get online;
+
+  /// No description provided for @seenRecently.
+  ///
+  /// In ar, this message translates to:
+  /// **'شوهد مؤخرًا'**
+  String get seenRecently;
+
+  /// No description provided for @seenWeek.
+  ///
+  /// In ar, this message translates to:
+  /// **'شوهد خلال الأسبوع'**
+  String get seenWeek;
+
+  /// No description provided for @seenMonth.
+  ///
+  /// In ar, this message translates to:
+  /// **'شوهد خلال الشهر'**
+  String get seenMonth;
+
+  /// No description provided for @seenAt.
+  ///
+  /// In ar, this message translates to:
+  /// **'آخر ظهور {time}'**
+  String seenAt(String time);
+
+  /// No description provided for @groupLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'مجموعة'**
+  String get groupLabel;
+
+  /// No description provided for @channelLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'قناة'**
+  String get channelLabel;
+
+  /// No description provided for @reply.
+  ///
+  /// In ar, this message translates to:
+  /// **'رد'**
+  String get reply;
+
+  /// No description provided for @copy.
+  ///
+  /// In ar, this message translates to:
+  /// **'نسخ'**
+  String get copy;
+
+  /// No description provided for @edit.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعديل'**
+  String get edit;
+
+  /// No description provided for @forward.
+  ///
+  /// In ar, this message translates to:
+  /// **'تحويل'**
+  String get forward;
+
+  /// No description provided for @deleteForMe.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف عندي'**
+  String get deleteForMe;
+
+  /// No description provided for @deleteForAll.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف للجميع'**
+  String get deleteForAll;
+
+  /// No description provided for @deleteTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف الرسالة؟'**
+  String get deleteTitle;
+
+  /// No description provided for @cantPost.
+  ///
+  /// In ar, this message translates to:
+  /// **'مينفعش تكتب هنا'**
+  String get cantPost;
+
+  /// No description provided for @forwardTo.
+  ///
+  /// In ar, this message translates to:
+  /// **'حوّل إلى'**
+  String get forwardTo;
+
+  /// No description provided for @today.
+  ///
+  /// In ar, this message translates to:
+  /// **'النهاردة'**
+  String get today;
+
+  /// No description provided for @yesterday.
+  ///
+  /// In ar, this message translates to:
+  /// **'إمبارح'**
+  String get yesterday;
+
+  /// No description provided for @editingMessage.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعديل الرسالة'**
+  String get editingMessage;
+
+  /// No description provided for @replyingTo.
+  ///
+  /// In ar, this message translates to:
+  /// **'رد على'**
+  String get replyingTo;
+
+  /// No description provided for @copied.
+  ///
+  /// In ar, this message translates to:
+  /// **'اتنسخ'**
+  String get copied;
+
+  /// No description provided for @muted.
+  ///
+  /// In ar, this message translates to:
+  /// **'مكتوم'**
+  String get muted;
+
+  /// No description provided for @photoLoading.
+  ///
+  /// In ar, this message translates to:
+  /// **'بيتحمّل…'**
+  String get photoLoading;
+
+  /// No description provided for @mediaMessage.
+  ///
+  /// In ar, this message translates to:
+  /// **'رسالة'**
+  String get mediaMessage;
+
+  /// No description provided for @delete.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف'**
+  String get delete;
 }
 
 class _AppLocalizationsDelegate

@@ -81,7 +81,7 @@ class MockGateway implements TelegramGateway {
   Future<void> closeChat(int chatId) async {}
 
   @override
-  Future<void> sendText(int chatId, String text) async {
+  Future<void> sendText(int chatId, String text, {int replyTo = 0}) async {
     final live = _msgs[chatId] ??= LiveValue(const []);
     live.value = [
       ChatMessage(
@@ -120,6 +120,31 @@ class MockGateway implements TelegramGateway {
       await sendText(chatId, p.split('/').last);
     }
   }
+
+  @override
+  Future<bool> loadOlder(int chatId) async => false;
+  @override
+  Future<void> editText(int chatId, int messageId, String text) async {
+    final live = _msgs[chatId];
+    if (live == null) return;
+    live.value = [
+      for (final m in live.value)
+        m.id == messageId ? m.copyWith(text: text, edited: true) : m
+    ];
+  }
+
+  @override
+  Future<void> deleteMessages(int chatId, List<int> ids, {bool forAll = false}) async {
+    final live = _msgs[chatId];
+    if (live == null) return;
+    live.value = [for (final m in live.value) if (!ids.contains(m.id)) m];
+  }
+
+  @override
+  Future<void> forwardMessages(int toChatId, int fromChatId, List<int> ids) async {}
+  @override
+  Stream<ChatStatus> watchChatStatus(int chatId) =>
+      Stream.value(const ChatStatus(seen: SeenKind.recently));
 
   @override
   Stream<ContactChange> contactChanges() => const Stream.empty();

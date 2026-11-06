@@ -25,7 +25,7 @@ abstract class TelegramGateway {
   Future<void> openChat(int chatId);
   Future<void> closeChat(int chatId);
 
-  Future<void> sendText(int chatId, String text);
+  Future<void> sendText(int chatId, String text, {int replyTo = 0});
 
   /// Maximum text length of one message, as reported by the server.
   Future<int> messageTextLimit();
@@ -40,6 +40,19 @@ abstract class TelegramGateway {
 
   /// Sets our online status.
   Future<void> setOnline(bool online);
+
+  /// Loads an older page of history. Returns false when nothing older exists.
+  Future<bool> loadOlder(int chatId);
+
+  Future<void> editText(int chatId, int messageId, String text);
+
+  /// [forAll] removes it for everyone where Telegram allows it.
+  Future<void> deleteMessages(int chatId, List<int> ids, {bool forAll = false});
+
+  Future<void> forwardMessages(int toChatId, int fromChatId, List<int> ids);
+
+  /// Header status of a chat: someone typing, online, last seen.
+  Stream<ChatStatus> watchChatStatus(int chatId);
 
   /// Starts (or resumes) downloading a file. Progress arrives through
   /// [watchMessages] as updated [Attachment]s.

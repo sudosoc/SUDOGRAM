@@ -417,4 +417,87 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get attachMedia => 'Photos and videos';
+
+  @override
+  String get you => 'You';
+
+  @override
+  String get typing => 'typing…';
+
+  @override
+  String get online => 'online';
+
+  @override
+  String get seenRecently => 'last seen recently';
+
+  @override
+  String get seenWeek => 'last seen within a week';
+
+  @override
+  String get seenMonth => 'last seen within a month';
+
+  @override
+  String seenAt(String time) {
+    return 'last seen $time';
+  }
+
+  @override
+  String get groupLabel => 'group';
+
+  @override
+  String get channelLabel => 'channel';
+
+  @override
+  String get reply => 'Reply';
+
+  @override
+  String get copy => 'Copy';
+
+  @override
+  String get edit => 'Edit';
+
+  @override
+  String get forward => 'Forward';
+
+  @override
+  String get deleteForMe => 'Delete for me';
+
+  @override
+  String get deleteForAll => 'Delete for everyone';
+
+  @override
+  String get deleteTitle => 'Delete message?';
+
+  @override
+  String get cantPost => 'You can\'t post here';
+
+  @override
+  String get forwardTo => 'Forward to';
+
+  @override
+  String get today => 'Today';
+
+  @override
+  String get yesterday => 'Yesterday';
+
+  @override
+  String get editingMessage => 'Editing message';
+
+  @override
+  String get replyingTo => 'Replying to';
+
+  @override
+  String get copied => 'Copied';
+
+  @override
+  String get muted => 'Muted';
+
+  @override
+  String get photoLoading => 'Loading…';
+
+  @override
+  String get mediaMessage => 'Message';
+
+  @override
+  String get delete => 'Delete';
 }

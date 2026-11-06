@@ -54,8 +54,8 @@ class GhostGateway implements TelegramGateway {
   Future<void> closeChat(int chatId) => _inner.closeChat(chatId);
 
   @override
-  Future<void> sendText(int chatId, String text) =>
-      _inner.sendText(chatId, text);
+  Future<void> sendText(int chatId, String text, {int replyTo = 0}) =>
+      _inner.sendText(chatId, text, replyTo: replyTo);
 
   @override
   Future<int> messageTextLimit() => _inner.messageTextLimit();
@@ -92,6 +92,19 @@ class GhostGateway implements TelegramGateway {
   @override
   Future<void> sendMedia(int chatId, List<String> paths, {String caption = ''}) =>
       _inner.sendMedia(chatId, paths, caption: caption);
+  @override
+  Future<bool> loadOlder(int chatId) => _inner.loadOlder(chatId);
+  @override
+  Future<void> editText(int chatId, int messageId, String text) =>
+      _inner.editText(chatId, messageId, text);
+  @override
+  Future<void> deleteMessages(int chatId, List<int> ids, {bool forAll = false}) =>
+      _inner.deleteMessages(chatId, ids, forAll: forAll);
+  @override
+  Future<void> forwardMessages(int toChatId, int fromChatId, List<int> ids) =>
+      _inner.forwardMessages(toChatId, fromChatId, ids);
+  @override
+  Stream<ChatStatus> watchChatStatus(int chatId) => _inner.watchChatStatus(chatId);
   @override
   Stream<ContactChange> contactChanges() => _inner.contactChanges();
 

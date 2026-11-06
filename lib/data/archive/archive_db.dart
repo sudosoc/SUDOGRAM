@@ -167,6 +167,16 @@ class ArchiveDb {
         [normalizeForSearch(text), chatId, msgId]);
   }
 
+  /// Removes messages the user deleted on purpose, so Anti-Delete does not
+  /// bring them back.
+  void forget(int chatId, List<int> ids) {
+    for (final id in ids) {
+      _db.execute('DELETE FROM messages WHERE chat_id=? AND msg_id=?', [chatId, id]);
+      _db.execute('DELETE FROM edits WHERE chat_id=? AND msg_id=?', [chatId, id]);
+      _db.execute('DELETE FROM fts WHERE chat_id=? AND msg_id=?', [chatId, id]);
+    }
+  }
+
   void markDeleted(int chatId, int msgId) => _db.execute(
       'UPDATE messages SET deleted_at=? WHERE chat_id=? AND msg_id=? '
       'AND deleted_at IS NULL',

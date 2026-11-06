@@ -15,6 +15,12 @@ class _Chat {
   int order = 0; // position in the main chat list; 0 = not listed
   int unread = 0;
   Map<String, dynamic>? last;
+  ChatType type = ChatType.private;
+  int userId = 0; // for private chats
+  Attachment? avatar;
+  bool muted = false;
+  bool canSend = true;
+  int readOutbox = 0;
 }
 
 /// [TelegramGateway] on top of TDLib.
@@ -62,7 +68,14 @@ class TdlibGateway implements TelegramGateway {
   Timer? _chatDebounce;
   int? _textLimit;
   final _users = <int, Map<String, String>>{};
+  /// Messages the user deleted on purpose: they really disappear (the
+  /// anti-delete memory only covers deletions made by the other side).
+  final _selfDeleted = <int>{};
   final _fileOwner = <int, (int, int)>{};
+  final _avatarOwner = <int, int>{}; // file id -> chat id
+  final _seen = <int, (SeenKind, DateTime?)>{}; // user id -> last seen
+  final _typing = <int, Map<int, Timer>>{}; // chat -> sender -> expiry
+  final _statuses = <int, LiveValue<ChatStatus>>{};
   final _contactChanges = StreamController<ContactChange>.broadcast();
 
   @override
@@ -103,6 +116,29 @@ class TdlibGateway implements TelegramGateway {
           chat.order = asInt(pos['order']);
         }
         _scheduleChatEmit();
+      case 'updateChatReadOutbox':
+        final chat = _chat(asInt(u['chat_id']));
+        chat.readOutbox = asInt(u['last_read_outbox_message_id']);
+        final live = _messages[chat.id];
+        if (live != null) {
+          _setMessages(chat.id, [
+            for (final m in live.value)
+              m.outgoing && m.id <= chat.readOutbox && !m.read
+                  ? m.copyWith(read: true)
+                  : m
+          ]);
+        }
+      case 'updateChatAction':
+        _onChatAction(u);
+      case 'updateUserStatus':
+        _setSeen(asInt(u['user_id']), u['status']);
+      case 'updateChatNotificationSettings':
+        _chat(asInt(u['chat_id'])).muted =
+            asInt((u['notification_settings'] as Map?)?['mute_for']) > 0;
+        _scheduleChatEmit();
+      case 'updateChatPhoto':
+        _applyPhoto(_chat(asInt(u['chat_id'])), u['photo']);
+        _scheduleChatEmit();
       case 'updateChatReadInbox':
         _chat(asInt(u['chat_id'])).unread = asInt(u['unread_count']);
         _scheduleChatEmit();
@@ -133,13 +169,23 @@ class TdlibGateway implements TelegramGateway {
   // ------------------------------------------------------------- files
 
   void _onFile(Map<String, dynamic> f) {
+    final avatarChat = _avatarOwner[asInt(f['id'])];
+    if (avatarChat != null) {
+      _chat(avatarChat).avatar = _fileToAttachment(f, 'avatar');
+      _scheduleChatEmit();
+    }
     final owner = _fileOwner[asInt(f['id'])];
     if (owner == null) return;
+    final fid = asInt(f['id']);
     _patchMessage(owner.$1, owner.$2, (m) {
-      final cur = m.file;
-      if (cur == null) return m;
-      final upd = _fileToAttachment(f, cur.name);
-      return m.copyWith(file: upd);
+      var out = m;
+      if (m.file?.fileId == fid) {
+        out = out.copyWith(file: _fileToAttachment(f, m.file!.name));
+      }
+      if (m.thumb?.fileId == fid) {
+        out = out.copyWith(thumb: _fileToAttachment(f, m.thumb!.name));
+      }
+      return out;
     });
   }
 
@@ -239,6 +285,18 @@ class TdlibGateway implements TelegramGateway {
     };
     final before = _users[id];
     _users[id] = now;
+    if (u['status'] != null) _setSeen(id, u['status']);
+    if (names.isNotEmpty) {
+      // Messages loaded before we knew the sender's name get it now.
+      for (final entry in _messages.entries) {
+        if (entry.value.value.any((m) => m.senderId == id && m.senderName != names)) {
+          _setMessages(entry.key, [
+            for (final m in entry.value.value)
+              m.senderId == id ? m.copyWith(senderName: names) : m
+          ]);
+        }
+      }
+    }
     if (before == null) return; // first sight: nothing to compare
     for (final f in now.keys) {
       if (before[f] != now[f]) {
@@ -361,7 +419,119 @@ class TdlibGateway implements TelegramGateway {
       chat.last = (c['last_message'] as Map?)?.cast<String, dynamic>();
     }
     _applyPositions(chat, c['positions']);
+    _applyType(chat, c['type']);
+    _applyPhoto(chat, c['photo']);
+    chat.muted = asInt((c['notification_settings'] as Map?)?['mute_for']) > 0;
+    chat.readOutbox = asInt(c['last_read_outbox_message_id'], chat.readOutbox);
+    final perms = c['permissions'] as Map?;
+    chat.canSend = chat.type == ChatType.channel
+        ? false
+        : (perms?['can_send_basic_messages'] ?? true) == true;
     _scheduleChatEmit();
+  }
+
+  void _applyType(_Chat chat, Object? type) {
+    final t = type as Map?;
+    switch (t?['@type']) {
+      case 'chatTypePrivate':
+        chat.type = ChatType.private;
+        chat.userId = asInt(t!['user_id']);
+      case 'chatTypeSecret':
+        chat.type = ChatType.secret;
+        chat.userId = asInt(t!['user_id']);
+      case 'chatTypeBasicGroup':
+        chat.type = ChatType.group;
+      case 'chatTypeSupergroup':
+        chat.type =
+            t!['is_channel'] == true ? ChatType.channel : ChatType.group;
+    }
+  }
+
+  void _applyPhoto(_Chat chat, Object? photo) {
+    final small = (photo as Map?)?['small'] as Map?;
+    if (small == null) {
+      chat.avatar = null;
+      return;
+    }
+    final att = _fileToAttachment(small, 'avatar');
+    chat.avatar = att;
+    _avatarOwner[att.fileId] = chat.id;
+    _autoDownload(att);
+  }
+
+  /// Small images (avatars, thumbnails) are fetched without being asked.
+  void _autoDownload(Attachment a) {
+    if (a.downloaded || a.downloading) return;
+    _td.fire({
+      '@type': 'downloadFile',
+      'file_id': a.fileId,
+      'priority': 1,
+      'offset': 0,
+      'limit': 0,
+      'synchronous': false,
+    });
+  }
+
+  // -------------------------------------------------- typing and last seen
+
+  void _setSeen(int userId, Object? status) {
+    final st = status as Map?;
+    switch (st?['@type']) {
+      case 'userStatusOnline':
+        _seen[userId] = (SeenKind.online, null);
+      case 'userStatusOffline':
+        _seen[userId] = (SeenKind.at, _time(st!['was_online']));
+      case 'userStatusRecently':
+        _seen[userId] = (SeenKind.recently, null);
+      case 'userStatusLastWeek':
+        _seen[userId] = (SeenKind.lastWeek, null);
+      case 'userStatusLastMonth':
+        _seen[userId] = (SeenKind.lastMonth, null);
+      default:
+        _seen[userId] = (SeenKind.unknown, null);
+    }
+    for (final c in _chats.values) {
+      if ((c.type == ChatType.private || c.type == ChatType.secret) &&
+          c.userId == userId) {
+        _emitStatus(c.id);
+      }
+    }
+  }
+
+  void _onChatAction(Map<String, dynamic> u) {
+    final chatId = asInt(u['chat_id']);
+    final sender = u['sender_id'] as Map?;
+    final who = asInt(sender?['user_id'] ?? sender?['chat_id']);
+    final map = _typing.putIfAbsent(chatId, () => {});
+    map.remove(who)?.cancel();
+    final type = (u['action'] as Map?)?['@type'];
+    if (type != null && type != 'chatActionCancel') {
+      // Telegram stops sending the action; expire it ourselves.
+      map[who] = Timer(const Duration(seconds: 6), () {
+        map.remove(who);
+        _emitStatus(chatId);
+      });
+    }
+    _emitStatus(chatId);
+  }
+
+  void _emitStatus(int chatId) {
+    final live = _statuses[chatId];
+    if (live == null) return;
+    final chat = _chats[chatId];
+    final seen = chat == null ? null : _seen[chat.userId];
+    live.value = ChatStatus(
+      typing: (_typing[chatId]?.isNotEmpty ?? false),
+      seen: seen?.$1 ?? SeenKind.unknown,
+      lastSeen: seen?.$2,
+    );
+  }
+
+  @override
+  Stream<ChatStatus> watchChatStatus(int chatId) {
+    final live = _statuses.putIfAbsent(chatId, () => LiveValue(ChatStatus.none));
+    _emitStatus(chatId);
+    return live.stream;
   }
 
   void _applyPositions(_Chat chat, Object? positions) {
@@ -392,6 +562,11 @@ class TdlibGateway implements TelegramGateway {
       lastTime: c.last == null ? null : _time(c.last!['date']),
       unread: c.unread,
       order: c.order,
+      type: c.type,
+      avatar: c.avatar,
+      muted: c.muted,
+      canSend: c.canSend,
+      lastOutgoing: c.last?['is_outgoing'] == true,
     );
   }
 
@@ -501,20 +676,70 @@ class TdlibGateway implements TelegramGateway {
     return null;
   }
 
+  /// Preview image of a message: photo thumbnail, webp sticker, video cover.
+  (Attachment?, String) _preview(Map? content) {
+    if (content == null) return (null, '');
+    switch (content['@type']) {
+      case 'messagePhoto':
+        final sizes = ((content['photo'] as Map?)?['sizes'] as List?) ?? const [];
+        if (sizes.isEmpty) return (null, '');
+        final pick = sizes.cast<Map>().firstWhere((e) => e['type'] == 'm',
+            orElse: () => sizes[sizes.length > 1 ? 1 : 0] as Map);
+        final f = pick['photo'] as Map?;
+        return (f == null ? null : _fileToAttachment(f, 'thumb.jpg'), '');
+      case 'messageSticker':
+        final st = content['sticker'] as Map?;
+        if (st == null) return (null, '');
+        final emoji = (st['emoji'] ?? '').toString();
+        final webp = (st['format'] as Map?)?['@type'] == 'stickerFormatWebp';
+        final f = webp ? st['sticker'] as Map? : (st['thumbnail'] as Map?)?['file'] as Map?;
+        return (f == null ? null : _fileToAttachment(f, 'sticker.webp'), emoji);
+      case 'messageVideo':
+      case 'messageAnimation':
+      case 'messageVideoNote':
+        final v = (content['video'] ?? content['animation'] ?? content['video_note']) as Map?;
+        final f = (v?['thumbnail'] as Map?)?['file'] as Map?;
+        return (f == null ? null : _fileToAttachment(f, 'thumb.jpg'), '');
+    }
+    return (null, '');
+  }
+
   ChatMessage _parseMessage(Map<String, dynamic> m) {
     final content = _content(m['content'] as Map?);
     final att = _attachment(m['content'] as Map?);
-    if (att != null) _fileOwner[att.fileId] = (asInt(m['chat_id']), asInt(m['id']));
+    final chatId = asInt(m['chat_id']);
+    final id = asInt(m['id']);
+    if (att != null) _fileOwner[att.fileId] = (chatId, id);
+    final (thumb, emoji) = _preview(m['content'] as Map?);
+    if (thumb != null) {
+      _fileOwner[thumb.fileId] = (chatId, id);
+      _autoDownload(thumb);
+    }
+    final sender = m['sender_id'] as Map?;
+    final senderId = asInt(sender?['user_id'] ?? sender?['chat_id']);
+    final name = sender?['@type'] == 'messageSenderUser'
+        ? (_users[senderId]?['name'] ?? '')
+        : (_chats[senderId]?.title ?? '');
+    final outgoing = m['is_outgoing'] == true;
+    final reply = m['reply_to'] as Map?;
     return ChatMessage(
-      id: asInt(m['id']),
-      chatId: asInt(m['chat_id']),
+      id: id,
+      chatId: chatId,
       text: content.text,
       kind: content.kind,
-      outgoing: m['is_outgoing'] == true,
+      outgoing: outgoing,
       time: _time(m['date']),
       edited: asInt(m['edit_date']) > 0,
       file: att,
       forwardedFrom: _forwardOrigin(m['forward_info']),
+      senderId: senderId,
+      senderName: name,
+      replyToId: reply?['@type'] == 'messageReplyToMessage'
+          ? asInt(reply!['message_id'])
+          : 0,
+      thumb: thumb,
+      emoji: emoji,
+      read: outgoing && id <= (_chats[chatId]?.readOutbox ?? 0),
     );
   }
 
@@ -610,7 +835,7 @@ class TdlibGateway implements TelegramGateway {
       for (final m in live.value)
         if (!ids.contains(m.id))
           m
-        else if (!m.outgoing)
+        else if (!m.outgoing && !_selfDeleted.contains(m.id))
           m.copyWith(deletedByPeer: true),
     ]);
   }
@@ -627,14 +852,83 @@ class TdlibGateway implements TelegramGateway {
       _td.fire({'@type': 'closeChat', 'chat_id': chatId});
 
   @override
-  Future<void> sendText(int chatId, String text) async {
+  Future<void> sendText(int chatId, String text, {int replyTo = 0}) async {
     await _td.request({
       '@type': 'sendMessage',
       'chat_id': chatId,
+      if (replyTo != 0)
+        'reply_to': {
+          '@type': 'inputMessageReplyToMessage',
+          'message_id': replyTo,
+        },
       'input_message_content': {
         '@type': 'inputMessageText',
         'text': {'@type': 'formattedText', 'text': text},
       },
+    });
+  }
+
+  @override
+  Future<bool> loadOlder(int chatId) async {
+    final live = _live(chatId);
+    final known = live.value.where((m) => m.id > 0).toList();
+    if (known.isEmpty) return false;
+    final oldest = known.map((m) => m.id).reduce((a, b) => a < b ? a : b);
+    try {
+      final r = await _td.request({
+        '@type': 'getChatHistory',
+        'chat_id': chatId,
+        'from_message_id': oldest,
+        'offset': 0,
+        'limit': 40,
+        'only_local': false,
+      });
+      final raw = ((r['messages'] as List?) ?? const []).whereType<Map>();
+      var added = 0;
+      for (final m in raw) {
+        final msg = _parseMessage(Map<String, dynamic>.from(m));
+        if (!live.value.any((e) => e.id == msg.id)) added++;
+        _upsertMessage(chatId, msg);
+      }
+      return added > 0;
+    } on TdError {
+      return false;
+    }
+  }
+
+  @override
+  Future<void> editText(int chatId, int messageId, String text) async {
+    await _td.request({
+      '@type': 'editMessageText',
+      'chat_id': chatId,
+      'message_id': messageId,
+      'input_message_content': {
+        '@type': 'inputMessageText',
+        'text': {'@type': 'formattedText', 'text': text},
+      },
+    });
+  }
+
+  @override
+  Future<void> deleteMessages(int chatId, List<int> ids,
+      {bool forAll = false}) async {
+    _selfDeleted.addAll(ids);
+    await _td.request({
+      '@type': 'deleteMessages',
+      'chat_id': chatId,
+      'message_ids': ids,
+      'revoke': forAll,
+    });
+  }
+
+  @override
+  Future<void> forwardMessages(
+      int toChatId, int fromChatId, List<int> ids) async {
+    await _td.request({
+      '@type': 'forwardMessages',
+      'chat_id': toChatId,
+      'from_chat_id': fromChatId,
+      'message_ids': ids,
     });
   }
 
@@ -686,6 +980,14 @@ class TdlibGateway implements TelegramGateway {
     if (_started) await _td.close();
     for (final live in _messages.values) {
       await live.close();
+    }
+    for (final live in _statuses.values) {
+      await live.close();
+    }
+    for (final t in _typing.values) {
+      for (final timer in t.values) {
+        timer.cancel();
+      }
     }
     await _chatList.close();
     await _contactChanges.close();

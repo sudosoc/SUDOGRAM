@@ -418,4 +418,87 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get attachMedia => 'صور وفيديوهات';
+
+  @override
+  String get you => 'أنت';
+
+  @override
+  String get typing => 'بيكتب…';
+
+  @override
+  String get online => 'متصل';
+
+  @override
+  String get seenRecently => 'شوهد مؤخرًا';
+
+  @override
+  String get seenWeek => 'شوهد خلال الأسبوع';
+
+  @override
+  String get seenMonth => 'شوهد خلال الشهر';
+
+  @override
+  String seenAt(String time) {
+    return 'آخر ظهور $time';
+  }
+
+  @override
+  String get groupLabel => 'مجموعة';
+
+  @override
+  String get channelLabel => 'قناة';
+
+  @override
+  String get reply => 'رد';
+
+  @override
+  String get copy => 'نسخ';
+
+  @override
+  String get edit => 'تعديل';
+
+  @override
+  String get forward => 'تحويل';
+
+  @override
+  String get deleteForMe => 'حذف عندي';
+
+  @override
+  String get deleteForAll => 'حذف للجميع';
+
+  @override
+  String get deleteTitle => 'حذف الرسالة؟';
+
+  @override
+  String get cantPost => 'مينفعش تكتب هنا';
+
+  @override
+  String get forwardTo => 'حوّل إلى';
+
+  @override
+  String get today => 'النهاردة';
+
+  @override
+  String get yesterday => 'إمبارح';
+
+  @override
+  String get editingMessage => 'تعديل الرسالة';
+
+  @override
+  String get replyingTo => 'رد على';
+
+  @override
+  String get copied => 'اتنسخ';
+
+  @override
+  String get muted => 'مكتوم';
+
+  @override
+  String get photoLoading => 'بيتحمّل…';
+
+  @override
+  String get mediaMessage => 'رسالة';
+
+  @override
+  String get delete => 'حذف';
 }

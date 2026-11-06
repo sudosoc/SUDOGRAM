@@ -66,6 +66,21 @@ class ArchivingGateway implements TelegramGateway {
   Future<void> sendMedia(int chatId, List<String> paths, {String caption = ''}) =>
       _inner.sendMedia(chatId, paths, caption: caption);
   @override
+  Future<bool> loadOlder(int chatId) => _inner.loadOlder(chatId);
+  @override
+  Future<void> editText(int chatId, int messageId, String text) =>
+      _inner.editText(chatId, messageId, text);
+  @override
+  Future<void> deleteMessages(int chatId, List<int> ids, {bool forAll = false}) {
+    archive.forget(chatId, ids);
+    return _inner.deleteMessages(chatId, ids, forAll: forAll);
+  }
+  @override
+  Future<void> forwardMessages(int toChatId, int fromChatId, List<int> ids) =>
+      _inner.forwardMessages(toChatId, fromChatId, ids);
+  @override
+  Stream<ChatStatus> watchChatStatus(int chatId) => _inner.watchChatStatus(chatId);
+  @override
   Stream<ContactChange> contactChanges() => _inner.contactChanges();
   @override
   Future<void> submitPhone(String p) => _inner.submitPhone(p);
@@ -80,7 +95,8 @@ class ArchivingGateway implements TelegramGateway {
   @override
   Future<void> closeChat(int id) => _inner.closeChat(id);
   @override
-  Future<void> sendText(int id, String t) => _inner.sendText(id, t);
+  Future<void> sendText(int id, String t, {int replyTo = 0}) =>
+      _inner.sendText(id, t, replyTo: replyTo);
   @override
   Future<int> messageTextLimit() => _inner.messageTextLimit();
   @override

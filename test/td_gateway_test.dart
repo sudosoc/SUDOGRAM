@@ -221,4 +221,137 @@ void main() {
     expect(albums[0]['input_message_contents'][0]['caption']['text'], 'hi');
     expect(albums[1]['input_message_contents'][0]['caption']['text'], '');
   });
+
+  Map<String, dynamic> tmsg(int id, {bool out = false, int sender = 77, int reply = 0, String text = 't'}) => {
+        '@type': 'updateNewMessage',
+        'message': {
+          'id': id,
+          'chat_id': '5',
+          'is_outgoing': out,
+          'date': 1700000000 + id,
+          'sender_id': {'@type': 'messageSenderUser', 'user_id': sender},
+          if (reply != 0)
+            'reply_to': {'@type': 'messageReplyToMessage', 'message_id': reply},
+          'content': {
+            '@type': 'messageText',
+            'text': {'text': text}
+          },
+        }
+      };
+
+  test('chat type, mute, avatar, read ticks, sender names, replies', () async {
+    t.onRequest = (r) => {'@type': 'messages', 'messages': []};
+    t.push({
+      '@type': 'updateNewChat',
+      'chat': {
+        'id': '5',
+        'title': 'Group',
+        'type': {'@type': 'chatTypeSupergroup', 'is_channel': false},
+        'photo': {
+          'small': {'id': 9, 'size': 10, 'local': {'path': '', 'is_downloading_completed': false}}
+        },
+        'notification_settings': {'mute_for': 100},
+        'permissions': {'can_send_basic_messages': true},
+        'last_read_outbox_message_id': 2,
+        'positions': [
+          {'list': {'@type': 'chatListMain'}, 'order': '7'}
+        ],
+      }
+    });
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    final c = (await g.watchChats().first).single;
+    expect(c.type, ChatType.group);
+    expect(c.muted, isTrue);
+    expect(c.canSend, isTrue);
+    expect(c.avatar!.fileId, 9);
+    expect(t.sent.any((r) => r['@type'] == 'downloadFile' && r['file_id'] == 9), isTrue);
+
+    final seen = <List<ChatMessage>>[];
+    final sub = g.watchMessages(5).listen(seen.add);
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    t.push({
+      '@type': 'updateUser',
+      'user': {'id': '77', 'first_name': 'Sara', 'last_name': '', 'phone_number': ''}
+    });
+    t.push(tmsg(1, out: true));
+    t.push(tmsg(3, out: true, reply: 1));
+    t.push(tmsg(4));
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    var l = seen.last;
+    expect(l.firstWhere((m) => m.id == 4).senderName, 'Sara');
+    expect(l.firstWhere((m) => m.id == 1).read, isTrue); // <= last read outbox
+    expect(l.firstWhere((m) => m.id == 3).read, isFalse);
+    expect(l.firstWhere((m) => m.id == 3).replyToId, 1);
+    t.push({'@type': 'updateChatReadOutbox', 'chat_id': '5', 'last_read_outbox_message_id': 3});
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    expect(seen.last.firstWhere((m) => m.id == 3).read, isTrue);
+    await sub.cancel();
+  });
+
+  test('typing and last seen status', () async {
+    t.push({
+      '@type': 'updateNewChat',
+      'chat': {
+        'id': '9',
+        'title': 'Ali',
+        'type': {'@type': 'chatTypePrivate', 'user_id': 9},
+        'positions': [],
+      }
+    });
+    final statuses = <ChatStatus>[];
+    final sub = g.watchChatStatus(9).listen(statuses.add);
+    await Future<void>.delayed(Duration.zero);
+    t.push({'@type': 'updateUserStatus', 'user_id': 9, 'status': {'@type': 'userStatusOnline'}});
+    t.push({
+      '@type': 'updateChatAction',
+      'chat_id': '9',
+      'sender_id': {'@type': 'messageSenderUser', 'user_id': 9},
+      'action': {'@type': 'chatActionTyping'}
+    });
+    await Future<void>.delayed(Duration.zero);
+    expect(statuses.last.typing, isTrue);
+    expect(statuses.last.seen, SeenKind.online);
+    t.push({
+      '@type': 'updateChatAction',
+      'chat_id': '9',
+      'sender_id': {'@type': 'messageSenderUser', 'user_id': 9},
+      'action': {'@type': 'chatActionCancel'}
+    });
+    await Future<void>.delayed(Duration.zero);
+    expect(statuses.last.typing, isFalse);
+    await sub.cancel();
+  });
+
+  test('older history pages in, reply goes out, self-deleted incoming vanishes', () async {
+    t.onRequest = (r) {
+      if (r['@type'] == 'getChatHistory') {
+        if (r['from_message_id'] == 0) {
+          return {'@type': 'messages', 'messages': [
+          (tmsg(10)['message']), (tmsg(11)['message'])
+        ]};
+        }
+        return {'@type': 'messages', 'messages': [(tmsg(8)['message']), (tmsg(9)['message']), (tmsg(10)['message'])]};
+      }
+      return {'@type': 'ok'};
+    };
+    final seen = <List<ChatMessage>>[];
+    final sub = g.watchMessages(5).listen(seen.add);
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    expect(await g.loadOlder(5), isTrue);
+    await Future<void>.delayed(Duration.zero);
+    expect(seen.last.map((m) => m.id), [11, 10, 9, 8]);
+    expect(t.sent.where((r) => r['@type'] == 'getChatHistory').last['from_message_id'], 10);
+    t.onRequest = (r) => {'@type': 'messages', 'messages': []};
+    expect(await g.loadOlder(5), isFalse);
+
+    await g.sendText(5, 'yo', replyTo: 9);
+    expect(t.sent.last['reply_to']['message_id'], 9);
+
+    await g.deleteMessages(5, [9], forAll: true);
+    t.push({'@type': 'updateDeleteMessages', 'chat_id': '5', 'message_ids': [9], 'is_permanent': true});
+    await Future<void>.delayed(Duration.zero);
+    expect(seen.last.any((m) => m.id == 9), isFalse);
+    expect(t.sent.last['revoke'], isTrue);
+    await sub.cancel();
+  });
 }

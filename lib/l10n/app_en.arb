@@ -171,5 +171,39 @@
       }
     }
   },
-  "attachMedia": "Photos and videos"
+  "attachMedia": "Photos and videos",
+  "you": "You",
+  "typing": "typing…",
+  "online": "online",
+  "seenRecently": "last seen recently",
+  "seenWeek": "last seen within a week",
+  "seenMonth": "last seen within a month",
+  "seenAt": "last seen {time}",
+  "@seenAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "groupLabel": "group",
+  "channelLabel": "channel",
+  "reply": "Reply",
+  "copy": "Copy",
+  "edit": "Edit",
+  "forward": "Forward",
+  "deleteForMe": "Delete for me",
+  "deleteForAll": "Delete for everyone",
+  "deleteTitle": "Delete message?",
+  "cantPost": "You can't post here",
+  "forwardTo": "Forward to",
+  "today": "Today",
+  "yesterday": "Yesterday",
+  "editingMessage": "Editing message",
+  "replyingTo": "Replying to",
+  "copied": "Copied",
+  "muted": "Muted",
+  "photoLoading": "Loading…",
+  "mediaMessage": "Message",
+  "delete": "Delete"
 }

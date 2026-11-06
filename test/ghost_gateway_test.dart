@@ -27,7 +27,7 @@ class _Recorder implements TelegramGateway {
   @override
   Future<void> closeChat(int chatId) async => calls.add('close:$chatId');
   @override
-  Future<void> sendText(int chatId, String text) async =>
+  Future<void> sendText(int chatId, String text, {int replyTo = 0}) async =>
       calls.add('send:$chatId:$text');
   @override
   Future<int> messageTextLimit() async => 4096;
@@ -46,6 +46,16 @@ class _Recorder implements TelegramGateway {
   Future<void> sendFile(int chatId, String path, {String caption = ''}) async {}
   @override
   Future<void> sendMedia(int chatId, List<String> paths, {String caption = ''}) async {}
+  @override
+  Future<bool> loadOlder(int chatId) async => false;
+  @override
+  Future<void> editText(int chatId, int messageId, String text) async {}
+  @override
+  Future<void> deleteMessages(int chatId, List<int> ids, {bool forAll = false}) async {}
+  @override
+  Future<void> forwardMessages(int toChatId, int fromChatId, List<int> ids) async {}
+  @override
+  Stream<ChatStatus> watchChatStatus(int chatId) => const Stream.empty();
   @override
   Stream<ContactChange> contactChanges() => const Stream.empty();
 

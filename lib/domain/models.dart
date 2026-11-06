@@ -4,6 +4,8 @@ enum RiskLevel { none, safe, caution, danger }
 
 enum MessageKind { text, photo, video, voice, document, sticker, other }
 
+enum ChatType { private, group, channel, secret }
+
 class ChatSummary {
   const ChatSummary({
     required this.id,
@@ -14,6 +16,11 @@ class ChatSummary {
     required this.unread,
     this.order = 0,
     this.risk = RiskLevel.none,
+    this.type = ChatType.private,
+    this.avatar,
+    this.muted = false,
+    this.canSend = true,
+    this.lastOutgoing = false,
   });
 
   final int id;
@@ -26,6 +33,15 @@ class ChatSummary {
   /// Position in the main chat list (larger = higher).
   final int order;
   final RiskLevel risk;
+  final ChatType type;
+
+  /// Small profile photo (downloaded automatically when available).
+  final Attachment? avatar;
+  final bool muted;
+
+  /// False for channels and chats where we may not post.
+  final bool canSend;
+  final bool lastOutgoing;
 
   ChatSummary copyWith({
     String? title,
@@ -35,6 +51,7 @@ class ChatSummary {
     int? unread,
     int? order,
     RiskLevel? risk,
+    Attachment? avatar,
   }) {
     return ChatSummary(
       id: id,
@@ -45,6 +62,11 @@ class ChatSummary {
       unread: unread ?? this.unread,
       order: order ?? this.order,
       risk: risk ?? this.risk,
+      type: type,
+      avatar: avatar ?? this.avatar,
+      muted: muted,
+      canSend: canSend,
+      lastOutgoing: lastOutgoing,
     );
   }
 }
@@ -102,6 +124,12 @@ class ChatMessage {
     this.deletedByPeer = false,
     this.file,
     this.forwardedFrom,
+    this.senderId = 0,
+    this.senderName = '',
+    this.replyToId = 0,
+    this.thumb,
+    this.emoji = '',
+    this.read = false,
   });
 
   final int id;
@@ -119,6 +147,22 @@ class ChatMessage {
   /// Origin of a forwarded message: a user id, a chat id or a hidden name.
   final String? forwardedFrom;
 
+  /// Who sent it (user id, or chat id for channel posts) and their name.
+  final int senderId;
+  final String senderName;
+
+  /// Id of the message this one replies to (0 = not a reply).
+  final int replyToId;
+
+  /// Preview image (photo thumbnail, sticker, video cover).
+  final Attachment? thumb;
+
+  /// Emoji of a sticker.
+  final String emoji;
+
+  /// For outgoing messages: the other side has read it.
+  final bool read;
+
   ChatMessage copyWith({
     int? id,
     String? text,
@@ -126,6 +170,9 @@ class ChatMessage {
     bool? edited,
     bool? deletedByPeer,
     Attachment? file,
+    Attachment? thumb,
+    String? senderName,
+    bool? read,
   }) {
     return ChatMessage(
       id: id ?? this.id,
@@ -138,8 +185,41 @@ class ChatMessage {
       deletedByPeer: deletedByPeer ?? this.deletedByPeer,
       file: file ?? this.file,
       forwardedFrom: forwardedFrom,
+      senderId: senderId,
+      senderName: senderName ?? this.senderName,
+      replyToId: replyToId,
+      thumb: thumb ?? this.thumb,
+      emoji: emoji,
+      read: read ?? this.read,
     );
   }
+}
+
+/// Live state of a chat's header line: typing, online, last seen.
+enum SeenKind { unknown, online, recently, lastWeek, lastMonth, at }
+
+class ChatStatus {
+  const ChatStatus({
+    this.typing = false,
+    this.seen = SeenKind.unknown,
+    this.lastSeen,
+  });
+
+  final bool typing;
+  final SeenKind seen;
+  final DateTime? lastSeen;
+
+  static const none = ChatStatus();
+
+  @override
+  bool operator ==(Object other) =>
+      other is ChatStatus &&
+      other.typing == typing &&
+      other.seen == seen &&
+      other.lastSeen == lastSeen;
+
+  @override
+  int get hashCode => Object.hash(typing, seen, lastSeen);
 }
 
 enum AuthStep {

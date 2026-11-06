@@ -171,5 +171,39 @@
       }
     }
   },
-  "attachMedia": "صور وفيديوهات"
+  "attachMedia": "صور وفيديوهات",
+  "you": "أنت",
+  "typing": "بيكتب…",
+  "online": "متصل",
+  "seenRecently": "شوهد مؤخرًا",
+  "seenWeek": "شوهد خلال الأسبوع",
+  "seenMonth": "شوهد خلال الشهر",
+  "seenAt": "آخر ظهور {time}",
+  "@seenAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "groupLabel": "مجموعة",
+  "channelLabel": "قناة",
+  "reply": "رد",
+  "copy": "نسخ",
+  "edit": "تعديل",
+  "forward": "تحويل",
+  "deleteForMe": "حذف عندي",
+  "deleteForAll": "حذف للجميع",
+  "deleteTitle": "حذف الرسالة؟",
+  "cantPost": "مينفعش تكتب هنا",
+  "forwardTo": "حوّل إلى",
+  "today": "النهاردة",
+  "yesterday": "إمبارح",
+  "editingMessage": "تعديل الرسالة",
+  "replyingTo": "رد على",
+  "copied": "اتنسخ",
+  "muted": "مكتوم",
+  "photoLoading": "بيتحمّل…",
+  "mediaMessage": "رسالة",
+  "delete": "حذف"
 }

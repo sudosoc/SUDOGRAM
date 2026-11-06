@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../chat/avatar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
@@ -257,24 +258,8 @@ class _ChatRow extends ConsumerWidget {
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withValues(alpha: 0.12),
-                  border: _ring == null
-                      ? null
-                      : Border.all(color: _ring!, width: 2.5),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  chat.title.characters.isEmpty
-                      ? '?'
-                      : chat.title.characters.first.toUpperCase(),
-                  style: const TextStyle(fontSize: 18),
-                ),
-              ),
+              AvatarCircle(
+                  title: chat.title, photo: chat.avatar, ring: _ring),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -288,6 +273,24 @@ class _ChatRow extends ConsumerWidget {
                             style: const TextStyle(
                                 fontWeight: FontWeight.w600, fontSize: 16)),
                       ),
+                      if (chat.type == ChatType.group)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4),
+                          child: Icon(Icons.group_outlined,
+                              size: 14, color: GlassTokens.textSecondary),
+                        ),
+                      if (chat.type == ChatType.channel)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4),
+                          child: Icon(Icons.campaign_outlined,
+                              size: 14, color: GlassTokens.textSecondary),
+                        ),
+                      if (chat.muted)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4),
+                          child: Icon(Icons.volume_off,
+                              size: 13, color: GlassTokens.textSecondary),
+                        ),
                       if (pinned)
                         const Padding(
                           padding: EdgeInsets.symmetric(horizontal: 6),
