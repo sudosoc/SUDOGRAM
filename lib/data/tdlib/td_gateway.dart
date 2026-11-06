@@ -15,6 +15,7 @@ class _Chat {
   int order = 0; // position in the main chat list; 0 = not listed
   int archiveOrder = 0;
   int unread = 0;
+  bool markedUnread = false;
   Map<String, dynamic>? last;
   ChatType type = ChatType.private;
   int userId = 0; // for private chats
@@ -148,6 +149,9 @@ class TdlibGateway implements TelegramGateway {
         _scheduleChatEmit();
       case 'updateChatReadInbox':
         _chat(asInt(u['chat_id'])).unread = asInt(u['unread_count']);
+        _scheduleChatEmit();
+      case 'updateChatIsMarkedAsUnread':
+        _chat(asInt(u['chat_id'])).markedUnread = u['is_marked_as_unread'] == true;
         _scheduleChatEmit();
       case 'updateChatTitle':
         _chat(asInt(u['chat_id'])).title = (u['title'] ?? '').toString();
@@ -452,6 +456,7 @@ class TdlibGateway implements TelegramGateway {
     final chat = _chat(asInt(c['id']));
     chat.title = (c['title'] ?? chat.title).toString();
     chat.unread = asInt(c['unread_count'], chat.unread);
+    chat.markedUnread = c['is_marked_as_unread'] == true;
     if (c.containsKey('last_message')) {
       chat.last = (c['last_message'] as Map?)?.cast<String, dynamic>();
     }
@@ -610,6 +615,7 @@ class TdlibGateway implements TelegramGateway {
       lastKind: content.kind,
       lastTime: c.last == null ? null : _time(c.last!['date']),
       unread: c.unread,
+      markedUnread: c.markedUnread,
       order: c.order,
       type: c.type,
       avatar: c.avatar,
@@ -1899,6 +1905,49 @@ class TdlibGateway implements TelegramGateway {
       'chat_id': chatId,
       'message_ids': [messageId],
     });
+  }
+
+  @override
+  Future<void> markUnread(int chatId, bool unread) async {
+    await _td.request({
+      '@type': 'toggleChatIsMarkedAsUnread',
+      'chat_id': chatId,
+      'is_marked_as_unread': unread,
+    });
+  }
+
+  @override
+  Future<void> scheduleText(int chatId, String text, DateTime at) async {
+    await _td.request({
+      '@type': 'sendMessage',
+      'chat_id': chatId,
+      'options': {
+        '@type': 'messageSendOptions',
+        'scheduling_state': {
+          '@type': 'messageSchedulingStateSendAtDate',
+          'send_date': at.millisecondsSinceEpoch ~/ 1000,
+          'repeat_period': 0,
+        },
+      },
+      'input_message_content': {
+        '@type': 'inputMessageText',
+        'text': {'@type': 'formattedText', 'text': text},
+      },
+    });
+  }
+
+  @override
+  Future<List<ChatMessage>> scheduledMessages(int chatId) async {
+    try {
+      final r = await _td.request(
+          {'@type': 'getChatScheduledMessages', 'chat_id': chatId});
+      return [
+        for (final m in (r['messages'] as List? ?? const []).whereType<Map>())
+          _parseMessage(Map<String, dynamic>.from(m))
+      ];
+    } on TdError {
+      return const [];
+    }
   }
 
   @override

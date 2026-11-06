@@ -595,4 +595,25 @@ void main() {
     expect(sent, ['resendMessages']);
     await sub.cancel();
   });
+
+  test('mark unread and scheduled text requests are well-formed', () async {
+    final sent = <Map<String, dynamic>>[];
+    t.onRequest = (r) {
+      sent.add(r);
+      if (r['@type'] == 'getChatScheduledMessages') {
+        return {'@type': 'messages', 'total_count': 0, 'messages': []};
+      }
+      return {'@type': 'ok'};
+    };
+    await g.markUnread(5, true);
+    await g.scheduleText(5, 'hi', DateTime.fromMillisecondsSinceEpoch(2000000000 * 1000));
+    await g.scheduledMessages(5);
+    expect(sent[0]['@type'], 'toggleChatIsMarkedAsUnread');
+    expect(sent[0]['is_marked_as_unread'], isTrue);
+    final opts = sent[1]['options'] as Map;
+    final st = opts['scheduling_state'] as Map;
+    expect(st['@type'], 'messageSchedulingStateSendAtDate');
+    expect(st['send_date'], 2000000000);
+    expect(sent[2]['@type'], 'getChatScheduledMessages');
+  });
 }

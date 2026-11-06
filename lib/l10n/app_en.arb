@@ -352,5 +352,19 @@
   "share": "Share",
   "resend": "Resend",
   "sendingFailed": "Failed to send",
-  "jumpToLatest": "Latest"
+  "jumpToLatest": "Latest",
+  "markUnread": "Mark as unread",
+  "markRead": "Mark as read",
+  "scheduleSend": "Schedule message",
+  "scheduledMessages": "Scheduled messages",
+  "noScheduled": "No scheduled messages",
+  "scheduledFor": "Scheduled for {t}",
+  "@scheduledFor": {
+    "placeholders": {
+      "t": {
+        "type": "String"
+      }
+    }
+  },
+  "pickTime": "Pick a time in the future"
 }

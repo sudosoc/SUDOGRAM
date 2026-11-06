@@ -850,4 +850,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get jumpToLatest => 'Latest';
+
+  @override
+  String get markUnread => 'Mark as unread';
+
+  @override
+  String get markRead => 'Mark as read';
+
+  @override
+  String get scheduleSend => 'Schedule message';
+
+  @override
+  String get scheduledMessages => 'Scheduled messages';
+
+  @override
+  String get noScheduled => 'No scheduled messages';
+
+  @override
+  String scheduledFor(String t) {
+    return 'Scheduled for $t';
+  }
+
+  @override
+  String get pickTime => 'Pick a time in the future';
 }

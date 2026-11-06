@@ -176,5 +176,11 @@ abstract class TelegramGateway {
   /// Retries a message that failed to send.
   Future<void> resend(int chatId, int messageId);
 
+  Future<void> markUnread(int chatId, bool unread);
+
+  /// Sends [text] at [at] (server-side scheduling).
+  Future<void> scheduleText(int chatId, String text, DateTime at);
+  Future<List<ChatMessage>> scheduledMessages(int chatId);
+
   Future<void> dispose();
 }

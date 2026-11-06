@@ -55,6 +55,48 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   bool _searching = false;
   final Set<int> _selected = {};
   bool _showJump = false;
+  final Map<int, GlobalKey> _keys = {};
+  int? _highlight;
+
+  /// Scrolls to [id], loading older history first when it isn't loaded yet.
+  Future<void> _jumpTo(int id) async {
+    for (var tries = 0; tries < 12; tries++) {
+      final list = ref.read(messagesProvider(widget.chat.id)).value ??
+          const <ChatMessage>[];
+      final idx = list.indexWhere((m) => m.id == id);
+      if (idx >= 0) {
+        final ctx = _keys[id]?.currentContext;
+        if (ctx != null) {
+          // ignore: use_build_context_synchronously
+          await Scrollable.ensureVisible(ctx,
+              duration: const Duration(milliseconds: 300), alignment: 0.5);
+        } else if (_scroll.hasClients) {
+          // not built yet: move close, then retry once the item exists
+          await _scroll.animateTo(
+              (idx * 90.0).clamp(0, _scroll.position.maxScrollExtent),
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOut);
+          await Future<void>.delayed(const Duration(milliseconds: 60));
+          final c2 = _keys[id]?.currentContext;
+          if (c2 != null) {
+            // ignore: use_build_context_synchronously
+            await Scrollable.ensureVisible(c2,
+                duration: const Duration(milliseconds: 200), alignment: 0.5);
+          }
+        }
+        if (!mounted) return;
+        setState(() => _highlight = id);
+        Future<void>.delayed(const Duration(seconds: 2), () {
+          if (mounted && _highlight == id) setState(() => _highlight = null);
+        });
+        return;
+      }
+      final more = await _gateway.loadOlder(widget.chat.id);
+      if (!more) return;
+      await Future<void>.delayed(const Duration(milliseconds: 120));
+    }
+  }
+
   List<MentionCandidate> _mentions = const [];
   List<ChatMessage>? _hits;
   ChatMessage? _pinned;
@@ -203,6 +245,68 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     await _sendPaths([x.path]);
   }
 
+  Future<void> _scheduleSend() async {
+    final l = AppLocalizations.of(context);
+    final text = _c.text.trim();
+    if (text.isEmpty || _editing != null) return;
+    final now = DateTime.now();
+    final d = await showDatePicker(
+        context: context,
+        initialDate: now,
+        firstDate: now,
+        lastDate: now.add(const Duration(days: 365)));
+    if (d == null || !mounted) return;
+    final t = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(now.add(const Duration(minutes: 5))));
+    if (t == null || !mounted) return;
+    final at = DateTime(d.year, d.month, d.day, t.hour, t.minute);
+    if (!at.isAfter(now.add(const Duration(seconds: 30)))) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l.pickTime)));
+      return;
+    }
+    await _safe(() => _gateway.scheduleText(widget.chat.id, text, at));
+    _c.clear();
+    DraftStore.set(widget.chat.id, '');
+    setState(() {});
+  }
+
+  Future<void> _showScheduled() async {
+    final l = AppLocalizations.of(context);
+    final list = await _gateway.scheduledMessages(widget.chat.id);
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(l.scheduledMessages),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: list.isEmpty
+              ? Text(l.noScheduled)
+              : ListView(shrinkWrap: true, children: [
+                  for (final m in list)
+                    ListTile(
+                      title: Text(m.text.isEmpty ? kindLabel(l, m.kind) : m.text,
+                          maxLines: 2, overflow: TextOverflow.ellipsis),
+                      subtitle: Text(l.scheduledFor(
+                          '${m.time.day}/${m.time.month} ${m.time.hour.toString().padLeft(2, '0')}:${m.time.minute.toString().padLeft(2, '0')}')),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.delete_outline),
+                        onPressed: () async {
+                          await _gateway.deleteMessages(widget.chat.id, [m.id],
+                              forAll: true);
+                          // ignore: use_build_context_synchronously
+                          if (context.mounted) Navigator.pop(context);
+                        },
+                      ),
+                    ),
+                ]),
+        ),
+      ),
+    );
+  }
+
   Future<void> _newPoll() async {
     final l = AppLocalizations.of(context);
     final q = TextEditingController();
@@ -324,6 +428,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 () => _pickCamera(video: true)),
             item(Icons.attach_file, l.fileLabel, () => _safe(_attach)),
             item(Icons.poll_outlined, l.createPoll, _newPoll),
+            item(Icons.schedule_send_outlined, l.scheduledMessages, _showScheduled),
             item(Icons.location_on_outlined, l.location, () => _safe(_shareLocation)),
             item(Icons.contact_page_outlined, l.contactLabel, _shareContact),
           ]),
@@ -908,7 +1013,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 ),
               ),
             if (_pinned != null && !_searching)
-              Padding(
+              GestureDetector(
+                onTap: () => _jumpTo(_pinned!.id),
+                child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
                 child: GlassSurface(
                   radius: 14,
@@ -928,7 +1035,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     ),
                   ]),
                 ),
-              ),
+              )),
             if (ghost)
               Padding(
                 padding: const EdgeInsets.only(bottom: 4),
@@ -969,8 +1076,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                     fontSize: 12,
                                     color: GlassTokens.textSecondary)),
                           ),
-                        _Bubble(
+                        KeyedSubtree(
+                          key: _keys.putIfAbsent(m.id, GlobalKey.new),
+                          child: _Bubble(
                           m: m,
+                          onJump: () => _jumpTo(m.replyToId),
                           showSender: widget.chat.type == ChatType.group &&
                               !m.outgoing,
                           replied: m.replyToId != 0 ? byId[m.replyToId] : null,
@@ -981,14 +1091,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           onVote: (ids) =>
                               _gateway.votePoll(widget.chat.id, m.id, ids),
                           onLongPress: () => _actions(m),
-                          selected: _selected.contains(m.id),
+                          selected:
+                              _selected.contains(m.id) || _highlight == m.id,
                           selecting: _selected.isNotEmpty,
                           onTapSelect: () => setState(() {
                             _selected.contains(m.id)
                                 ? _selected.remove(m.id)
                                 : _selected.add(m.id);
                           }),
-                        ),
+                        )),
                       ]);
                     },
                   );
@@ -1133,10 +1244,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         onPressed: _startRecording,
                       )
                     else
-                      IconButton(
-                        tooltip: l.send,
-                        icon: const Icon(Icons.send_rounded),
-                        onPressed: () => _safe(_send),
+                      GestureDetector(
+                        onLongPress: _scheduleSend,
+                        child: IconButton(
+                          tooltip: l.send,
+                          icon: const Icon(Icons.send_rounded),
+                          onPressed: () => _safe(_send),
+                        ),
                       ),
                   ]),
                 ),
@@ -1159,6 +1273,7 @@ class _Bubble extends StatelessWidget {
     required this.onOpen,
     required this.onVote,
     required this.onTapSelect,
+    required this.onJump,
     this.selected = false,
     this.selecting = false,
     this.forwardLabel,
@@ -1176,6 +1291,7 @@ class _Bubble extends StatelessWidget {
   final void Function(List<int>) onVote;
   final VoidCallback onLongPress;
   final VoidCallback onTapSelect;
+  final VoidCallback onJump;
   final bool selected;
   final bool selecting;
 
@@ -1241,7 +1357,9 @@ class _Bubble extends StatelessWidget {
                     style: const TextStyle(
                         fontSize: 11, color: GlassTokens.ghost)),
               if (m.replyToId != 0)
-                Container(
+                GestureDetector(
+                  onTap: onJump,
+                  child: Container(
                   margin: const EdgeInsets.only(bottom: 4, top: 2),
                   padding: const EdgeInsetsDirectional.only(start: 8),
                   decoration: BoxDecoration(
@@ -1258,7 +1376,7 @@ class _Bubble extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                           fontSize: 12.5, color: GlassTokens.textSecondary)),
-                ),
+                )),
               if (isVisual)
                 GestureDetector(
                   onTap: onOpen,

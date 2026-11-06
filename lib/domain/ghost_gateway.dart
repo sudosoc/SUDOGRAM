@@ -272,6 +272,18 @@ class GhostGateway implements TelegramGateway {
   Future<void> resend(int chatId, int messageId) => _inner.resend(chatId, messageId);
 
   @override
+  Future<void> markUnread(int chatId, bool unread) =>
+      _inner.markUnread(chatId, unread);
+
+  @override
+  Future<void> scheduleText(int chatId, String text, DateTime at) =>
+      _inner.scheduleText(chatId, text, at);
+
+  @override
+  Future<List<ChatMessage>> scheduledMessages(int chatId) =>
+      _inner.scheduledMessages(chatId);
+
+  @override
   Future<void> forwardMessages(int toChatId, int fromChatId, List<int> ids) =>
       _inner.forwardMessages(toChatId, fromChatId, ids);
   @override

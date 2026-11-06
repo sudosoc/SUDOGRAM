@@ -72,6 +72,19 @@ void showChatActions(BuildContext context, WidgetRef ref, ChatSummary chat) {
                   Navigator.pop(sheet);
                 },
               ),
+              if (chat.unread == 0)
+                ListTile(
+                  leading: Icon(chat.markedUnread
+                      ? Icons.mark_chat_read_outlined
+                      : Icons.mark_chat_unread_outlined),
+                  title: Text(chat.markedUnread ? l.markRead : l.markUnread),
+                  onTap: () {
+                    ref
+                        .read(gatewayProvider)
+                        .markUnread(chat.id, !chat.markedUnread);
+                    Navigator.pop(sheet);
+                  },
+                ),
               ListTile(
                 leading: Icon(chat.muted ? Icons.volume_up_outlined : Icons.volume_off_outlined),
                 title: Text(chat.muted ? l.unmute : l.mute),

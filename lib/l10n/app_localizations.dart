@@ -1711,6 +1711,48 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'الأحدث'**
   String get jumpToLatest;
+
+  /// No description provided for @markUnread.
+  ///
+  /// In ar, this message translates to:
+  /// **'تحديد كغير مقروء'**
+  String get markUnread;
+
+  /// No description provided for @markRead.
+  ///
+  /// In ar, this message translates to:
+  /// **'تحديد كمقروء'**
+  String get markRead;
+
+  /// No description provided for @scheduleSend.
+  ///
+  /// In ar, this message translates to:
+  /// **'جدولة الرسالة'**
+  String get scheduleSend;
+
+  /// No description provided for @scheduledMessages.
+  ///
+  /// In ar, this message translates to:
+  /// **'الرسايل المجدولة'**
+  String get scheduledMessages;
+
+  /// No description provided for @noScheduled.
+  ///
+  /// In ar, this message translates to:
+  /// **'مفيش رسايل مجدولة'**
+  String get noScheduled;
+
+  /// No description provided for @scheduledFor.
+  ///
+  /// In ar, this message translates to:
+  /// **'مجدولة في {t}'**
+  String scheduledFor(String t);
+
+  /// No description provided for @pickTime.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختار وقت في المستقبل'**
+  String get pickTime;
 }
 
 class _AppLocalizationsDelegate

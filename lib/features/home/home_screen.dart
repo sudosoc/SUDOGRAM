@@ -404,6 +404,16 @@ class _ChatRow extends ConsumerWidget {
                     Text(_fmtTime(chat.lastTime!),
                         style: const TextStyle(
                             fontSize: 12, color: GlassTokens.textTertiary)),
+                  if (chat.unread == 0 && chat.markedUnread)
+                    Container(
+                      margin: const EdgeInsets.only(top: 6),
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: GlassScope.of(context).accent,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
                   if (chat.unread > 0)
                     Container(
                       margin: const EdgeInsets.only(top: 4),

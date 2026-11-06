@@ -352,5 +352,19 @@
   "share": "مشاركة",
   "resend": "إعادة الإرسال",
   "sendingFailed": "فشل الإرسال",
-  "jumpToLatest": "الأحدث"
+  "jumpToLatest": "الأحدث",
+  "markUnread": "تحديد كغير مقروء",
+  "markRead": "تحديد كمقروء",
+  "scheduleSend": "جدولة الرسالة",
+  "scheduledMessages": "الرسايل المجدولة",
+  "noScheduled": "مفيش رسايل مجدولة",
+  "scheduledFor": "مجدولة في {t}",
+  "@scheduledFor": {
+    "placeholders": {
+      "t": {
+        "type": "String"
+      }
+    }
+  },
+  "pickTime": "اختار وقت في المستقبل"
 }

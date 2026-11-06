@@ -104,6 +104,12 @@ class _Recorder implements TelegramGateway {
   @override
   Future<void> resend(int chatId, int messageId) async {}
   @override
+  Future<void> markUnread(int chatId, bool unread) async {}
+  @override
+  Future<void> scheduleText(int chatId, String text, DateTime at) async {}
+  @override
+  Future<List<ChatMessage>> scheduledMessages(int chatId) async => const [];
+  @override
   bool get isDemo => true;
   @override
   Stream<AuthState> get authState => const Stream.empty();

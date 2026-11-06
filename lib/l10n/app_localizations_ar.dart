@@ -850,4 +850,27 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get jumpToLatest => 'الأحدث';
+
+  @override
+  String get markUnread => 'تحديد كغير مقروء';
+
+  @override
+  String get markRead => 'تحديد كمقروء';
+
+  @override
+  String get scheduleSend => 'جدولة الرسالة';
+
+  @override
+  String get scheduledMessages => 'الرسايل المجدولة';
+
+  @override
+  String get noScheduled => 'مفيش رسايل مجدولة';
+
+  @override
+  String scheduledFor(String t) {
+    return 'مجدولة في $t';
+  }
+
+  @override
+  String get pickTime => 'اختار وقت في المستقبل';
 }

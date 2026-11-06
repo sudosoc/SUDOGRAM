@@ -22,6 +22,7 @@ class ChatSummary {
     this.canSend = true,
     this.lastOutgoing = false,
     this.archived = false,
+    this.markedUnread = false,
   });
 
   final int id;
@@ -44,6 +45,7 @@ class ChatSummary {
   final bool canSend;
   final bool lastOutgoing;
   final bool archived;
+  final bool markedUnread;
 
   ChatSummary copyWith({
     String? title,
@@ -70,6 +72,7 @@ class ChatSummary {
       canSend: canSend,
       lastOutgoing: lastOutgoing,
       archived: archived,
+      markedUnread: markedUnread,
     );
   }
 }
