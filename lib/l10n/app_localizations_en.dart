@@ -589,4 +589,68 @@ class AppLocalizationsEn extends AppLocalizations {
   String votesCount(String n) {
     return '$n votes';
   }
+
+  @override
+  String get privacy => 'Privacy';
+
+  @override
+  String get privPhone => 'Who can see my phone number';
+
+  @override
+  String get privSeen => 'Who can see my last seen';
+
+  @override
+  String get privPhoto => 'Who can see my profile photo';
+
+  @override
+  String get privCalls => 'Who can call me';
+
+  @override
+  String get privInvites => 'Who can add me to groups';
+
+  @override
+  String get privForwards => 'Link to my account on forwarded messages';
+
+  @override
+  String get everybody => 'Everybody';
+
+  @override
+  String get myContacts => 'My contacts';
+
+  @override
+  String get nobody => 'Nobody';
+
+  @override
+  String get secretChat => 'Start secret chat';
+
+  @override
+  String get secretNote => 'End-to-end encrypted. Only on this device.';
+
+  @override
+  String get selfDestruct => 'Self-destruct timer';
+
+  @override
+  String get timerOff => 'Off';
+
+  @override
+  String get timer1m => '1 minute';
+
+  @override
+  String get timer1h => '1 hour';
+
+  @override
+  String get timer1d => '1 day';
+
+  @override
+  String get backgroundTitle => 'Allow background activity';
+
+  @override
+  String get backgroundBody =>
+      'To show new messages when the app is closed, SUDOGRAM must keep running in the background. Please allow it on the next screen.';
+
+  @override
+  String get later => 'Later';
+
+  @override
+  String get allow => 'Allow';
 }

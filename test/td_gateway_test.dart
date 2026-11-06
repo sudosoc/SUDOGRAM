@@ -441,4 +441,35 @@ void main() {
     expect(poll.options.first.chosen, isTrue);
     await sub.cancel();
   });
+
+  test('privacy rules map both ways; mention search skips users without username', () async {
+    final sent = <Map<String, dynamic>>[];
+    t.onRequest = (r) {
+      sent.add(r);
+      switch (r['@type']) {
+        case 'getUserPrivacySettingRules':
+          return {'@type': 'userPrivacySettingRules', 'rules': [
+            {'@type': 'userPrivacySettingRuleAllowContacts'}
+          ]};
+        case 'searchChatMembers':
+          return {'@type': 'chatMembers', 'members': [
+            {'member_id': {'@type': 'messageSenderUser', 'user_id': 1}},
+            {'member_id': {'@type': 'messageSenderUser', 'user_id': 2}},
+          ]};
+        case 'getUser':
+          return {
+            '@type': 'user', 'id': r['user_id'], 'first_name': 'N${r['user_id']}',
+            'usernames': r['user_id'] == 1 ? {'active_usernames': ['bob']} : {'active_usernames': []},
+          };
+      }
+      return {'@type': 'ok'};
+    };
+    expect(await g.getPrivacy('seen'), 'contacts');
+    await g.setPrivacy('seen', 'nobody');
+    final set = sent.firstWhere((r) => r['@type'] == 'setUserPrivacySettingRules');
+    expect(((set['rules'] as Map)['rules'] as List).single['@type'],
+        'userPrivacySettingRuleRestrictAll');
+    final m = await g.searchMembers(1, 'b');
+    expect(m.map((e) => e.username), ['bob']);
+  });
 }

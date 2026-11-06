@@ -344,3 +344,11 @@ class DeviceSession {
   final DateTime lastActive;
   final bool current;
 }
+
+
+class MentionCandidate {
+  const MentionCandidate(this.id, this.name, this.username);
+  final int id;
+  final String name;
+  final String username;
+}

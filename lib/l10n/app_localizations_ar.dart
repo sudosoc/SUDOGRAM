@@ -589,4 +589,68 @@ class AppLocalizationsAr extends AppLocalizations {
   String votesCount(String n) {
     return '$n صوت';
   }
+
+  @override
+  String get privacy => 'الخصوصية';
+
+  @override
+  String get privPhone => 'مين يشوف رقمي';
+
+  @override
+  String get privSeen => 'مين يشوف آخر ظهور';
+
+  @override
+  String get privPhoto => 'مين يشوف صورتي';
+
+  @override
+  String get privCalls => 'مين يقدر يكلمني';
+
+  @override
+  String get privInvites => 'مين يضيفني في مجموعات';
+
+  @override
+  String get privForwards => 'رابط حسابي في الرسايل المحولة';
+
+  @override
+  String get everybody => 'الكل';
+
+  @override
+  String get myContacts => 'جهات اتصالي';
+
+  @override
+  String get nobody => 'محدش';
+
+  @override
+  String get secretChat => 'بدء شات سري';
+
+  @override
+  String get secretNote => 'مشفر من طرف لطرف. على الجهاز ده بس.';
+
+  @override
+  String get selfDestruct => 'مؤقت الحذف التلقائي';
+
+  @override
+  String get timerOff => 'متوقف';
+
+  @override
+  String get timer1m => 'دقيقة';
+
+  @override
+  String get timer1h => 'ساعة';
+
+  @override
+  String get timer1d => 'يوم';
+
+  @override
+  String get backgroundTitle => 'السماح بالعمل في الخلفية';
+
+  @override
+  String get backgroundBody =>
+      'عشان تظهرلك الرسايل الجديدة والتطبيق مقفول، لازم SUDOGRAM يفضل شغال في الخلفية. وافق في الشاشة الجاية.';
+
+  @override
+  String get later => 'بعدين';
+
+  @override
+  String get allow => 'سماح';
 }

@@ -148,6 +148,25 @@ class GhostGateway implements TelegramGateway {
       _inner.createGroup(title, userIds);
 
   @override
+  Future<List<MentionCandidate>> searchMembers(int chatId, String query) =>
+      _inner.searchMembers(chatId, query);
+
+  @override
+  Future<String> getPrivacy(String key) => _inner.getPrivacy(key);
+
+  @override
+  Future<void> setPrivacy(String key, String value) =>
+      _inner.setPrivacy(key, value);
+
+  @override
+  Future<ChatSummary?> createSecretChat(int userId) =>
+      _inner.createSecretChat(userId);
+
+  @override
+  Future<void> setAutoDelete(int chatId, int seconds) =>
+      _inner.setAutoDelete(chatId, seconds);
+
+  @override
   Future<void> forwardMessages(int toChatId, int fromChatId, List<int> ids) =>
       _inner.forwardMessages(toChatId, fromChatId, ids);
   @override

@@ -1249,6 +1249,114 @@ class TdlibGateway implements TelegramGateway {
   }
 
   @override
+  Future<List<MentionCandidate>> searchMembers(int chatId, String query) async {
+    try {
+      final r = await _td.request({
+        '@type': 'searchChatMembers',
+        'chat_id': chatId,
+        'query': query,
+        'limit': 8,
+        'filter': {'@type': 'chatMembersFilterMembers'},
+      });
+      final out = <MentionCandidate>[];
+      for (final m in (r['members'] as List? ?? const []).whereType<Map>()) {
+        final id = asInt((m['member_id'] as Map?)?['user_id']);
+        if (id == 0) continue;
+        if (_users[id] == null) {
+          try {
+            _onUser(Map<String, dynamic>.from(
+                await _td.request({'@type': 'getUser', 'user_id': id})));
+          } on TdError {
+            continue;
+          }
+        }
+        final u = _users[id]!;
+        if ((u['username'] ?? '').isEmpty) continue; // plain @mention needs one
+        out.add(MentionCandidate(id, u['name'] ?? '', u['username']!));
+      }
+      return out;
+    } on TdError {
+      return const [];
+    }
+  }
+
+  static const _privacyKinds = {
+    'phone': 'userPrivacySettingShowPhoneNumber',
+    'seen': 'userPrivacySettingShowStatus',
+    'photo': 'userPrivacySettingShowProfilePicture',
+    'calls': 'userPrivacySettingAllowCalls',
+    'invites': 'userPrivacySettingAllowChatInvitations',
+    'forwards': 'userPrivacySettingShowLinkInForwardedMessages',
+  };
+
+  @override
+  Future<String> getPrivacy(String key) async {
+    final type = _privacyKinds[key];
+    if (type == null) return 'everybody';
+    try {
+      final r = await _td.request({
+        '@type': 'getUserPrivacySettingRules',
+        'setting': {'@type': type},
+      });
+      for (final rule in (r['rules'] as List? ?? const []).whereType<Map>()) {
+        switch (rule['@type']) {
+          case 'userPrivacySettingRuleAllowAll':
+            return 'everybody';
+          case 'userPrivacySettingRuleAllowContacts':
+            return 'contacts';
+          case 'userPrivacySettingRuleRestrictAll':
+            return 'nobody';
+        }
+      }
+      return 'nobody';
+    } on TdError {
+      return 'everybody';
+    }
+  }
+
+  @override
+  Future<void> setPrivacy(String key, String value) async {
+    final type = _privacyKinds[key];
+    if (type == null) return;
+    final rule = switch (value) {
+      'contacts' => 'userPrivacySettingRuleAllowContacts',
+      'nobody' => 'userPrivacySettingRuleRestrictAll',
+      _ => 'userPrivacySettingRuleAllowAll',
+    };
+    try {
+      await _td.request({
+        '@type': 'setUserPrivacySettingRules',
+        'setting': {'@type': type},
+        'rules': {
+          '@type': 'userPrivacySettingRules',
+          'rules': [
+            {'@type': rule}
+          ],
+        },
+      });
+    } on TdError {
+      // rejected by the server
+    }
+  }
+
+  @override
+  Future<ChatSummary?> createSecretChat(int userId) =>
+      _chatFor({'@type': 'createNewSecretChat', 'user_id': userId});
+
+  @override
+  Future<void> setAutoDelete(int chatId, int seconds) async {
+    try {
+      await _td.request({
+        '@type': 'setChatMessageAutoDeleteTime',
+        'chat_id': chatId,
+        'message_auto_delete_time': seconds,
+      });
+    } on TdError {
+      // not allowed in this chat
+    }
+  }
+
+  @override
   Future<void> forwardMessages(
       int toChatId, int fromChatId, List<int> ids) async {
     await _td.request({

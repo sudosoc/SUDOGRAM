@@ -247,5 +247,26 @@
         "type": "String"
       }
     }
-  }
+  },
+  "privacy": "Privacy",
+  "privPhone": "Who can see my phone number",
+  "privSeen": "Who can see my last seen",
+  "privPhoto": "Who can see my profile photo",
+  "privCalls": "Who can call me",
+  "privInvites": "Who can add me to groups",
+  "privForwards": "Link to my account on forwarded messages",
+  "everybody": "Everybody",
+  "myContacts": "My contacts",
+  "nobody": "Nobody",
+  "secretChat": "Start secret chat",
+  "secretNote": "End-to-end encrypted. Only on this device.",
+  "selfDestruct": "Self-destruct timer",
+  "timerOff": "Off",
+  "timer1m": "1 minute",
+  "timer1h": "1 hour",
+  "timer1d": "1 day",
+  "backgroundTitle": "Allow background activity",
+  "backgroundBody": "To show new messages when the app is closed, SUDOGRAM must keep running in the background. Please allow it on the next screen.",
+  "later": "Later",
+  "allow": "Allow"
 }

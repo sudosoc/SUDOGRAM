@@ -86,3 +86,21 @@ class DownloadKeepAlive {
 
   void dispose() => pending.removeListener(_sync);
 }
+
+/// Asks Android to exempt the app from battery optimisation so the
+/// connection (and therefore notifications) survives in the background.
+Future<bool> backgroundAllowed() async {
+  try {
+    return await FlutterForegroundTask.isIgnoringBatteryOptimizations;
+  } catch (_) {
+    return true;
+  }
+}
+
+Future<void> requestBackground() async {
+  try {
+    await FlutterForegroundTask.requestIgnoreBatteryOptimization();
+  } catch (e) {
+    debugPrint('battery exemption request failed: $e');
+  }
+}

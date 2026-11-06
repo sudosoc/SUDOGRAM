@@ -43,6 +43,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   ChatMessage? _editing;
   bool _loadingOlder = false;
   bool _searching = false;
+  List<MentionCandidate> _mentions = const [];
   List<ChatMessage>? _hits;
   ChatMessage? _pinned;
   int _lastReadSig = 0;
@@ -96,7 +97,26 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _gateway.markRead(widget.chat.id, ids.take(50).toList());
   }
 
+  Future<void> _updateMentions(String v) async {
+    if (widget.chat.type != ChatType.group) return;
+    final m = RegExp(r'(?:^|\s)@(\w{0,32})$').firstMatch(v);
+    if (m == null) {
+      if (_mentions.isNotEmpty) setState(() => _mentions = const []);
+      return;
+    }
+    final r = await _gateway.searchMembers(widget.chat.id, m.group(1)!);
+    if (mounted) setState(() => _mentions = r);
+  }
+
+  void _pickMention(MentionCandidate c) {
+    final t = _c.text.replaceFirst(RegExp(r'@\w*$'), '@${c.username} ');
+    _c.value = TextEditingValue(
+        text: t, selection: TextSelection.collapsed(offset: t.length));
+    setState(() => _mentions = const []);
+  }
+
   void _onChanged(String v) {
+    _updateMentions(v);
     // Typing indicator goes through the Ghost guard; in ghost mode it's dropped.
     if (v.isNotEmpty) _gateway.sendTyping(widget.chat.id);
     final n = v.isEmpty ? 1 : SmartSplitter.countParts(v, SplitOptions(maxLength: _limit));
@@ -233,7 +253,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   _c.text = m.text;
                 });
               }),
-            if (!m.deletedByPeer)
+            if (!m.deletedByPeer && widget.chat.type != ChatType.secret)
               item(Icons.shortcut, l.forward, () => _pickForward(m, chats)),
             if (m.edited)
               item(Icons.history, l.editHistory, () => _showEdits(context, m)),
@@ -349,7 +369,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         final mm = t.minute.toString().padLeft(2, '0');
         return l.seenAt('${t.day}/${t.month} $hh:$mm');
       case SeenKind.unknown:
-        return widget.chat.type == ChatType.group
+        return widget.chat.type == ChatType.secret
+            ? l.secretChat
+            : widget.chat.type == ChatType.group
             ? l.groupLabel
             : widget.chat.type == ChatType.channel
                 ? l.channelLabel
@@ -605,6 +627,24 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         style: const TextStyle(
                             fontSize: 12, color: GlassTokens.textSecondary)),
                   ),
+                if (_mentions.isNotEmpty)
+                  SizedBox(
+                    height: 44,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      children: [
+                        for (final c in _mentions)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 6),
+                            child: ActionChip(
+                              avatar: AvatarCircle(title: c.name, size: 24),
+                              label: Text(c.name.isEmpty ? '@${c.username}' : c.name),
+                              onPressed: () => _pickMention(c),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
                 if (_replyTo != null || _editing != null)
                   Padding(
                     padding: const EdgeInsets.only(bottom: 6),
@@ -806,7 +846,8 @@ class _Bubble extends StatelessWidget {
                           ),
                   ),
                 ),
-              if (showText && !(sticker && m.text.isEmpty)) Text(text),
+              if (showText && !(sticker && m.text.isEmpty))
+                Text.rich(TextSpan(children: _spans(text, accent))),
               if (m.file != null && m.kind == MessageKind.voice)
                 VoicePlayer(
                     file: m.file!, onDownload: () => onDownload(m.file!.fileId))
@@ -909,6 +950,18 @@ class _Bubble extends StatelessWidget {
   }
 }
 
+
+List<InlineSpan> _spans(String text, Color accent) {
+  final out = <InlineSpan>[];
+  var last = 0;
+  for (final m in RegExp(r'@\w{3,32}').allMatches(text)) {
+    if (m.start > last) out.add(TextSpan(text: text.substring(last, m.start)));
+    out.add(TextSpan(text: m.group(0), style: TextStyle(color: accent)));
+    last = m.end;
+  }
+  if (last < text.length) out.add(TextSpan(text: text.substring(last)));
+  return out;
+}
 
 class _PollView extends StatelessWidget {
   const _PollView({required this.poll, required this.onVote});

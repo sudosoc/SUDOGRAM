@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../downloads/keep_alive.dart';
 import '../../core/drafts.dart';
 import '../chat/avatar.dart';
 import 'archive_screen.dart';
@@ -43,6 +45,38 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _searching = false;
   String _query = '';
   String? _folder; // null = all chats
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _askBackground());
+  }
+
+  /// Once, explain why background activity is needed, then ask Android.
+  Future<void> _askBackground() async {
+    if (!ref.read(settingsProvider).notifications) return;
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool('asked_background') ?? false) return;
+    if (await backgroundAllowed() || !mounted) return;
+    final l = AppLocalizations.of(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(l.backgroundTitle),
+        content: Text(l.backgroundBody),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(l.later)),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(l.allow)),
+        ],
+      ),
+    );
+    await prefs.setBool('asked_background', true);
+    if (ok == true) await requestBackground();
+  }
 
   /// Long-press on search → biometric → hidden chats appear instantly.
   Future<void> _openVault() async {
@@ -309,6 +343,12 @@ class _ChatRow extends ConsumerWidget {
                             style: const TextStyle(
                                 fontWeight: FontWeight.w600, fontSize: 16)),
                       ),
+                      if (chat.type == ChatType.secret)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 4),
+                          child: Icon(Icons.lock,
+                              size: 13, color: Color(0xFF22C55E)),
+                        ),
                       if (chat.type == ChatType.group)
                         const Padding(
                           padding: EdgeInsets.symmetric(horizontal: 4),

@@ -104,5 +104,19 @@ abstract class TelegramGateway {
 
   Future<ChatSummary?> createGroup(String title, List<int> userIds);
 
+  /// Group members matching [query] for @mention suggestions.
+  Future<List<MentionCandidate>> searchMembers(int chatId, String query);
+
+  /// Privacy setting: [key] is phone|seen|photo|calls|invites|forwards,
+  /// value is everybody|contacts|nobody.
+  Future<String> getPrivacy(String key);
+  Future<void> setPrivacy(String key, String value);
+
+  /// Starts an end-to-end encrypted secret chat with [userId].
+  Future<ChatSummary?> createSecretChat(int userId);
+
+  /// Self-destruct timer for new messages (0 = off).
+  Future<void> setAutoDelete(int chatId, int seconds);
+
   Future<void> dispose();
 }

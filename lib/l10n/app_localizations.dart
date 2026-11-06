@@ -1207,6 +1207,132 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'{n} صوت'**
   String votesCount(String n);
+
+  /// No description provided for @privacy.
+  ///
+  /// In ar, this message translates to:
+  /// **'الخصوصية'**
+  String get privacy;
+
+  /// No description provided for @privPhone.
+  ///
+  /// In ar, this message translates to:
+  /// **'مين يشوف رقمي'**
+  String get privPhone;
+
+  /// No description provided for @privSeen.
+  ///
+  /// In ar, this message translates to:
+  /// **'مين يشوف آخر ظهور'**
+  String get privSeen;
+
+  /// No description provided for @privPhoto.
+  ///
+  /// In ar, this message translates to:
+  /// **'مين يشوف صورتي'**
+  String get privPhoto;
+
+  /// No description provided for @privCalls.
+  ///
+  /// In ar, this message translates to:
+  /// **'مين يقدر يكلمني'**
+  String get privCalls;
+
+  /// No description provided for @privInvites.
+  ///
+  /// In ar, this message translates to:
+  /// **'مين يضيفني في مجموعات'**
+  String get privInvites;
+
+  /// No description provided for @privForwards.
+  ///
+  /// In ar, this message translates to:
+  /// **'رابط حسابي في الرسايل المحولة'**
+  String get privForwards;
+
+  /// No description provided for @everybody.
+  ///
+  /// In ar, this message translates to:
+  /// **'الكل'**
+  String get everybody;
+
+  /// No description provided for @myContacts.
+  ///
+  /// In ar, this message translates to:
+  /// **'جهات اتصالي'**
+  String get myContacts;
+
+  /// No description provided for @nobody.
+  ///
+  /// In ar, this message translates to:
+  /// **'محدش'**
+  String get nobody;
+
+  /// No description provided for @secretChat.
+  ///
+  /// In ar, this message translates to:
+  /// **'بدء شات سري'**
+  String get secretChat;
+
+  /// No description provided for @secretNote.
+  ///
+  /// In ar, this message translates to:
+  /// **'مشفر من طرف لطرف. على الجهاز ده بس.'**
+  String get secretNote;
+
+  /// No description provided for @selfDestruct.
+  ///
+  /// In ar, this message translates to:
+  /// **'مؤقت الحذف التلقائي'**
+  String get selfDestruct;
+
+  /// No description provided for @timerOff.
+  ///
+  /// In ar, this message translates to:
+  /// **'متوقف'**
+  String get timerOff;
+
+  /// No description provided for @timer1m.
+  ///
+  /// In ar, this message translates to:
+  /// **'دقيقة'**
+  String get timer1m;
+
+  /// No description provided for @timer1h.
+  ///
+  /// In ar, this message translates to:
+  /// **'ساعة'**
+  String get timer1h;
+
+  /// No description provided for @timer1d.
+  ///
+  /// In ar, this message translates to:
+  /// **'يوم'**
+  String get timer1d;
+
+  /// No description provided for @backgroundTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'السماح بالعمل في الخلفية'**
+  String get backgroundTitle;
+
+  /// No description provided for @backgroundBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'عشان تظهرلك الرسايل الجديدة والتطبيق مقفول، لازم SUDOGRAM يفضل شغال في الخلفية. وافق في الشاشة الجاية.'**
+  String get backgroundBody;
+
+  /// No description provided for @later.
+  ///
+  /// In ar, this message translates to:
+  /// **'بعدين'**
+  String get later;
+
+  /// No description provided for @allow.
+  ///
+  /// In ar, this message translates to:
+  /// **'سماح'**
+  String get allow;
 }
 
 class _AppLocalizationsDelegate

@@ -1,4 +1,6 @@
+import '../downloads/keep_alive.dart';
 import 'devices_screen.dart';
+import 'privacy_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -50,7 +52,10 @@ class _SettingsSheet extends ConsumerWidget {
               title: Text(l.notificationsTitle),
               subtitle: Text(l.notificationsHint),
               value: s.notifications,
-              onChanged: c.setNotifications,
+              onChanged: (v) async {
+                c.setNotifications(v);
+                if (v && !await backgroundAllowed()) await requestBackground();
+              },
             ),
             SwitchListTile(
               title: Text(l.performanceMode),
@@ -65,6 +70,7 @@ class _SettingsSheet extends ConsumerWidget {
               (l.rules, Icons.rule, (_) => const RulesScreen()),
               (l.joinParts, Icons.merge_type, (_) => const JoinPartsScreen()),
               (l.devices, Icons.devices_other, (_) => const DevicesScreen()),
+              (l.privacy, Icons.shield_outlined, (_) => const PrivacyScreen()),
               (l.networkInspector, Icons.network_check,
                   (_) => const NetworkInspectorScreen()),
             ])
