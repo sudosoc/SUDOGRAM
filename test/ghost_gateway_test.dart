@@ -39,6 +39,12 @@ class _Recorder implements TelegramGateway {
   @override
   Future<void> setOnline(bool online) async => calls.add('online:$online');
   @override
+  Future<void> downloadFile(int fileId) async {}
+  @override
+  Future<void> cancelDownload(int fileId) async {}
+  @override
+  Future<void> sendFile(int chatId, String path, {String caption = ''}) async {}
+  @override
   Stream<ContactChange> contactChanges() => const Stream.empty();
 
   @override

@@ -269,4 +269,47 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get tools => 'أدوات';
+
+  @override
+  String get attachFile => 'إرفاق ملف';
+
+  @override
+  String get download => 'تحميل';
+
+  @override
+  String get openFile => 'فتح';
+
+  @override
+  String get cancel => 'إلغاء';
+
+  @override
+  String fileSplitNotice(String count) {
+    return 'الملف أكبر من حد تليجرام وهيتبعت على $count أجزاء';
+  }
+
+  @override
+  String get sendingParts => 'بيتم إرسال الأجزاء…';
+
+  @override
+  String get joinParts => 'تجميع أجزاء ملف';
+
+  @override
+  String get joinPick => 'اختار كل الأجزاء وملف .manifest.json';
+
+  @override
+  String get joinDone => 'اتجمّع بنجاح';
+
+  @override
+  String joinFailed(String reason) {
+    return 'فشل التجميع: $reason';
+  }
+
+  @override
+  String get networkInspector => 'مراقب الشبكة';
+
+  @override
+  String get connState => 'الاتصال';
+
+  @override
+  String get netEmpty => 'مفيش طلبات لسه';
 }

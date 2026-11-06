@@ -62,6 +62,7 @@ class TdlibGateway implements TelegramGateway {
   Timer? _chatDebounce;
   int? _textLimit;
   final _users = <int, Map<String, String>>{};
+  final _fileOwner = <int, (int, int)>{};
   final _contactChanges = StreamController<ContactChange>.broadcast();
 
   @override
@@ -84,6 +85,8 @@ class TdlibGateway implements TelegramGateway {
     switch (u['@type']) {
       case 'updateAuthorizationState':
         _onAuthState(Map<String, dynamic>.from(u['authorization_state'] as Map));
+      case 'updateFile':
+        _onFile(Map<String, dynamic>.from(u['file'] as Map));
       case 'updateUser':
         _onUser(Map<String, dynamic>.from(u['user'] as Map));
       case 'updateNewChat':
@@ -125,6 +128,55 @@ class TdlibGateway implements TelegramGateway {
         _removeMessage(chatId, asInt(u['old_message_id']));
         _upsertMessage(chatId, _parseMessage(m));
     }
+  }
+
+  // ------------------------------------------------------------- files
+
+  void _onFile(Map<String, dynamic> f) {
+    final owner = _fileOwner[asInt(f['id'])];
+    if (owner == null) return;
+    _patchMessage(owner.$1, owner.$2, (m) {
+      final cur = m.file;
+      if (cur == null) return m;
+      final upd = _fileToAttachment(f, cur.name);
+      return m.copyWith(file: upd);
+    });
+  }
+
+  @override
+  Future<void> downloadFile(int fileId) async {
+    try {
+      await _td.request({
+        '@type': 'downloadFile',
+        'file_id': fileId,
+        'priority': 16,
+        'offset': 0,
+        'limit': 0,
+        'synchronous': false,
+      });
+    } on TdError {
+      // Surfaces as unchanged progress; the queue retries on next start.
+    }
+  }
+
+  @override
+  Future<void> cancelDownload(int fileId) async => _td.fire({
+        '@type': 'cancelDownloadFile',
+        'file_id': fileId,
+        'only_if_pending': false,
+      });
+
+  @override
+  Future<void> sendFile(int chatId, String path, {String caption = ''}) async {
+    await _td.request({
+      '@type': 'sendMessage',
+      'chat_id': chatId,
+      'input_message_content': {
+        '@type': 'inputMessageDocument',
+        'document': {'@type': 'inputFileLocal', 'path': path},
+        'caption': {'@type': 'formattedText', 'text': caption},
+      },
+    });
   }
 
   // ----------------------------------------------------------- contacts
@@ -337,8 +389,63 @@ class TdlibGateway implements TelegramGateway {
     }
   }
 
+  /// Finds the main file of a message content, if it has one.
+  Attachment? _attachment(Map? content) {
+    if (content == null) return null;
+    Map? file;
+    var name = '';
+    switch (content['@type']) {
+      case 'messageDocument':
+        final d = content['document'] as Map?;
+        file = d?['document'] as Map?;
+        name = (d?['file_name'] ?? '').toString();
+      case 'messageVideo':
+        final v = content['video'] as Map?;
+        file = v?['video'] as Map?;
+        name = (v?['file_name'] ?? 'video.mp4').toString();
+      case 'messageAudio':
+        final a = content['audio'] as Map?;
+        file = a?['audio'] as Map?;
+        name = (a?['file_name'] ?? 'audio').toString();
+      case 'messageVoiceNote':
+        file = (content['voice_note'] as Map?)?['voice'] as Map?;
+        name = 'voice.ogg';
+      case 'messageAnimation':
+        final a = content['animation'] as Map?;
+        file = a?['animation'] as Map?;
+        name = (a?['file_name'] ?? 'animation.mp4').toString();
+      case 'messagePhoto':
+        final sizes = ((content['photo'] as Map?)?['sizes'] as List?) ?? const [];
+        if (sizes.isNotEmpty) {
+          file = (sizes.last as Map)['photo'] as Map?;
+          name = 'photo.jpg';
+        }
+    }
+    if (file == null) return null;
+    return _fileToAttachment(file, name);
+  }
+
+  Attachment _fileToAttachment(Map file, String name) {
+    final local = (file['local'] as Map?) ?? const {};
+    final size = asInt(file['size']) > 0
+        ? asInt(file['size'])
+        : asInt(file['expected_size']);
+    final path = (local['path'] ?? '').toString();
+    return Attachment(
+      fileId: asInt(file['id']),
+      name: name,
+      size: size,
+      localPath: path.isEmpty ? null : path,
+      downloaded: local['is_downloading_completed'] == true,
+      downloading: local['is_downloading_active'] == true,
+      downloadedBytes: asInt(local['downloaded_size']),
+    );
+  }
+
   ChatMessage _parseMessage(Map<String, dynamic> m) {
     final content = _content(m['content'] as Map?);
+    final att = _attachment(m['content'] as Map?);
+    if (att != null) _fileOwner[att.fileId] = (asInt(m['chat_id']), asInt(m['id']));
     return ChatMessage(
       id: asInt(m['id']),
       chatId: asInt(m['chat_id']),
@@ -347,6 +454,7 @@ class TdlibGateway implements TelegramGateway {
       outgoing: m['is_outgoing'] == true,
       time: _time(m['date']),
       edited: asInt(m['edit_date']) > 0,
+      file: att,
     );
   }
 

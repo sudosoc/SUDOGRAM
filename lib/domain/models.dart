@@ -49,6 +49,47 @@ class ChatSummary {
   }
 }
 
+/// A file attached to a message (document, photo, video, voice…).
+class Attachment {
+  const Attachment({
+    required this.fileId,
+    required this.name,
+    required this.size,
+    this.localPath,
+    this.downloaded = false,
+    this.downloading = false,
+    this.downloadedBytes = 0,
+  });
+
+  final int fileId;
+  final String name;
+  final int size;
+  final String? localPath;
+  final bool downloaded;
+  final bool downloading;
+  final int downloadedBytes;
+
+  double get progress =>
+      size <= 0 ? 0 : (downloadedBytes / size).clamp(0.0, 1.0);
+
+  Attachment copyWith({
+    String? localPath,
+    bool? downloaded,
+    bool? downloading,
+    int? downloadedBytes,
+    int? size,
+  }) =>
+      Attachment(
+        fileId: fileId,
+        name: name,
+        size: size ?? this.size,
+        localPath: localPath ?? this.localPath,
+        downloaded: downloaded ?? this.downloaded,
+        downloading: downloading ?? this.downloading,
+        downloadedBytes: downloadedBytes ?? this.downloadedBytes,
+      );
+}
+
 class ChatMessage {
   const ChatMessage({
     required this.id,
@@ -59,6 +100,7 @@ class ChatMessage {
     required this.time,
     this.edited = false,
     this.deletedByPeer = false,
+    this.file,
   });
 
   final int id;
@@ -71,6 +113,7 @@ class ChatMessage {
 
   /// Set when the sender deleted the message but we kept it locally.
   final bool deletedByPeer;
+  final Attachment? file;
 
   ChatMessage copyWith({
     int? id,
@@ -78,6 +121,7 @@ class ChatMessage {
     MessageKind? kind,
     bool? edited,
     bool? deletedByPeer,
+    Attachment? file,
   }) {
     return ChatMessage(
       id: id ?? this.id,
@@ -88,6 +132,7 @@ class ChatMessage {
       time: time,
       edited: edited ?? this.edited,
       deletedByPeer: deletedByPeer ?? this.deletedByPeer,
+      file: file ?? this.file,
     );
   }
 }

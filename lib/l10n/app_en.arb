@@ -96,5 +96,32 @@
   "fieldName": "Name",
   "fieldUsername": "Username",
   "fieldPhone": "Phone",
-  "tools": "Tools"
+  "tools": "Tools",
+  "attachFile": "Attach file",
+  "download": "Download",
+  "openFile": "Open",
+  "cancel": "Cancel",
+  "fileSplitNotice": "The file is over Telegram's limit and will be sent in {count} parts",
+  "@fileSplitNotice": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "sendingParts": "Sending parts…",
+  "joinParts": "Join file parts",
+  "joinPick": "Pick all the parts and the .manifest.json file",
+  "joinDone": "Joined successfully",
+  "joinFailed": "Could not join: {reason}",
+  "@joinFailed": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "networkInspector": "Network Inspector",
+  "connState": "Connection",
+  "netEmpty": "No requests yet"
 }

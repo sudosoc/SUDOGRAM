@@ -96,5 +96,32 @@
   "fieldName": "الاسم",
   "fieldUsername": "اليوزر",
   "fieldPhone": "الرقم",
-  "tools": "أدوات"
+  "tools": "أدوات",
+  "attachFile": "إرفاق ملف",
+  "download": "تحميل",
+  "openFile": "فتح",
+  "cancel": "إلغاء",
+  "fileSplitNotice": "الملف أكبر من حد تليجرام وهيتبعت على {count} أجزاء",
+  "@fileSplitNotice": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "sendingParts": "بيتم إرسال الأجزاء…",
+  "joinParts": "تجميع أجزاء ملف",
+  "joinPick": "اختار كل الأجزاء وملف .manifest.json",
+  "joinDone": "اتجمّع بنجاح",
+  "joinFailed": "فشل التجميع: {reason}",
+  "@joinFailed": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "networkInspector": "مراقب الشبكة",
+  "connState": "الاتصال",
+  "netEmpty": "مفيش طلبات لسه"
 }

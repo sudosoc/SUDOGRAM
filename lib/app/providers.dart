@@ -11,6 +11,7 @@ import '../data/archive/archiving_gateway.dart';
 import '../data/key_store.dart';
 import '../data/mock_gateway.dart';
 import '../data/vault/vault_store.dart';
+import '../data/tdlib/net_log.dart';
 import '../data/tdlib/td_gateway.dart';
 import '../data/tdlib/td_native.dart';
 import '../domain/ghost_gateway.dart';
@@ -26,7 +27,8 @@ TelegramGateway _buildRaw() {
   final real = _apiId != 0 && _apiHash.isNotEmpty && TdBindings.isAvailable;
   if (!real) return MockGateway();
   return TdlibGateway(
-    transportFactory: NativeTdTransport.start,
+    transportFactory: () async =>
+        LoggingTransport(await NativeTdTransport.start(), netLog),
     apiId: _apiId,
     apiHash: _apiHash,
     databaseDirectory: '${_dir.path}/td_db',
@@ -38,6 +40,8 @@ TelegramGateway _buildRaw() {
 }
 
 late Directory _dir;
+final netLog = NetLog();
+ArchivingGateway? _archiving;
 late ArchiveDb _archive;
 final _keys = KeyStore();
 String? _tdKey;
@@ -59,8 +63,10 @@ final archiveProvider = Provider<ArchiveDb>((ref) => _archive);
 
 /// The gateway the UI uses: raw gateway wrapped in the Ghost guard.
 final gatewayProvider = Provider<TelegramGateway>((ref) {
+  final arch = ArchivingGateway(_buildRaw(), _archive);
+  _archiving = arch;
   final g = GhostGateway(
-    ArchivingGateway(_buildRaw(), _archive),
+    arch,
     isGhost: (id) => ref.read(settingsProvider).ghostFor(id),
     globalGhost: () => ref.read(settingsProvider).ghostGlobal,
   );
@@ -129,3 +135,10 @@ class AppLocked extends Notifier<bool> {
 }
 
 final appLockedProvider = NotifierProvider<AppLocked, bool>(AppLocked.new);
+
+/// Pending-download counter for the foreground service (null before the
+/// gateway exists).
+final pendingDownloadsProvider = Provider<ValueNotifier<int>>((ref) {
+  ref.watch(gatewayProvider);
+  return _archiving!.pendingDownloads;
+});

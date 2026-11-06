@@ -46,6 +46,9 @@ dependencies:
   sqlite3: ^3.9.0
   flutter_secure_storage: ^11.2.0
   crypto: ^3.0.8
+  flutter_foreground_task: ^11.0.3
+  file_picker: ^13.3.2
+  open_filex: ^5.0.0
 
 dev_dependencies:
   flutter_test:

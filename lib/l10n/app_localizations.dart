@@ -595,6 +595,84 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'أدوات'**
   String get tools;
+
+  /// No description provided for @attachFile.
+  ///
+  /// In ar, this message translates to:
+  /// **'إرفاق ملف'**
+  String get attachFile;
+
+  /// No description provided for @download.
+  ///
+  /// In ar, this message translates to:
+  /// **'تحميل'**
+  String get download;
+
+  /// No description provided for @openFile.
+  ///
+  /// In ar, this message translates to:
+  /// **'فتح'**
+  String get openFile;
+
+  /// No description provided for @cancel.
+  ///
+  /// In ar, this message translates to:
+  /// **'إلغاء'**
+  String get cancel;
+
+  /// No description provided for @fileSplitNotice.
+  ///
+  /// In ar, this message translates to:
+  /// **'الملف أكبر من حد تليجرام وهيتبعت على {count} أجزاء'**
+  String fileSplitNotice(String count);
+
+  /// No description provided for @sendingParts.
+  ///
+  /// In ar, this message translates to:
+  /// **'بيتم إرسال الأجزاء…'**
+  String get sendingParts;
+
+  /// No description provided for @joinParts.
+  ///
+  /// In ar, this message translates to:
+  /// **'تجميع أجزاء ملف'**
+  String get joinParts;
+
+  /// No description provided for @joinPick.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختار كل الأجزاء وملف .manifest.json'**
+  String get joinPick;
+
+  /// No description provided for @joinDone.
+  ///
+  /// In ar, this message translates to:
+  /// **'اتجمّع بنجاح'**
+  String get joinDone;
+
+  /// No description provided for @joinFailed.
+  ///
+  /// In ar, this message translates to:
+  /// **'فشل التجميع: {reason}'**
+  String joinFailed(String reason);
+
+  /// No description provided for @networkInspector.
+  ///
+  /// In ar, this message translates to:
+  /// **'مراقب الشبكة'**
+  String get networkInspector;
+
+  /// No description provided for @connState.
+  ///
+  /// In ar, this message translates to:
+  /// **'الاتصال'**
+  String get connState;
+
+  /// No description provided for @netEmpty.
+  ///
+  /// In ar, this message translates to:
+  /// **'مفيش طلبات لسه'**
+  String get netEmpty;
 }
 
 class _AppLocalizationsDelegate

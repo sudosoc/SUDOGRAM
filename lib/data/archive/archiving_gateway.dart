@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
+
 import '../../domain/models.dart';
 import '../../domain/telegram_gateway.dart';
 import 'archive_db.dart';
@@ -18,14 +20,48 @@ class ArchivingGateway implements TelegramGateway {
   @override
   Stream<AuthState> get authState => _inner.authState;
   StreamSubscription<ContactChange>? _contactSub;
+  StreamSubscription<AuthState>? _authSub;
+  final _files = <int, ChatMessage>{};
+
+  /// Number of downloads still unfinished; drives the Android foreground
+  /// service that keeps the app alive while files download.
+  final ValueNotifier<int> pendingDownloads = ValueNotifier(0);
 
   @override
   Future<void> start() async {
     await _inner.start();
+    pendingDownloads.value = archive.pendingDownloads().length;
+    _authSub = _inner.authState.listen((a) {
+      if (a.step == AuthStep.ready) {
+        // Resume everything that was queued before the app was closed.
+        for (final id in archive.pendingDownloads()) {
+          _inner.downloadFile(id);
+        }
+      }
+    });
     _contactSub = _inner.contactChanges().listen((c) => archive
         .logContactChange(c.userId, c.displayName, c.field, c.oldValue, c.newValue));
   }
 
+  @override
+  Future<void> downloadFile(int id) {
+    final m = _files[id];
+    if (m != null && m.file != null) {
+      archive.enqueueDownload(id, m.chatId, m.id, m.file!.name, m.file!.size);
+      pendingDownloads.value = archive.pendingDownloads().length;
+    }
+    return _inner.downloadFile(id);
+  }
+
+  @override
+  Future<void> cancelDownload(int id) {
+    archive.dropDownload(id);
+    pendingDownloads.value = archive.pendingDownloads().length;
+    return _inner.cancelDownload(id);
+  }
+  @override
+  Future<void> sendFile(int chatId, String path, {String caption = ''}) =>
+      _inner.sendFile(chatId, path, caption: caption);
   @override
   Stream<ContactChange> contactChanges() => _inner.contactChanges();
   @override
@@ -53,6 +89,7 @@ class ArchivingGateway implements TelegramGateway {
   @override
   Future<void> dispose() async {
     await _contactSub?.cancel();
+    await _authSub?.cancel();
     await _inner.dispose();
   }
 
@@ -62,6 +99,14 @@ class ArchivingGateway implements TelegramGateway {
         final ids = <int>{};
         for (final m in list) {
           ids.add(m.id);
+          final f = m.file;
+          if (f != null) {
+            _files[f.fileId] = m;
+            if (f.downloaded) {
+              archive.finishDownload(f.fileId);
+              pendingDownloads.value = archive.pendingDownloads().length;
+            }
+          }
           if (m.deletedByPeer) {
             archive.upsert(m);
             archive.markDeleted(m.chatId, m.id);

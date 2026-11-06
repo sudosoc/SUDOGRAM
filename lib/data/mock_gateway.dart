@@ -107,6 +107,14 @@ class MockGateway implements TelegramGateway {
   Future<void> setOnline(bool online) async {}
 
   @override
+  Future<void> downloadFile(int fileId) async {}
+  @override
+  Future<void> cancelDownload(int fileId) async {}
+  @override
+  Future<void> sendFile(int chatId, String path, {String caption = ''}) =>
+      sendText(chatId, caption.isEmpty ? path.split('/').last : caption);
+
+  @override
   Stream<ContactChange> contactChanges() => const Stream.empty();
 
   @override

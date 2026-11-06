@@ -268,4 +268,47 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tools => 'Tools';
+
+  @override
+  String get attachFile => 'Attach file';
+
+  @override
+  String get download => 'Download';
+
+  @override
+  String get openFile => 'Open';
+
+  @override
+  String get cancel => 'Cancel';
+
+  @override
+  String fileSplitNotice(String count) {
+    return 'The file is over Telegram\'s limit and will be sent in $count parts';
+  }
+
+  @override
+  String get sendingParts => 'Sending parts…';
+
+  @override
+  String get joinParts => 'Join file parts';
+
+  @override
+  String get joinPick => 'Pick all the parts and the .manifest.json file';
+
+  @override
+  String get joinDone => 'Joined successfully';
+
+  @override
+  String joinFailed(String reason) {
+    return 'Could not join: $reason';
+  }
+
+  @override
+  String get networkInspector => 'Network Inspector';
+
+  @override
+  String get connState => 'Connection';
+
+  @override
+  String get netEmpty => 'No requests yet';
 }

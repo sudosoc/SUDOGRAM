@@ -54,6 +54,9 @@ class _SettingsSheet extends ConsumerWidget {
               (l.timeMachine, Icons.history, (_) => const TimeMachineScreen()),
               (l.contactLog, Icons.person_search_outlined,
                   (_) => const ContactLogScreen()),
+              (l.joinParts, Icons.merge_type, (_) => const JoinPartsScreen()),
+              (l.networkInspector, Icons.network_check,
+                  (_) => const NetworkInspectorScreen()),
             ])
               ListTile(
                 leading: Icon(icon),

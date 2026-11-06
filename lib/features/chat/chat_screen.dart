@@ -7,7 +7,14 @@ import '../../core/theme/glass.dart';
 import '../../domain/models.dart';
 import '../../l10n/app_localizations.dart';
 import '../home/home_screen.dart' show kindLabel;
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
+import 'package:path_provider/path_provider.dart';
+
+import '../splitter/file_splitter.dart';
 import '../splitter/smart_splitter.dart';
+import 'file_card.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key, required this.chat});
@@ -45,6 +52,38 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (v.isNotEmpty) _gateway.sendTyping(widget.chat.id);
     final n = v.isEmpty ? 1 : SmartSplitter.countParts(v, SplitOptions(maxLength: _limit));
     if (n != _parts) setState(() => _parts = n);
+  }
+
+  /// Telegram's per-file limit is 2000 MB (4000 MB with Premium); we stay
+  /// safely under the non-Premium one.
+  static const _maxFile = 1950 * 1024 * 1024;
+
+  Future<void> _attach() async {
+    final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final picked = await FilePicker.pickFile();
+    final path = picked?.path;
+    if (path == null || !mounted) return;
+    final file = File(path);
+    final size = await file.length();
+    if (size <= _maxFile) {
+      await _gateway.sendFile(widget.chat.id, path);
+      return;
+    }
+    final count = (size / _maxFile).ceil();
+    messenger.showSnackBar(SnackBar(
+        content: Text(l.fileSplitNotice('$count')),
+        duration: const Duration(seconds: 4)));
+    final tmp = await getTemporaryDirectory();
+    final out = Directory('${tmp.path}/split_${DateTime.now().millisecondsSinceEpoch}');
+    try {
+      final r = await FileSplitter.split(file, out, partSize: _maxFile);
+      for (final p in [...r.parts, r.manifest]) {
+        await _gateway.sendFile(widget.chat.id, p.path); // in order
+      }
+    } finally {
+      if (await out.exists()) await out.delete(recursive: true);
+    }
   }
 
   Future<void> _send() async {
@@ -156,6 +195,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         itemCount: list.length,
                         itemBuilder: (_, i) => _Bubble(
                           m: list[i],
+                          onDownload: (id) => _gateway.downloadFile(id),
+                          onCancel: (id) => _gateway.cancelDownload(id),
                           onLongPress: list[i].edited
                               ? () => _showEdits(context, list[i])
                               : null,
@@ -193,6 +234,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       ),
                     ),
                     IconButton(
+                      tooltip: l.attachFile,
+                      icon: const Icon(Icons.attach_file),
+                      onPressed: _attach,
+                    ),
+                    IconButton(
                       tooltip: l.send,
                       icon: const Icon(Icons.send_rounded),
                       onPressed: _send,
@@ -209,9 +255,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 }
 
 class _Bubble extends StatelessWidget {
-  const _Bubble({required this.m, this.onLongPress});
+  const _Bubble({
+    required this.m,
+    this.onLongPress,
+    required this.onDownload,
+    required this.onCancel,
+  });
 
   final ChatMessage m;
+  final void Function(int) onDownload;
+  final void Function(int) onCancel;
   final VoidCallback? onLongPress;
 
   @override
@@ -244,7 +297,13 @@ class _Bubble extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(text),
+            if (m.file == null || m.text.isNotEmpty) Text(text),
+            if (m.file != null)
+              FileCard(
+                file: m.file!,
+                onDownload: () => onDownload(m.file!.fileId),
+                onCancel: () => onCancel(m.file!.fileId),
+              ),
             if (m.edited || m.deletedByPeer)
               Padding(
                 padding: const EdgeInsets.only(top: 3),

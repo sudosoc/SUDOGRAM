@@ -1,4 +1,10 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:open_filex/open_filex.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
@@ -7,6 +13,7 @@ import '../../core/theme/glass.dart';
 import '../../data/vault/vault_store.dart';
 import '../../domain/models.dart';
 import '../../l10n/app_localizations.dart';
+import '../splitter/file_splitter.dart';
 
 Widget _page(BuildContext context, String title, Widget body) {
   return Scaffold(
@@ -342,6 +349,145 @@ class ContactLogScreen extends ConsumerWidget {
                   ),
               ],
             ),
+    );
+  }
+}
+
+// ------------------------------------------------------- Network Inspector
+
+class NetworkInspectorScreen extends StatelessWidget {
+  const NetworkInspectorScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return _page(
+      context,
+      l.networkInspector,
+      ListenableBuilder(
+        listenable: netLog,
+        builder: (_, _) => Column(children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: GlassSurface(
+              radius: 16,
+              padding: const EdgeInsets.all(12),
+              child: Row(children: [
+                Expanded(child: Text('${l.connState}: ${netLog.connection}')),
+                Text('${netLog.requests} / ${netLog.errors}',
+                    style: const TextStyle(color: GlassTokens.textSecondary)),
+              ]),
+            ),
+          ),
+          Expanded(
+            child: netLog.entries.isEmpty
+                ? Center(child: Text(l.netEmpty))
+                : ListView(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    children: [
+                      for (final e in netLog.entries)
+                        ListTile(
+                          dense: true,
+                          title: Text(e.type, textDirection: TextDirection.ltr),
+                          subtitle: e.error == null
+                              ? null
+                              : Text(e.error!,
+                                  style: const TextStyle(
+                                      color: GlassTokens.ringDanger)),
+                          trailing: Text('${e.ms} ms'),
+                        ),
+                    ],
+                  ),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
+// ------------------------------------------------------------ Join parts
+
+class JoinPartsScreen extends StatefulWidget {
+  const JoinPartsScreen({super.key});
+
+  @override
+  State<JoinPartsScreen> createState() => _JoinPartsState();
+}
+
+class _JoinPartsState extends State<JoinPartsScreen> {
+  String? _msg;
+  String? _result;
+  bool _busy = false;
+
+  Future<void> _run(AppLocalizations l) async {
+    final picked = await FilePicker.pickFiles();
+    if (picked.isEmpty) return;
+    setState(() {
+      _busy = true;
+      _msg = null;
+      _result = null;
+    });
+    try {
+      final files = [for (final f in picked) if (f.path != null) File(f.path!)];
+      final manifest = files.firstWhere(
+          (f) => f.path.endsWith('.manifest.json'),
+          orElse: () => throw const FormatException('no manifest'));
+      final tmp = await getTemporaryDirectory();
+      final work = Directory('${tmp.path}/join_${DateTime.now().millisecondsSinceEpoch}')
+        ..createSync(recursive: true);
+      final m = jsonDecode(await manifest.readAsString()) as Map<String, dynamic>;
+      await manifest.copy('${work.path}/${m['name']}.manifest.json');
+      for (final p in (m['parts'] as List).cast<Map<String, dynamic>>()) {
+        final want = p['file'] as String;
+        // TDLib may rename files, so match by the .partNNN suffix as well.
+        final suffix = want.substring(want.lastIndexOf('.part'));
+        final src = files.where((f) =>
+            f.path.endsWith(want) || f.path.endsWith(suffix)).toList();
+        if (src.isEmpty) throw FormatException('missing part $want');
+        await src.first.copy('${work.path}/$want');
+      }
+      final docs = await getApplicationDocumentsDirectory();
+      final out = await FileSplitter.join(
+          File('${work.path}/${m['name']}.manifest.json'),
+          File('${docs.path}/${m['name']}'));
+      await work.delete(recursive: true);
+      setState(() {
+        _msg = l.joinDone;
+        _result = out.path;
+      });
+    } on FormatException catch (e) {
+      setState(() => _msg = l.joinFailed(e.message));
+    } finally {
+      setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return _page(
+      context,
+      l.joinParts,
+      Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Text(l.joinPick),
+          const SizedBox(height: 16),
+          FilledButton(
+            onPressed: _busy ? null : () => _run(l),
+            child: Text(l.joinParts),
+          ),
+          if (_msg != null) ...[
+            const SizedBox(height: 16),
+            Text(_msg!),
+          ],
+          if (_result != null)
+            TextButton(
+              onPressed: () => OpenFilex.open(_result!),
+              child: Text(l.openFile),
+            ),
+        ]),
+      ),
     );
   }
 }

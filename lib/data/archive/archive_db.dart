@@ -32,6 +32,7 @@ class ArchiveDb {
     }
     final a = ArchiveDb._(db);
     a._migrate();
+    a._addColumns();
     return a;
   }
 
@@ -60,6 +61,15 @@ class ArchiveDb {
       CREATE VIRTUAL TABLE IF NOT EXISTS fts USING fts5(
         norm, chat_id UNINDEXED, msg_id UNINDEXED, tokenize='unicode61'
       );
+      CREATE TABLE IF NOT EXISTS downloads(
+        file_id INTEGER PRIMARY KEY,
+        chat_id INTEGER NOT NULL,
+        msg_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        size INTEGER NOT NULL,
+        added_at INTEGER NOT NULL,
+        done INTEGER NOT NULL DEFAULT 0
+      );
       CREATE TABLE IF NOT EXISTS intruder_log(at INTEGER NOT NULL, what TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS contact_log(
         user_id INTEGER NOT NULL,
@@ -70,6 +80,22 @@ class ArchiveDb {
         at INTEGER NOT NULL
       );
     ''');
+  }
+
+  /// Adds attachment columns to databases created by older versions.
+  void _addColumns() {
+    final have = {
+      for (final r in _db.select('PRAGMA table_info(messages)')) r['name']
+    };
+    for (final (col, type) in [
+      ('file_id', 'INTEGER'),
+      ('file_name', 'TEXT'),
+      ('file_size', 'INTEGER'),
+    ]) {
+      if (!have.contains(col)) {
+        _db.execute('ALTER TABLE messages ADD COLUMN $col $type');
+      }
+    }
   }
 
   int _now() => DateTime.now().millisecondsSinceEpoch;
@@ -83,6 +109,13 @@ class ArchiveDb {
         time: DateTime.fromMillisecondsSinceEpoch(r['time'] as int),
         edited: (r['edited'] as int) == 1,
         deletedByPeer: r['deleted_at'] != null,
+        file: r['file_id'] == null
+            ? null
+            : Attachment(
+                fileId: r['file_id'] as int,
+                name: (r['file_name'] ?? '') as String,
+                size: (r['file_size'] ?? 0) as int,
+              ),
       );
 
   /// Stores a message. If its text changed since last seen, the previous text
@@ -94,8 +127,8 @@ class ArchiveDb {
     var edited = false;
     if (existing.isEmpty) {
       _db.execute(
-        'INSERT INTO messages(chat_id,msg_id,text,kind,outgoing,time,edited) '
-        'VALUES(?,?,?,?,?,?,?)',
+        'INSERT INTO messages(chat_id,msg_id,text,kind,outgoing,time,edited,'
+        'file_id,file_name,file_size) VALUES(?,?,?,?,?,?,?,?,?,?)',
         [
           m.chatId,
           m.id,
@@ -104,6 +137,9 @@ class ArchiveDb {
           m.outgoing ? 1 : 0,
           m.time.millisecondsSinceEpoch,
           m.edited ? 1 : 0,
+          m.file?.fileId,
+          m.file?.name,
+          m.file?.size,
         ],
       );
       _index(m.chatId, m.id, m.text);
@@ -219,6 +255,26 @@ class ArchiveDb {
         }(),
     ];
   }
+
+  // ---- Download queue (survives restarts) --------------------------------
+
+  void enqueueDownload(int fileId, int chatId, int msgId, String name, int size) =>
+      _db.execute(
+          'INSERT INTO downloads(file_id,chat_id,msg_id,name,size,added_at,done) '
+          'VALUES(?,?,?,?,?,?,0) ON CONFLICT(file_id) DO UPDATE SET done=0',
+          [fileId, chatId, msgId, name, size, _now()]);
+
+  void finishDownload(int fileId) =>
+      _db.execute('UPDATE downloads SET done=1 WHERE file_id=?', [fileId]);
+
+  void dropDownload(int fileId) =>
+      _db.execute('DELETE FROM downloads WHERE file_id=?', [fileId]);
+
+  List<int> pendingDownloads() => [
+        for (final r in _db
+            .select('SELECT file_id FROM downloads WHERE done=0 ORDER BY added_at'))
+          r['file_id'] as int,
+      ];
 
   void logIntruder(String what) => _db.execute(
       'INSERT INTO intruder_log(at,what) VALUES(?,?)', [_now(), what]);

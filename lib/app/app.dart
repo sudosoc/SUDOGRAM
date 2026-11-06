@@ -8,6 +8,7 @@ import '../domain/models.dart';
 import '../features/home/home_screen.dart';
 import '../features/login/login_screen.dart';
 import '../l10n/app_localizations.dart';
+import '../features/downloads/keep_alive.dart';
 import 'providers.dart';
 
 class SudogramApp extends ConsumerStatefulWidget {
@@ -23,11 +24,21 @@ class _SudogramAppState extends ConsumerState<SudogramApp>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _keepAlive = DownloadKeepAlive(
+        ref.read(pendingDownloadsProvider),
+        title: 'SUDOGRAM',
+        text: (n) => '↓ $n',
+      )..init();
+    });
   }
+
+  DownloadKeepAlive? _keepAlive;
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _keepAlive?.dispose();
     super.dispose();
   }
 

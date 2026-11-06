@@ -41,6 +41,15 @@ abstract class TelegramGateway {
   /// Sets our online status.
   Future<void> setOnline(bool online);
 
+  /// Starts (or resumes) downloading a file. Progress arrives through
+  /// [watchMessages] as updated [Attachment]s.
+  Future<void> downloadFile(int fileId);
+
+  Future<void> cancelDownload(int fileId);
+
+  /// Sends a local file as a document.
+  Future<void> sendFile(int chatId, String path, {String caption = ''});
+
   /// Profile changes of contacts (name, username, phone) as they happen.
   Stream<ContactChange> contactChanges();
 
