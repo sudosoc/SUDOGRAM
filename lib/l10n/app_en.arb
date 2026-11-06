@@ -123,5 +123,25 @@
   },
   "networkInspector": "Network Inspector",
   "connState": "Connection",
-  "netEmpty": "No requests yet"
+  "netEmpty": "No requests yet",
+  "pin": "Pin",
+  "unpin": "Unpin",
+  "addToFolder": "Folders",
+  "newFolder": "New folder",
+  "folderName": "Folder name",
+  "rename": "Rename (only on this device)",
+  "aliasHint": "Local name",
+  "clear": "Clear",
+  "profiles": "Profiles",
+  "saveProfile": "Save current settings as a profile",
+  "profileName": "Profile name",
+  "forwardedFrom": "Forwarded from {name}",
+  "@forwardedFrom": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "hiddenForward": "a hidden account"
 }

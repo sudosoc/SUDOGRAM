@@ -123,5 +123,25 @@
   },
   "networkInspector": "مراقب الشبكة",
   "connState": "الاتصال",
-  "netEmpty": "مفيش طلبات لسه"
+  "netEmpty": "مفيش طلبات لسه",
+  "pin": "تثبيت",
+  "unpin": "إلغاء التثبيت",
+  "addToFolder": "المجلدات",
+  "newFolder": "مجلد جديد",
+  "folderName": "اسم المجلد",
+  "rename": "إعادة تسمية (على الجهاز ده بس)",
+  "aliasHint": "الاسم المحلي",
+  "clear": "مسح",
+  "profiles": "البروفايلات",
+  "saveProfile": "احفظ الإعدادات الحالية كبروفايل",
+  "profileName": "اسم البروفايل",
+  "forwardedFrom": "محوّلة من {name}",
+  "@forwardedFrom": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "hiddenForward": "حساب مخفي"
 }

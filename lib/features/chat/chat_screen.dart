@@ -97,6 +97,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
   }
 
+  /// "Forwarded from X": private chats share their id with the user, so the
+  /// name comes from the chat list; unknown origins show their id.
+  String? _forwardLabel(AppLocalizations l, String? raw) {
+    if (raw == null || raw.isEmpty) return null;
+    final m = RegExp(r'^(user|chat):(\d+)$').firstMatch(raw);
+    if (m == null) return l.forwardedFrom(raw);
+    final id = int.parse(m.group(2)!);
+    final chats = ref.read(chatsProvider).value ?? const <ChatSummary>[];
+    for (final c in chats) {
+      if (c.id == id) return l.forwardedFrom(c.title);
+    }
+    return l.forwardedFrom('#$id');
+  }
+
   void _showEdits(BuildContext context, ChatMessage m) {
     final l = AppLocalizations.of(context);
     final edits = ref.read(archiveProvider).editsFor(m.chatId, m.id);
@@ -157,7 +171,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                   Expanded(
-                    child: Text(widget.chat.title,
+                    child: Text(
+                        ref.watch(settingsProvider).aliases[widget.chat.id] ??
+                            widget.chat.title,
                         style: const TextStyle(
                             fontWeight: FontWeight.w600, fontSize: 17)),
                   ),
@@ -195,6 +211,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         itemCount: list.length,
                         itemBuilder: (_, i) => _Bubble(
                           m: list[i],
+                          forwardLabel: _forwardLabel(l, list[i].forwardedFrom),
                           onDownload: (id) => _gateway.downloadFile(id),
                           onCancel: (id) => _gateway.cancelDownload(id),
                           onLongPress: list[i].edited
@@ -260,8 +277,10 @@ class _Bubble extends StatelessWidget {
     this.onLongPress,
     required this.onDownload,
     required this.onCancel,
+    this.forwardLabel,
   });
 
+  final String? forwardLabel;
   final ChatMessage m;
   final void Function(int) onDownload;
   final void Function(int) onCancel;
@@ -297,6 +316,10 @@ class _Bubble extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (forwardLabel != null)
+              Text(forwardLabel!,
+                  style: const TextStyle(
+                      fontSize: 11, color: GlassTokens.ghost)),
             if (m.file == null || m.text.isNotEmpty) Text(text),
             if (m.file != null)
               FileCard(

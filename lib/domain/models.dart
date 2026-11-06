@@ -101,6 +101,7 @@ class ChatMessage {
     this.edited = false,
     this.deletedByPeer = false,
     this.file,
+    this.forwardedFrom,
   });
 
   final int id;
@@ -114,6 +115,9 @@ class ChatMessage {
   /// Set when the sender deleted the message but we kept it locally.
   final bool deletedByPeer;
   final Attachment? file;
+
+  /// Origin of a forwarded message: a user id, a chat id or a hidden name.
+  final String? forwardedFrom;
 
   ChatMessage copyWith({
     int? id,
@@ -133,6 +137,7 @@ class ChatMessage {
       edited: edited ?? this.edited,
       deletedByPeer: deletedByPeer ?? this.deletedByPeer,
       file: file ?? this.file,
+      forwardedFrom: forwardedFrom,
     );
   }
 }

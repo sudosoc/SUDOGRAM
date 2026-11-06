@@ -442,6 +442,23 @@ class TdlibGateway implements TelegramGateway {
     );
   }
 
+  /// Where a forwarded message came from (the first hop TDLib reports).
+  String? _forwardOrigin(Object? info) {
+    final origin = (info as Map?)?['origin'] as Map?;
+    if (origin == null) return null;
+    switch (origin['@type']) {
+      case 'messageOriginUser':
+        return 'user:${asInt(origin['sender_user_id'])}';
+      case 'messageOriginHiddenUser':
+        return (origin['sender_name'] ?? '').toString();
+      case 'messageOriginChat':
+        return 'chat:${asInt(origin['sender_chat_id'])}';
+      case 'messageOriginChannel':
+        return 'chat:${asInt(origin['chat_id'])}';
+    }
+    return null;
+  }
+
   ChatMessage _parseMessage(Map<String, dynamic> m) {
     final content = _content(m['content'] as Map?);
     final att = _attachment(m['content'] as Map?);
@@ -455,6 +472,7 @@ class TdlibGateway implements TelegramGateway {
       time: _time(m['date']),
       edited: asInt(m['edit_date']) > 0,
       file: att,
+      forwardedFrom: _forwardOrigin(m['forward_info']),
     );
   }
 

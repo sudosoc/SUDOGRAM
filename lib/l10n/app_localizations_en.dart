@@ -311,4 +311,45 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get netEmpty => 'No requests yet';
+
+  @override
+  String get pin => 'Pin';
+
+  @override
+  String get unpin => 'Unpin';
+
+  @override
+  String get addToFolder => 'Folders';
+
+  @override
+  String get newFolder => 'New folder';
+
+  @override
+  String get folderName => 'Folder name';
+
+  @override
+  String get rename => 'Rename (only on this device)';
+
+  @override
+  String get aliasHint => 'Local name';
+
+  @override
+  String get clear => 'Clear';
+
+  @override
+  String get profiles => 'Profiles';
+
+  @override
+  String get saveProfile => 'Save current settings as a profile';
+
+  @override
+  String get profileName => 'Profile name';
+
+  @override
+  String forwardedFrom(String name) {
+    return 'Forwarded from $name';
+  }
+
+  @override
+  String get hiddenForward => 'a hidden account';
 }

@@ -68,6 +68,40 @@ class _SettingsSheet extends ConsumerWidget {
                 },
               ),
             ListTile(
+              leading: const Icon(Icons.bookmark_add_outlined),
+              title: Text(l.saveProfile),
+              onTap: () async {
+                final c2 = TextEditingController();
+                final name = await showDialog<String>(
+                  context: context,
+                  builder: (_) => AlertDialog(
+                    title: Text(l.profileName),
+                    content: TextField(controller: c2, autofocus: true),
+                    actions: [
+                      TextButton(
+                          onPressed: () => Navigator.pop(context, c2.text),
+                          child: Text(l.vaultSave)),
+                    ],
+                  ),
+                );
+                if (name != null && name.trim().isNotEmpty) {
+                  c.saveProfile(name.trim());
+                }
+              },
+            ),
+            if (s.profiles.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Wrap(spacing: 8, children: [
+                  for (final name in s.profiles.keys)
+                    InputChip(
+                      label: Text(name),
+                      onPressed: () => c.applyProfile(name),
+                      onDeleted: () => c.deleteProfile(name),
+                    ),
+                ]),
+              ),
+            ListTile(
               title: Text(l.language),
               trailing: SegmentedButton<String?>(
                 showSelectedIcon: false,

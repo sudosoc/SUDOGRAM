@@ -312,4 +312,45 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get netEmpty => 'مفيش طلبات لسه';
+
+  @override
+  String get pin => 'تثبيت';
+
+  @override
+  String get unpin => 'إلغاء التثبيت';
+
+  @override
+  String get addToFolder => 'المجلدات';
+
+  @override
+  String get newFolder => 'مجلد جديد';
+
+  @override
+  String get folderName => 'اسم المجلد';
+
+  @override
+  String get rename => 'إعادة تسمية (على الجهاز ده بس)';
+
+  @override
+  String get aliasHint => 'الاسم المحلي';
+
+  @override
+  String get clear => 'مسح';
+
+  @override
+  String get profiles => 'البروفايلات';
+
+  @override
+  String get saveProfile => 'احفظ الإعدادات الحالية كبروفايل';
+
+  @override
+  String get profileName => 'اسم البروفايل';
+
+  @override
+  String forwardedFrom(String name) {
+    return 'محوّلة من $name';
+  }
+
+  @override
+  String get hiddenForward => 'حساب مخفي';
 }

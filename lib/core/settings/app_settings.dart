@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:ui';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,6 +18,10 @@ class AppSettings {
     this.hiddenChats = const {},
     this.performanceMode = false,
     this.appLock = false,
+    this.pinned = const {},
+    this.aliases = const {},
+    this.folders = const {},
+    this.profiles = const {},
     this.accent = 0xFF4F46E5,
     this.localeCode,
   });
@@ -29,6 +34,16 @@ class AppSettings {
   final Set<int> hiddenChats;
   final bool performanceMode;
   final bool appLock;
+
+  /// Local-only organisation (nothing is sent to Telegram).
+  final Set<int> pinned;
+  final Map<int, String> aliases;
+
+  /// Folder name → chat ids.
+  final Map<String, Set<int>> folders;
+
+  /// Saved setting presets: name → {ghost, appLock, performance}.
+  final Map<String, Map<String, bool>> profiles;
   final int accent;
 
   /// `ar`, `en`, or null to follow the system language.
@@ -45,6 +60,10 @@ class AppSettings {
     Set<int>? hiddenChats,
     bool? performanceMode,
     bool? appLock,
+    Set<int>? pinned,
+    Map<int, String>? aliases,
+    Map<String, Set<int>>? folders,
+    Map<String, Map<String, bool>>? profiles,
     int? accent,
     String? localeCode,
     bool clearLocale = false,
@@ -55,6 +74,10 @@ class AppSettings {
       hiddenChats: hiddenChats ?? this.hiddenChats,
       performanceMode: performanceMode ?? this.performanceMode,
       appLock: appLock ?? this.appLock,
+      pinned: pinned ?? this.pinned,
+      aliases: aliases ?? this.aliases,
+      folders: folders ?? this.folders,
+      profiles: profiles ?? this.profiles,
       accent: accent ?? this.accent,
       localeCode: clearLocale ? null : (localeCode ?? this.localeCode),
     );
@@ -65,6 +88,7 @@ class AppSettings {
   static const _kHidden = 'hidden_chats';
   static const _kPerf = 'performance_mode';
   static const _kLock = 'app_lock';
+  static const _kLocal = 'local_org';
   static const _kAccent = 'accent';
   static const _kLocale = 'locale';
 
@@ -85,12 +109,55 @@ class AppSettings {
       hiddenChats: hidden,
       performanceMode: p.getBool(_kPerf) ?? false,
       appLock: p.getBool(_kLock) ?? false,
+      pinned: _loadLocal(p)['pinned'] as Set<int>,
+      aliases: _loadLocal(p)['aliases'] as Map<int, String>,
+      folders: _loadLocal(p)['folders'] as Map<String, Set<int>>,
+      profiles: _loadLocal(p)['profiles'] as Map<String, Map<String, bool>>,
       accent: p.getInt(_kAccent) ?? GlassTokens.accentDefault.toARGB32(),
       localeCode: p.getString(_kLocale),
     );
   }
 
+  static Map<String, Object> _loadLocal(SharedPreferences p) {
+    final out = <String, Object>{
+      'pinned': <int>{},
+      'aliases': <int, String>{},
+      'folders': <String, Set<int>>{},
+      'profiles': <String, Map<String, bool>>{},
+    };
+    final raw = p.getString(_kLocal);
+    if (raw == null) return out;
+    try {
+      final j = jsonDecode(raw) as Map<String, dynamic>;
+      out['pinned'] = {for (final e in (j['pinned'] as List? ?? const [])) e as int};
+      out['aliases'] = {
+        for (final e in (j['aliases'] as Map? ?? const {}).entries)
+          int.parse(e.key as String): e.value as String
+      };
+      out['folders'] = {
+        for (final e in (j['folders'] as Map? ?? const {}).entries)
+          e.key as String: {for (final i in e.value as List) i as int}
+      };
+      out['profiles'] = {
+        for (final e in (j['profiles'] as Map? ?? const {}).entries)
+          e.key as String: {
+            for (final k in (e.value as Map).entries) k.key as String: k.value as bool
+          }
+      };
+    } catch (_) {}
+    return out;
+  }
+
   Future<void> save(SharedPreferences p) async {
+    await p.setString(
+      _kLocal,
+      jsonEncode({
+        'pinned': pinned.toList(),
+        'aliases': {for (final e in aliases.entries) '${e.key}': e.value},
+        'folders': {for (final e in folders.entries) e.key: e.value.toList()},
+        'profiles': profiles,
+      }),
+    );
     await p.setBool(_kGhost, ghostGlobal);
     await p.setStringList(
       _kOverrides,
@@ -138,6 +205,56 @@ class SettingsController extends Notifier<AppSettings> {
 
   void setPerformanceMode(bool value) =>
       _set(state.copyWith(performanceMode: value));
+
+  void togglePin(int chatId) {
+    final set = Set<int>.of(state.pinned);
+    set.contains(chatId) ? set.remove(chatId) : set.add(chatId);
+    _set(state.copyWith(pinned: set));
+  }
+
+  void setAlias(int chatId, String? alias) {
+    final map = Map<int, String>.of(state.aliases);
+    if (alias == null || alias.trim().isEmpty) {
+      map.remove(chatId);
+    } else {
+      map[chatId] = alias.trim();
+    }
+    _set(state.copyWith(aliases: map));
+  }
+
+  /// Adds or removes [chatId] from folder [name]; empty folders disappear.
+  void toggleInFolder(String name, int chatId) {
+    final map = {for (final e in state.folders.entries) e.key: Set<int>.of(e.value)};
+    final set = map.putIfAbsent(name, () => <int>{});
+    set.contains(chatId) ? set.remove(chatId) : set.add(chatId);
+    if (set.isEmpty) map.remove(name);
+    _set(state.copyWith(folders: map));
+  }
+
+  void saveProfile(String name) {
+    final map = {for (final e in state.profiles.entries) e.key: Map<String, bool>.of(e.value)};
+    map[name] = {
+      'ghost': state.ghostGlobal,
+      'appLock': state.appLock,
+      'performance': state.performanceMode,
+    };
+    _set(state.copyWith(profiles: map));
+  }
+
+  void applyProfile(String name) {
+    final p = state.profiles[name];
+    if (p == null) return;
+    _set(state.copyWith(
+      ghostGlobal: p['ghost'],
+      appLock: p['appLock'],
+      performanceMode: p['performance'],
+    ));
+  }
+
+  void deleteProfile(String name) {
+    final map = Map.of(state.profiles)..remove(name);
+    _set(state.copyWith(profiles: map));
+  }
 
   void setAppLock(bool v) => _set(state.copyWith(appLock: v));
 

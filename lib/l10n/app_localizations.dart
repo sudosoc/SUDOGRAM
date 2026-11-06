@@ -673,6 +673,84 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'مفيش طلبات لسه'**
   String get netEmpty;
+
+  /// No description provided for @pin.
+  ///
+  /// In ar, this message translates to:
+  /// **'تثبيت'**
+  String get pin;
+
+  /// No description provided for @unpin.
+  ///
+  /// In ar, this message translates to:
+  /// **'إلغاء التثبيت'**
+  String get unpin;
+
+  /// No description provided for @addToFolder.
+  ///
+  /// In ar, this message translates to:
+  /// **'المجلدات'**
+  String get addToFolder;
+
+  /// No description provided for @newFolder.
+  ///
+  /// In ar, this message translates to:
+  /// **'مجلد جديد'**
+  String get newFolder;
+
+  /// No description provided for @folderName.
+  ///
+  /// In ar, this message translates to:
+  /// **'اسم المجلد'**
+  String get folderName;
+
+  /// No description provided for @rename.
+  ///
+  /// In ar, this message translates to:
+  /// **'إعادة تسمية (على الجهاز ده بس)'**
+  String get rename;
+
+  /// No description provided for @aliasHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'الاسم المحلي'**
+  String get aliasHint;
+
+  /// No description provided for @clear.
+  ///
+  /// In ar, this message translates to:
+  /// **'مسح'**
+  String get clear;
+
+  /// No description provided for @profiles.
+  ///
+  /// In ar, this message translates to:
+  /// **'البروفايلات'**
+  String get profiles;
+
+  /// No description provided for @saveProfile.
+  ///
+  /// In ar, this message translates to:
+  /// **'احفظ الإعدادات الحالية كبروفايل'**
+  String get saveProfile;
+
+  /// No description provided for @profileName.
+  ///
+  /// In ar, this message translates to:
+  /// **'اسم البروفايل'**
+  String get profileName;
+
+  /// No description provided for @forwardedFrom.
+  ///
+  /// In ar, this message translates to:
+  /// **'محوّلة من {name}'**
+  String forwardedFrom(String name);
+
+  /// No description provided for @hiddenForward.
+  ///
+  /// In ar, this message translates to:
+  /// **'حساب مخفي'**
+  String get hiddenForward;
 }
 
 class _AppLocalizationsDelegate

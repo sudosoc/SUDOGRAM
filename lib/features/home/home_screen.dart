@@ -9,6 +9,7 @@ import '../../domain/models.dart';
 import '../../l10n/app_localizations.dart';
 import '../chat/chat_screen.dart';
 import '../settings/settings_sheet.dart';
+import 'chat_actions.dart';
 
 String kindLabel(AppLocalizations l, MessageKind k) => switch (k) {
       MessageKind.photo => l.kindPhoto,
@@ -37,6 +38,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _searching = false;
   String _query = '';
+  String? _folder; // null = all chats
 
   /// Long-press on search → biometric → hidden chats appear instantly.
   Future<void> _openVault() async {
@@ -132,17 +134,46 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ],
               ),
             ),
+            if (settings.folders.isNotEmpty)
+              SizedBox(
+                height: 44,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  children: [
+                    for (final name in [null, ...settings.folders.keys])
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: ChoiceChip(
+                          label: Text(name ?? l.folderAll),
+                          selected: _folder == name,
+                          onSelected: (_) => setState(() => _folder = name),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
             Expanded(
               child: chats.when(
                 loading: () => Center(child: Text(l.connecting)),
                 error: (e, _) => Center(child: Text(l.errorGeneric)),
                 data: (all) {
                   final q = _query.trim().toLowerCase();
+                  final inFolder = _folder == null ? null : settings.folders[_folder];
                   final shown = all.where((c) {
                     final hidden = settings.hiddenChats.contains(c.id);
                     if (hidden && !unlocked) return false;
-                    return q.isEmpty || c.title.toLowerCase().contains(q);
-                  }).toList();
+                    if (inFolder != null && !inFolder.contains(c.id)) return false;
+                    final name =
+                        (settings.aliases[c.id] ?? c.title).toLowerCase();
+                    return q.isEmpty || name.contains(q);
+                  }).toList()
+                    // Pinned chats first; the rest keep Telegram's order.
+                    ..sort((a, b) {
+                      final pa = settings.pinned.contains(a.id) ? 0 : 1;
+                      final pb = settings.pinned.contains(b.id) ? 0 : 1;
+                      return pa.compareTo(pb);
+                    });
                   final hits = q.isEmpty
                       ? const <SearchHit>[]
                       : ref
@@ -163,6 +194,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         _ChatRow(
                           chat: c,
                           hidden: settings.hiddenChats.contains(c.id),
+                          pinned: settings.pinned.contains(c.id),
+                          alias: settings.aliases[c.id],
                         ),
                       if (hits.isNotEmpty) ...[
                         Padding(
@@ -188,10 +221,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 }
 
 class _ChatRow extends ConsumerWidget {
-  const _ChatRow({required this.chat, required this.hidden});
+  const _ChatRow({
+    required this.chat,
+    required this.hidden,
+    required this.pinned,
+    this.alias,
+  });
 
   final ChatSummary chat;
   final bool hidden;
+  final bool pinned;
+  final String? alias;
 
   Color? get _ring => switch (chat.risk) {
         RiskLevel.safe => GlassTokens.ringSafe,
@@ -211,9 +251,7 @@ class _ChatRow extends ConsumerWidget {
         borderRadius: BorderRadius.circular(20),
         onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
             builder: (_) => ChatScreen(chat: chat))),
-        onLongPress: () => ref
-            .read(settingsProvider.notifier)
-            .setHidden(chat.id, !hidden),
+        onLongPress: () => showChatActions(context, ref, chat),
         child: GlassSurface(
           radius: 20,
           padding: const EdgeInsets.all(12),
@@ -244,12 +282,18 @@ class _ChatRow extends ConsumerWidget {
                   children: [
                     Row(children: [
                       Flexible(
-                        child: Text(chat.title,
+                        child: Text(alias ?? chat.title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                                 fontWeight: FontWeight.w600, fontSize: 16)),
                       ),
+                      if (pinned)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 6),
+                          child: Icon(Icons.push_pin,
+                              size: 13, color: GlassTokens.textSecondary),
+                        ),
                       if (hidden)
                         const Padding(
                           padding: EdgeInsets.symmetric(horizontal: 6),
