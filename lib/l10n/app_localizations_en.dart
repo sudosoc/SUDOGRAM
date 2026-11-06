@@ -169,4 +169,37 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get edited => 'edited';
+
+  @override
+  String get settings => 'Settings';
+
+  @override
+  String get appLock => 'App Lock';
+
+  @override
+  String get appLockHint => 'Ask for fingerprint when returning to the app';
+
+  @override
+  String get appLockReason => 'Verify your identity to open SUDOGRAM';
+
+  @override
+  String get unlock => 'Unlock';
+
+  @override
+  String get editHistory => 'Edit history';
+
+  @override
+  String get noEdits => 'No earlier versions';
+
+  @override
+  String get archiveResults => 'From the local archive';
+
+  @override
+  String get currentVersion => 'Current';
+
+  @override
+  String get deletedBadge => 'deleted';
+
+  @override
+  String get ghostHint => 'No read receipts, typing or online status';
 }

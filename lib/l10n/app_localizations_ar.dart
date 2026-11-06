@@ -170,4 +170,37 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get edited => 'معدّلة';
+
+  @override
+  String get settings => 'الإعدادات';
+
+  @override
+  String get appLock => 'قفل التطبيق';
+
+  @override
+  String get appLockHint => 'اطلب البصمة عند الرجوع للتطبيق';
+
+  @override
+  String get appLockReason => 'أكّد هويتك لفتح SUDOGRAM';
+
+  @override
+  String get unlock => 'فتح';
+
+  @override
+  String get editHistory => 'سجل التعديلات';
+
+  @override
+  String get noEdits => 'مفيش نسخ أقدم';
+
+  @override
+  String get archiveResults => 'من الأرشيف المحلي';
+
+  @override
+  String get currentVersion => 'الحالية';
+
+  @override
+  String get deletedBadge => 'محذوفة';
+
+  @override
+  String get ghostHint => 'من غير إيصال قراءة أو كتابة أو ظهور أونلاين';
 }

@@ -29,6 +29,9 @@ class TdlibGateway implements TelegramGateway {
     required this.databaseDirectory,
     required this.filesDirectory,
     this.languageCode = 'en',
+    this.encryptionKey = '',
+    this.newEncryptionKey,
+    this.onEncryptionKeyApplied,
     this.chatListDebounce = const Duration(milliseconds: 60),
   });
 
@@ -38,6 +41,14 @@ class TdlibGateway implements TelegramGateway {
   final String databaseDirectory;
   final String filesDirectory;
   final String languageCode;
+
+  /// Key the TDLib database is currently encrypted with ('' = not encrypted).
+  final String encryptionKey;
+
+  /// When set, the database is re-keyed to this after login, then
+  /// [onEncryptionKeyApplied] is called so the caller can persist it.
+  final String? newEncryptionKey;
+  final Future<void> Function(String key)? onEncryptionKeyApplied;
   final Duration chatListDebounce;
 
   late final TdTransport _td;
@@ -122,9 +133,7 @@ class TdlibGateway implements TelegramGateway {
           'use_test_dc': false,
           'database_directory': databaseDirectory,
           'files_directory': filesDirectory,
-          // TODO(security): protect the DB with a key kept in the Android
-          // Keystore. Empty means the TDLib database is not encrypted yet.
-          'database_encryption_key': '',
+          'database_encryption_key': encryptionKey,
           'use_file_database': true,
           'use_chat_info_database': true,
           'use_message_database': true,
@@ -144,6 +153,7 @@ class TdlibGateway implements TelegramGateway {
         _auth.value = const AuthState(AuthStep.waitPassword);
       case 'authorizationStateReady':
         _auth.value = AuthState.ready;
+        _rekey();
         _td
             .request({
               '@type': 'loadChats',
@@ -159,6 +169,18 @@ class TdlibGateway implements TelegramGateway {
           AuthStep.waitPhone,
           error: 'Unsupported login step: ${s['@type']}',
         );
+    }
+  }
+
+  Future<void> _rekey() async {
+    final next = newEncryptionKey;
+    if (next == null) return;
+    try {
+      await _td.request(
+          {'@type': 'setDatabaseEncryptionKey', 'new_encryption_key': next});
+      await onEncryptionKeyApplied?.call(next);
+    } on TdError {
+      // Keep the old key; try again on the next start.
     }
   }
 

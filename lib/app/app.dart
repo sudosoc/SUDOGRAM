@@ -37,6 +37,7 @@ class _SudogramAppState extends ConsumerState<SudogramApp>
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden) {
       ref.read(vaultUnlockProvider.notifier).lock();
+      ref.read(appLockedProvider.notifier).lock();
     }
   }
 
@@ -58,7 +59,7 @@ class _SudogramAppState extends ConsumerState<SudogramApp>
       builder: (context, child) => GlassScope(
         performanceMode: s.performanceMode,
         accent: s.accentColor,
-        child: GlassBackdrop(child: child),
+        child: GlassBackdrop(child: _LockGate(child: child)),
       ),
       home: const _Root(),
     );
@@ -89,6 +90,52 @@ class _Root extends ConsumerWidget {
     return Scaffold(
       backgroundColor: Colors.transparent,
       body: Center(child: Text(l.connecting)),
+    );
+  }
+}
+
+/// Covers the whole app with a lock screen while [appLockedProvider] is set.
+class _LockGate extends ConsumerStatefulWidget {
+  const _LockGate({required this.child});
+  final Widget? child;
+
+  @override
+  ConsumerState<_LockGate> createState() => _LockGateState();
+}
+
+class _LockGateState extends ConsumerState<_LockGate> {
+  bool _prompted = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final locked = ref.watch(appLockedProvider);
+    if (!locked) {
+      _prompted = false;
+      return widget.child ?? const SizedBox.shrink();
+    }
+    final l = AppLocalizations.of(context);
+    if (!_prompted) {
+      _prompted = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(appLockedProvider.notifier).unlock(l.appLockReason);
+      });
+    }
+    return Scaffold(
+      backgroundColor: GlassTokens.base,
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.lock_outline, size: 48),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: () =>
+                  ref.read(appLockedProvider.notifier).unlock(l.appLockReason),
+              child: Text(l.unlock),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

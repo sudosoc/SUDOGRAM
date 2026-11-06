@@ -58,6 +58,42 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
   }
 
+  void _showEdits(BuildContext context, ChatMessage m) {
+    final l = AppLocalizations.of(context);
+    final edits = ref.read(archiveProvider).editsFor(m.chatId, m.id);
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Padding(
+        padding: const EdgeInsets.all(12),
+        child: GlassSurface(
+          blur: true,
+          radius: 24,
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(l.editHistory,
+                  style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 12),
+              if (edits.isEmpty) Text(l.noEdits),
+              for (final e in edits)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text(e.oldText,
+                      style: const TextStyle(
+                          color: GlassTokens.textSecondary)),
+                ),
+              const Divider(),
+              Text('${l.currentVersion}: ${m.text}'),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -118,7 +154,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 12, vertical: 8),
                         itemCount: list.length,
-                        itemBuilder: (_, i) => _Bubble(m: list[i]),
+                        itemBuilder: (_, i) => _Bubble(
+                          m: list[i],
+                          onLongPress: list[i].edited
+                              ? () => _showEdits(context, list[i])
+                              : null,
+                        ),
                       ),
               ),
             ),
@@ -168,9 +209,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 }
 
 class _Bubble extends StatelessWidget {
-  const _Bubble({required this.m});
+  const _Bubble({required this.m, this.onLongPress});
 
   final ChatMessage m;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -181,7 +223,9 @@ class _Bubble extends StatelessWidget {
       alignment: m.outgoing
           ? AlignmentDirectional.centerEnd
           : AlignmentDirectional.centerStart,
-      child: Container(
+      child: GestureDetector(
+        onLongPress: onLongPress,
+        child: Container(
         margin: const EdgeInsets.symmetric(vertical: 3),
         constraints: BoxConstraints(
             maxWidth: MediaQuery.of(context).size.width * 0.78),
@@ -215,6 +259,7 @@ class _Bubble extends StatelessWidget {
               ),
           ],
         ),
+      ),
       ),
     );
   }

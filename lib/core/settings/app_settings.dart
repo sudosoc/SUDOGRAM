@@ -16,6 +16,7 @@ class AppSettings {
     this.ghostOverrides = const {},
     this.hiddenChats = const {},
     this.performanceMode = false,
+    this.appLock = false,
     this.accent = 0xFF4F46E5,
     this.localeCode,
   });
@@ -27,6 +28,7 @@ class AppSettings {
   final Map<int, bool> ghostOverrides;
   final Set<int> hiddenChats;
   final bool performanceMode;
+  final bool appLock;
   final int accent;
 
   /// `ar`, `en`, or null to follow the system language.
@@ -42,6 +44,7 @@ class AppSettings {
     Map<int, bool>? ghostOverrides,
     Set<int>? hiddenChats,
     bool? performanceMode,
+    bool? appLock,
     int? accent,
     String? localeCode,
     bool clearLocale = false,
@@ -51,6 +54,7 @@ class AppSettings {
       ghostOverrides: ghostOverrides ?? this.ghostOverrides,
       hiddenChats: hiddenChats ?? this.hiddenChats,
       performanceMode: performanceMode ?? this.performanceMode,
+      appLock: appLock ?? this.appLock,
       accent: accent ?? this.accent,
       localeCode: clearLocale ? null : (localeCode ?? this.localeCode),
     );
@@ -60,6 +64,7 @@ class AppSettings {
   static const _kOverrides = 'ghost_overrides';
   static const _kHidden = 'hidden_chats';
   static const _kPerf = 'performance_mode';
+  static const _kLock = 'app_lock';
   static const _kAccent = 'accent';
   static const _kLocale = 'locale';
 
@@ -79,6 +84,7 @@ class AppSettings {
       ghostOverrides: overrides,
       hiddenChats: hidden,
       performanceMode: p.getBool(_kPerf) ?? false,
+      appLock: p.getBool(_kLock) ?? false,
       accent: p.getInt(_kAccent) ?? GlassTokens.accentDefault.toARGB32(),
       localeCode: p.getString(_kLocale),
     );
@@ -92,6 +98,7 @@ class AppSettings {
     );
     await p.setStringList(_kHidden, [for (final id in hiddenChats) '$id']);
     await p.setBool(_kPerf, performanceMode);
+    await p.setBool(_kLock, appLock);
     await p.setInt(_kAccent, accent);
     if (localeCode == null) {
       await p.remove(_kLocale);
@@ -131,6 +138,8 @@ class SettingsController extends Notifier<AppSettings> {
 
   void setPerformanceMode(bool value) =>
       _set(state.copyWith(performanceMode: value));
+
+  void setAppLock(bool v) => _set(state.copyWith(appLock: v));
 
   void setAccent(Color color) => _set(state.copyWith(accent: color.toARGB32()));
 

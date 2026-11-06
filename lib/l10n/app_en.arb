@@ -63,5 +63,16 @@
   "performanceMode": "Performance mode",
   "language": "Language",
   "deletedByPeer": "Deleted by sender",
-  "edited": "edited"
+  "edited": "edited",
+  "settings": "Settings",
+  "appLock": "App Lock",
+  "appLockHint": "Ask for fingerprint when returning to the app",
+  "appLockReason": "Verify your identity to open SUDOGRAM",
+  "unlock": "Unlock",
+  "editHistory": "Edit history",
+  "noEdits": "No earlier versions",
+  "archiveResults": "From the local archive",
+  "currentVersion": "Current",
+  "deletedBadge": "deleted",
+  "ghostHint": "No read receipts, typing or online status"
 }

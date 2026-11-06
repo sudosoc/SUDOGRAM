@@ -43,6 +43,8 @@ dependencies:
   characters: ^1.4.1
   flutter_localizations:
     sdk: flutter
+  sqlite3: ^3.9.0
+  flutter_secure_storage: ^11.2.0
 
 dev_dependencies:
   flutter_test:
@@ -97,3 +99,9 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+# Encrypted local archive (SQLite3 Multiple Ciphers, includes FTS5).
+hooks:
+  user_defines:
+    sqlite3:
+      source: sqlite3mc

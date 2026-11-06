@@ -397,6 +397,72 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'معدّلة'**
   String get edited;
+
+  /// No description provided for @settings.
+  ///
+  /// In ar, this message translates to:
+  /// **'الإعدادات'**
+  String get settings;
+
+  /// No description provided for @appLock.
+  ///
+  /// In ar, this message translates to:
+  /// **'قفل التطبيق'**
+  String get appLock;
+
+  /// No description provided for @appLockHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'اطلب البصمة عند الرجوع للتطبيق'**
+  String get appLockHint;
+
+  /// No description provided for @appLockReason.
+  ///
+  /// In ar, this message translates to:
+  /// **'أكّد هويتك لفتح SUDOGRAM'**
+  String get appLockReason;
+
+  /// No description provided for @unlock.
+  ///
+  /// In ar, this message translates to:
+  /// **'فتح'**
+  String get unlock;
+
+  /// No description provided for @editHistory.
+  ///
+  /// In ar, this message translates to:
+  /// **'سجل التعديلات'**
+  String get editHistory;
+
+  /// No description provided for @noEdits.
+  ///
+  /// In ar, this message translates to:
+  /// **'مفيش نسخ أقدم'**
+  String get noEdits;
+
+  /// No description provided for @archiveResults.
+  ///
+  /// In ar, this message translates to:
+  /// **'من الأرشيف المحلي'**
+  String get archiveResults;
+
+  /// No description provided for @currentVersion.
+  ///
+  /// In ar, this message translates to:
+  /// **'الحالية'**
+  String get currentVersion;
+
+  /// No description provided for @deletedBadge.
+  ///
+  /// In ar, this message translates to:
+  /// **'محذوفة'**
+  String get deletedBadge;
+
+  /// No description provided for @ghostHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'من غير إيصال قراءة أو كتابة أو ظهور أونلاين'**
+  String get ghostHint;
 }
 
 class _AppLocalizationsDelegate

@@ -6,6 +6,9 @@ import 'package:local_auth/local_auth.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../core/settings/app_settings.dart';
+import '../data/archive/archive_db.dart';
+import '../data/archive/archiving_gateway.dart';
+import '../data/key_store.dart';
 import '../data/mock_gateway.dart';
 import '../data/tdlib/td_gateway.dart';
 import '../data/tdlib/td_native.dart';
@@ -27,19 +30,30 @@ TelegramGateway _buildRaw() {
     apiHash: _apiHash,
     databaseDirectory: '${_dir.path}/td_db',
     filesDirectory: '${_dir.path}/td_files',
+    encryptionKey: _tdKey ?? '',
+    newEncryptionKey: _tdKey == null ? _keys.generate() : null,
+    onEncryptionKeyApplied: (k) => _keys.write('td_db_key', k),
   );
 }
 
 late Directory _dir;
+late ArchiveDb _archive;
+final _keys = KeyStore();
+String? _tdKey;
 
 Future<void> initAppDirs() async {
   _dir = await getApplicationSupportDirectory();
+  _tdKey = await _keys.read('td_db_key');
+  final archiveKey = await _keys.getOrCreate('archive_key');
+  _archive = ArchiveDb.open('${_dir.path}/archive.db', key: archiveKey);
 }
+
+final archiveProvider = Provider<ArchiveDb>((ref) => _archive);
 
 /// The gateway the UI uses: raw gateway wrapped in the Ghost guard.
 final gatewayProvider = Provider<TelegramGateway>((ref) {
   final g = GhostGateway(
-    _buildRaw(),
+    ArchivingGateway(_buildRaw(), _archive),
     isGhost: (id) => ref.read(settingsProvider).ghostFor(id),
     globalGhost: () => ref.read(settingsProvider).ghostGlobal,
   );
@@ -86,3 +100,25 @@ class VaultUnlock extends Notifier<bool> {
 
 final vaultUnlockProvider =
     NotifierProvider<VaultUnlock, bool>(VaultUnlock.new);
+
+/// App Lock: when on, the app asks for biometrics after being in background.
+class AppLocked extends Notifier<bool> {
+  @override
+  bool build() => ref.read(settingsProvider).appLock; // locked at cold start
+
+  void lock() {
+    if (ref.read(settingsProvider).appLock) state = true;
+  }
+
+  Future<void> unlock(String reason) async {
+    try {
+      final ok = await LocalAuthentication()
+          .authenticate(localizedReason: reason, biometricOnly: false);
+      if (ok) state = false;
+    } catch (e) {
+      debugPrint('app unlock failed: $e');
+    }
+  }
+}
+
+final appLockedProvider = NotifierProvider<AppLocked, bool>(AppLocked.new);

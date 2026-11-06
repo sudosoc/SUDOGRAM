@@ -4,9 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/providers.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/theme/glass.dart';
+import '../../data/archive/archive_db.dart';
 import '../../domain/models.dart';
 import '../../l10n/app_localizations.dart';
 import '../chat/chat_screen.dart';
+import '../settings/settings_sheet.dart';
 
 String kindLabel(AppLocalizations l, MessageKind k) => switch (k) {
       MessageKind.photo => l.kindPhoto,
@@ -113,6 +115,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                   const SizedBox(width: 8),
                   GlassIconButton(
+                    icon: Icons.tune,
+                    tooltip: l.settings,
+                    onPressed: () => showSettingsSheet(context),
+                  ),
+                  const SizedBox(width: 8),
+                  GlassIconButton(
                     icon: _searching ? Icons.close : Icons.search,
                     tooltip: l.search,
                     onPressed: () => setState(() {
@@ -135,14 +143,39 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     if (hidden && !unlocked) return false;
                     return q.isEmpty || c.title.toLowerCase().contains(q);
                   }).toList();
-                  if (shown.isEmpty) return Center(child: Text(l.noChats));
-                  return ListView.builder(
+                  final hits = q.isEmpty
+                      ? const <SearchHit>[]
+                      : ref
+                          .read(archiveProvider)
+                          .search(q)
+                          .where((h) =>
+                              unlocked ||
+                              !settings.hiddenChats.contains(h.message.chatId))
+                          .toList();
+                  if (shown.isEmpty && hits.isEmpty) {
+                    return Center(child: Text(l.noChats));
+                  }
+                  final byId = {for (final c in all) c.id: c};
+                  return ListView(
                     padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
-                    itemCount: shown.length,
-                    itemBuilder: (_, i) => _ChatRow(
-                      chat: shown[i],
-                      hidden: settings.hiddenChats.contains(shown[i].id),
-                    ),
+                    children: [
+                      for (final c in shown)
+                        _ChatRow(
+                          chat: c,
+                          hidden: settings.hiddenChats.contains(c.id),
+                        ),
+                      if (hits.isNotEmpty) ...[
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(8, 16, 8, 6),
+                          child: Text(l.archiveResults,
+                              style: const TextStyle(
+                                  color: GlassTokens.textSecondary)),
+                        ),
+                        for (final h in hits)
+                          if (byId[h.message.chatId] != null)
+                            _HitRow(hit: h, chat: byId[h.message.chatId]!),
+                      ],
+                    ],
                   );
                 },
               ),
@@ -255,6 +288,44 @@ class _ChatRow extends ConsumerWidget {
                     ),
                 ],
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HitRow extends StatelessWidget {
+  const _HitRow({required this.hit, required this.chat});
+
+  final SearchHit hit;
+  final ChatSummary chat;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+            builder: (_) => ChatScreen(chat: chat))),
+        child: GlassSurface(
+          radius: 16,
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(chat.title,
+                  style: const TextStyle(
+                      fontSize: 13, color: GlassTokens.textSecondary)),
+              const SizedBox(height: 2),
+              Text(hit.message.text, maxLines: 2, overflow: TextOverflow.ellipsis),
+              if (hit.deleted)
+                Text(l.deletedBadge,
+                    style: const TextStyle(
+                        fontSize: 11, color: GlassTokens.ringDanger)),
             ],
           ),
         ),

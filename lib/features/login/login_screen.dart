@@ -16,6 +16,7 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _c = TextEditingController();
   bool _busy = false;
+  bool _showPass = false;
 
   @override
   void dispose() {
@@ -74,14 +75,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       style: Theme.of(context).textTheme.titleLarge),
                   const SizedBox(height: 16),
                   TextField(
+                    // New key per step: the Android keyboard type only
+                    // refreshes when the field is rebuilt from scratch.
+                    key: ValueKey(auth.step),
                     controller: _c,
                     autofocus: true,
-                    obscureText: auth.step == AuthStep.waitPassword,
-                    keyboardType: auth.step == AuthStep.waitPassword
-                        ? TextInputType.text
-                        : TextInputType.phone,
+                    obscureText:
+                        auth.step == AuthStep.waitPassword && !_showPass,
+                    keyboardType: switch (auth.step) {
+                      AuthStep.waitPassword => TextInputType.visiblePassword,
+                      AuthStep.waitCode => TextInputType.number,
+                      _ => TextInputType.phone,
+                    },
+                    autocorrect: false,
+                    enableSuggestions: false,
                     textDirection: TextDirection.ltr,
-                    decoration: InputDecoration(hintText: hint),
+                    decoration: InputDecoration(
+                      hintText: hint,
+                      suffixIcon: auth.step == AuthStep.waitPassword
+                          ? IconButton(
+                              icon: Icon(_showPass
+                                  ? Icons.visibility_off
+                                  : Icons.visibility),
+                              onPressed: () =>
+                                  setState(() => _showPass = !_showPass),
+                            )
+                          : null,
+                    ),
                     onSubmitted: (_) => _submit(auth.step),
                   ),
                   if (auth.error != null) ...[
