@@ -751,6 +751,126 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'حساب مخفي'**
   String get hiddenForward;
+
+  /// No description provided for @rules.
+  ///
+  /// In ar, this message translates to:
+  /// **'القواعد'**
+  String get rules;
+
+  /// No description provided for @rulesEmpty.
+  ///
+  /// In ar, this message translates to:
+  /// **'مفيش قواعد لسه'**
+  String get rulesEmpty;
+
+  /// No description provided for @ruleAdd.
+  ///
+  /// In ar, this message translates to:
+  /// **'إضافة قاعدة'**
+  String get ruleAdd;
+
+  /// No description provided for @ruleName.
+  ///
+  /// In ar, this message translates to:
+  /// **'اسم القاعدة'**
+  String get ruleName;
+
+  /// No description provided for @ruleChat.
+  ///
+  /// In ar, this message translates to:
+  /// **'اسم الشات فيه'**
+  String get ruleChat;
+
+  /// No description provided for @ruleText.
+  ///
+  /// In ar, this message translates to:
+  /// **'الرسالة فيها'**
+  String get ruleText;
+
+  /// No description provided for @ruleKind.
+  ///
+  /// In ar, this message translates to:
+  /// **'نوع الرسالة'**
+  String get ruleKind;
+
+  /// No description provided for @anyKind.
+  ///
+  /// In ar, this message translates to:
+  /// **'أي نوع'**
+  String get anyKind;
+
+  /// No description provided for @ruleDo.
+  ///
+  /// In ar, this message translates to:
+  /// **'اعمل'**
+  String get ruleDo;
+
+  /// No description provided for @actPin.
+  ///
+  /// In ar, this message translates to:
+  /// **'ثبّت الشات'**
+  String get actPin;
+
+  /// No description provided for @actHide.
+  ///
+  /// In ar, this message translates to:
+  /// **'اخفي الشات'**
+  String get actHide;
+
+  /// No description provided for @actGhostOn.
+  ///
+  /// In ar, this message translates to:
+  /// **'شغّل Ghost للشات'**
+  String get actGhostOn;
+
+  /// No description provided for @actGhostOff.
+  ///
+  /// In ar, this message translates to:
+  /// **'اقفل Ghost للشات'**
+  String get actGhostOff;
+
+  /// No description provided for @actFolder.
+  ///
+  /// In ar, this message translates to:
+  /// **'ضيفه لمجلد'**
+  String get actFolder;
+
+  /// No description provided for @ruleExport.
+  ///
+  /// In ar, this message translates to:
+  /// **'انسخ حزمة القواعد'**
+  String get ruleExport;
+
+  /// No description provided for @ruleImport.
+  ///
+  /// In ar, this message translates to:
+  /// **'استيراد حزمة قواعد'**
+  String get ruleImport;
+
+  /// No description provided for @ruleImportHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'الصق حزمة القواعد هنا'**
+  String get ruleImportHint;
+
+  /// No description provided for @ruleCopied.
+  ///
+  /// In ar, this message translates to:
+  /// **'اتنسخ'**
+  String get ruleCopied;
+
+  /// No description provided for @ruleBad.
+  ///
+  /// In ar, this message translates to:
+  /// **'حزمة قواعد مش صالحة'**
+  String get ruleBad;
+
+  /// No description provided for @ruleImported.
+  ///
+  /// In ar, this message translates to:
+  /// **'اتستورد {count} قواعد'**
+  String ruleImported(int count);
 }
 
 class _AppLocalizationsDelegate

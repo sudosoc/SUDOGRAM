@@ -352,4 +352,66 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hiddenForward => 'a hidden account';
+
+  @override
+  String get rules => 'Rules';
+
+  @override
+  String get rulesEmpty => 'No rules yet';
+
+  @override
+  String get ruleAdd => 'Add rule';
+
+  @override
+  String get ruleName => 'Rule name';
+
+  @override
+  String get ruleChat => 'Chat name contains';
+
+  @override
+  String get ruleText => 'Message contains';
+
+  @override
+  String get ruleKind => 'Message type';
+
+  @override
+  String get anyKind => 'Any';
+
+  @override
+  String get ruleDo => 'Then';
+
+  @override
+  String get actPin => 'Pin chat';
+
+  @override
+  String get actHide => 'Hide chat';
+
+  @override
+  String get actGhostOn => 'Turn Ghost on for chat';
+
+  @override
+  String get actGhostOff => 'Turn Ghost off for chat';
+
+  @override
+  String get actFolder => 'Add to folder';
+
+  @override
+  String get ruleExport => 'Copy rule pack';
+
+  @override
+  String get ruleImport => 'Import rule pack';
+
+  @override
+  String get ruleImportHint => 'Paste a rule pack here';
+
+  @override
+  String get ruleCopied => 'Copied';
+
+  @override
+  String get ruleBad => 'Not a valid rule pack';
+
+  @override
+  String ruleImported(int count) {
+    return 'Imported $count rules';
+  }
 }

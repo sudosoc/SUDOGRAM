@@ -143,5 +143,32 @@
       }
     }
   },
-  "hiddenForward": "حساب مخفي"
+  "hiddenForward": "حساب مخفي",
+  "rules": "القواعد",
+  "rulesEmpty": "مفيش قواعد لسه",
+  "ruleAdd": "إضافة قاعدة",
+  "ruleName": "اسم القاعدة",
+  "ruleChat": "اسم الشات فيه",
+  "ruleText": "الرسالة فيها",
+  "ruleKind": "نوع الرسالة",
+  "anyKind": "أي نوع",
+  "ruleDo": "اعمل",
+  "actPin": "ثبّت الشات",
+  "actHide": "اخفي الشات",
+  "actGhostOn": "شغّل Ghost للشات",
+  "actGhostOff": "اقفل Ghost للشات",
+  "actFolder": "ضيفه لمجلد",
+  "ruleExport": "انسخ حزمة القواعد",
+  "ruleImport": "استيراد حزمة قواعد",
+  "ruleImportHint": "الصق حزمة القواعد هنا",
+  "ruleCopied": "اتنسخ",
+  "ruleBad": "حزمة قواعد مش صالحة",
+  "ruleImported": "اتستورد {count} قواعد",
+  "@ruleImported": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }

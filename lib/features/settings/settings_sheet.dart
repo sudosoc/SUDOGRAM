@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/theme/glass.dart';
 import '../../l10n/app_localizations.dart';
+import '../rules/rules_screen.dart';
 import '../tools/tools_screens.dart';
 
 void showSettingsSheet(BuildContext context) {
@@ -54,6 +55,7 @@ class _SettingsSheet extends ConsumerWidget {
               (l.timeMachine, Icons.history, (_) => const TimeMachineScreen()),
               (l.contactLog, Icons.person_search_outlined,
                   (_) => const ContactLogScreen()),
+              (l.rules, Icons.rule, (_) => const RulesScreen()),
               (l.joinParts, Icons.merge_type, (_) => const JoinPartsScreen()),
               (l.networkInspector, Icons.network_check,
                   (_) => const NetworkInspectorScreen()),

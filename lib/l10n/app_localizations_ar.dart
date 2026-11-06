@@ -353,4 +353,66 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get hiddenForward => 'حساب مخفي';
+
+  @override
+  String get rules => 'القواعد';
+
+  @override
+  String get rulesEmpty => 'مفيش قواعد لسه';
+
+  @override
+  String get ruleAdd => 'إضافة قاعدة';
+
+  @override
+  String get ruleName => 'اسم القاعدة';
+
+  @override
+  String get ruleChat => 'اسم الشات فيه';
+
+  @override
+  String get ruleText => 'الرسالة فيها';
+
+  @override
+  String get ruleKind => 'نوع الرسالة';
+
+  @override
+  String get anyKind => 'أي نوع';
+
+  @override
+  String get ruleDo => 'اعمل';
+
+  @override
+  String get actPin => 'ثبّت الشات';
+
+  @override
+  String get actHide => 'اخفي الشات';
+
+  @override
+  String get actGhostOn => 'شغّل Ghost للشات';
+
+  @override
+  String get actGhostOff => 'اقفل Ghost للشات';
+
+  @override
+  String get actFolder => 'ضيفه لمجلد';
+
+  @override
+  String get ruleExport => 'انسخ حزمة القواعد';
+
+  @override
+  String get ruleImport => 'استيراد حزمة قواعد';
+
+  @override
+  String get ruleImportHint => 'الصق حزمة القواعد هنا';
+
+  @override
+  String get ruleCopied => 'اتنسخ';
+
+  @override
+  String get ruleBad => 'حزمة قواعد مش صالحة';
+
+  @override
+  String ruleImported(int count) {
+    return 'اتستورد $count قواعد';
+  }
 }

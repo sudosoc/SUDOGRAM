@@ -9,6 +9,7 @@ import '../features/home/home_screen.dart';
 import '../features/login/login_screen.dart';
 import '../l10n/app_localizations.dart';
 import '../features/downloads/keep_alive.dart';
+import '../features/rules/rules_controller.dart';
 import 'providers.dart';
 
 class SudogramApp extends ConsumerStatefulWidget {
@@ -82,6 +83,7 @@ class _Root extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(rulesRunnerProvider);
     final boot = ref.watch(bootProvider);
     final auth = ref.watch(authProvider);
     final l = AppLocalizations.of(context);

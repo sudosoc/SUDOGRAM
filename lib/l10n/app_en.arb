@@ -143,5 +143,32 @@
       }
     }
   },
-  "hiddenForward": "a hidden account"
+  "hiddenForward": "a hidden account",
+  "rules": "Rules",
+  "rulesEmpty": "No rules yet",
+  "ruleAdd": "Add rule",
+  "ruleName": "Rule name",
+  "ruleChat": "Chat name contains",
+  "ruleText": "Message contains",
+  "ruleKind": "Message type",
+  "anyKind": "Any",
+  "ruleDo": "Then",
+  "actPin": "Pin chat",
+  "actHide": "Hide chat",
+  "actGhostOn": "Turn Ghost on for chat",
+  "actGhostOff": "Turn Ghost off for chat",
+  "actFolder": "Add to folder",
+  "ruleExport": "Copy rule pack",
+  "ruleImport": "Import rule pack",
+  "ruleImportHint": "Paste a rule pack here",
+  "ruleCopied": "Copied",
+  "ruleBad": "Not a valid rule pack",
+  "ruleImported": "Imported {count} rules",
+  "@ruleImported": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  }
 }
