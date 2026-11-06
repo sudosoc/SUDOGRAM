@@ -472,4 +472,30 @@ void main() {
     final m = await g.searchMembers(1, 'b');
     expect(m.map((e) => e.username), ['bob']);
   });
+
+  test('profile, mute, voice and leave map to the right TDLib calls', () async {
+    final sent = <Map<String, dynamic>>[];
+    t.onRequest = (r) {
+      sent.add(r);
+      if (r['@type'] == 'getMe') {
+        return {'@type': 'user', 'id': 9, 'first_name': 'Seif', 'last_name': 'A',
+          'usernames': {'active_usernames': ['sudo']}, 'phone_number': '20100'};
+      }
+      return {'@type': 'ok'};
+    };
+    final me = await g.me();
+    expect(me?.username, 'sudo');
+    expect(me?.firstName, 'Seif');
+    await g.updateProfile(firstName: 'S', lastName: 'B', bio: 'hi');
+    await g.setMuted(5, true);
+    await g.sendVoice(5, '/tmp/v.ogg', 3);
+    await g.blockUser(5, true);
+    final types = sent.map((r) => r['@type']).toList();
+    expect(types, containsAll(['setName', 'setBio', 'setChatNotificationSettings',
+        'sendMessage', 'setMessageSenderBlockList']));
+    final voice = sent.firstWhere((r) => r['@type'] == 'sendMessage');
+    expect((voice['input_message_content'] as Map)['@type'], 'inputMessageVoiceNote');
+    expect(sent.firstWhere((r) => r['@type'] == 'setChatNotificationSettings')
+        ['notification_settings']['mute_for'], greaterThan(0));
+  });
 }

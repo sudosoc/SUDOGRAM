@@ -653,4 +653,85 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get allow => 'Allow';
+
+  @override
+  String get profile => 'Profile';
+
+  @override
+  String get firstName => 'First name';
+
+  @override
+  String get lastName => 'Last name';
+
+  @override
+  String get bioLabel => 'Bio';
+
+  @override
+  String get changePhoto => 'Change photo';
+
+  @override
+  String get logout => 'Log out';
+
+  @override
+  String get logoutConfirm =>
+      'Log out of this account? Your local archive stays on this device.';
+
+  @override
+  String get saved => 'Saved';
+
+  @override
+  String get usernameTaken => 'Username is taken or invalid';
+
+  @override
+  String get mute => 'Mute';
+
+  @override
+  String get unmute => 'Unmute';
+
+  @override
+  String get clearHistory => 'Clear history';
+
+  @override
+  String get deleteChat => 'Delete chat';
+
+  @override
+  String get leaveChat => 'Leave and delete';
+
+  @override
+  String get blockUser => 'Block';
+
+  @override
+  String get unblockUser => 'Unblock';
+
+  @override
+  String get gallery => 'Gallery';
+
+  @override
+  String get cameraPhoto => 'Take photo';
+
+  @override
+  String get cameraVideo => 'Record video';
+
+  @override
+  String get fileLabel => 'File';
+
+  @override
+  String sendFailed(String e) {
+    return 'Couldn\'t send: $e';
+  }
+
+  @override
+  String get recording => 'Recording…';
+
+  @override
+  String get micDenied => 'Microphone permission denied';
+
+  @override
+  String get micUnsupported => 'This phone can\'t record voice notes in Opus';
+
+  @override
+  String get confirm => 'Are you sure?';
+
+  @override
+  String get cancelAction => 'Cancel';
 }

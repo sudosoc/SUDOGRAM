@@ -25,6 +25,25 @@ Future<String?> _ask(BuildContext context, String title, String hint,
   );
 }
 
+Future<bool> _confirm(BuildContext context) async {
+  final l = AppLocalizations.of(context);
+  return await showDialog<bool>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: Text(l.confirm),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(l.cancelAction)),
+            TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('OK')),
+          ],
+        ),
+      ) ??
+      false;
+}
+
 /// Local-only actions for a chat: pin, folders, alias, hide, ghost.
 void showChatActions(BuildContext context, WidgetRef ref, ChatSummary chat) {
   showModalBottomSheet<void>(
@@ -50,6 +69,14 @@ void showChatActions(BuildContext context, WidgetRef ref, ChatSummary chat) {
                 title: Text(pinned ? l.unpin : l.pin),
                 onTap: () {
                   c.togglePin(chat.id);
+                  Navigator.pop(sheet);
+                },
+              ),
+              ListTile(
+                leading: Icon(chat.muted ? Icons.volume_up_outlined : Icons.volume_off_outlined),
+                title: Text(chat.muted ? l.unmute : l.mute),
+                onTap: () {
+                  ref.read(gatewayProvider).setMuted(chat.id, !chat.muted);
                   Navigator.pop(sheet);
                 },
               ),
@@ -115,6 +142,44 @@ void showChatActions(BuildContext context, WidgetRef ref, ChatSummary chat) {
                 ),
               ]),
               const SizedBox(height: 8),
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.cleaning_services_outlined,
+                    color: GlassTokens.ringDanger),
+                title: Text(l.clearHistory,
+                    style: const TextStyle(color: GlassTokens.ringDanger)),
+                onTap: () async {
+                  Navigator.pop(sheet);
+                  if (await _confirm(context)) {
+                    await ref.read(gatewayProvider).clearHistory(chat.id);
+                  }
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete_outline,
+                    color: GlassTokens.ringDanger),
+                title: Text(
+                    chat.type == ChatType.private ? l.deleteChat : l.leaveChat,
+                    style: const TextStyle(color: GlassTokens.ringDanger)),
+                onTap: () async {
+                  Navigator.pop(sheet);
+                  if (await _confirm(context)) {
+                    await ref.read(gatewayProvider).leaveChat(chat.id);
+                  }
+                },
+              ),
+              if (chat.type == ChatType.private)
+                ListTile(
+                  leading: const Icon(Icons.block, color: GlassTokens.ringDanger),
+                  title: Text(l.blockUser,
+                      style: const TextStyle(color: GlassTokens.ringDanger)),
+                  onTap: () async {
+                    Navigator.pop(sheet);
+                    if (await _confirm(context)) {
+                      await ref.read(gatewayProvider).blockUser(chat.id, true);
+                    }
+                  },
+                ),
             ]),
           ),
         ),

@@ -1357,6 +1357,147 @@ class TdlibGateway implements TelegramGateway {
   }
 
   @override
+  Future<ProfileInfo?> me() async {
+    try {
+      final u = await _td.request({'@type': 'getMe'});
+      final id = asInt(u['id']);
+      String bio = '';
+      try {
+        final f = await _td.request({'@type': 'getUserFullInfo', 'user_id': id});
+        final b = f['bio'];
+        bio = b is Map ? (b['text'] ?? '').toString() : (b ?? '').toString();
+      } on TdError {
+        // optional
+      }
+      final names = (u['usernames'] as Map?)?['active_usernames'] as List?;
+      final small = (u['profile_photo'] as Map?)?['small'] as Map?;
+      return ProfileInfo(
+        id: id,
+        firstName: (u['first_name'] ?? '').toString(),
+        lastName: (u['last_name'] ?? '').toString(),
+        username: names == null || names.isEmpty ? '' : names.first.toString(),
+        phone: (u['phone_number'] ?? '').toString(),
+        bio: bio,
+        avatar: small == null ? null : _fileToAttachment(small, 'me.jpg'),
+      );
+    } on TdError {
+      return null;
+    }
+  }
+
+  @override
+  Future<void> updateProfile(
+      {String? firstName, String? lastName, String? bio}) async {
+    if (firstName != null || lastName != null) {
+      await _td.request({
+        '@type': 'setName',
+        'first_name': firstName ?? '',
+        'last_name': lastName ?? '',
+      });
+    }
+    if (bio != null) await _td.request({'@type': 'setBio', 'bio': bio});
+  }
+
+  @override
+  Future<bool> setUsername(String username) async {
+    try {
+      await _td.request({'@type': 'setUsername', 'username': username});
+      return true;
+    } on TdError {
+      return false;
+    }
+  }
+
+  @override
+  Future<void> setProfilePhoto(String path) async {
+    await _td.request({
+      '@type': 'setProfilePhoto',
+      'photo': {
+        '@type': 'inputChatPhotoStatic',
+        'photo': {'@type': 'inputFileLocal', 'path': path},
+      },
+      'is_public': false,
+    });
+  }
+
+  @override
+  Future<void> logOut() async {
+    await _td.request({'@type': 'logOut'});
+  }
+
+  @override
+  Future<void> setMuted(int chatId, bool muted) async {
+    await _td.request({
+      '@type': 'setChatNotificationSettings',
+      'chat_id': chatId,
+      'notification_settings': {
+        '@type': 'chatNotificationSettings',
+        'use_default_mute_for': false,
+        'mute_for': muted ? 2147483647 : 0,
+        'use_default_sound': true,
+        'use_default_show_preview': true,
+        'use_default_mute_stories': true,
+        'use_default_story_sound': true,
+        'use_default_show_story_poster': true,
+        'use_default_disable_pinned_message_notifications': true,
+        'use_default_disable_mention_notifications': true,
+      },
+    });
+  }
+
+  @override
+  Future<void> clearHistory(int chatId) async {
+    await _td.request({
+      '@type': 'deleteChatHistory',
+      'chat_id': chatId,
+      'remove_from_chat_list': false,
+      'revoke': false,
+    });
+  }
+
+  @override
+  Future<void> leaveChat(int chatId) async {
+    final c = _chats[chatId];
+    if (c != null && (c.type == ChatType.group || c.type == ChatType.channel)) {
+      try {
+        await _td.request({'@type': 'leaveChat', 'chat_id': chatId});
+      } on TdError {
+        // already left
+      }
+    }
+    await _td.request({
+      '@type': 'deleteChatHistory',
+      'chat_id': chatId,
+      'remove_from_chat_list': true,
+      'revoke': false,
+    });
+  }
+
+  @override
+  Future<void> blockUser(int userId, bool blocked) async {
+    await _td.request({
+      '@type': 'setMessageSenderBlockList',
+      'sender_id': {'@type': 'messageSenderUser', 'user_id': userId},
+      if (blocked) 'block_list': {'@type': 'blockListMain'},
+    });
+  }
+
+  @override
+  Future<void> sendVoice(int chatId, String path, int seconds) async {
+    await _td.request({
+      '@type': 'sendMessage',
+      'chat_id': chatId,
+      'input_message_content': {
+        '@type': 'inputMessageVoiceNote',
+        'voice_note': {'@type': 'inputFileLocal', 'path': path},
+        'duration': seconds,
+        'waveform': '',
+        'caption': {'@type': 'formattedText', 'text': ''},
+      },
+    });
+  }
+
+  @override
   Future<void> forwardMessages(
       int toChatId, int fromChatId, List<int> ids) async {
     await _td.request({

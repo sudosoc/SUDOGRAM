@@ -44,6 +44,26 @@ class _Recorder implements TelegramGateway {
   @override
   Future<void> setAutoDelete(int chatId, int seconds) async {}
   @override
+  Future<ProfileInfo?> me() async => const ProfileInfo(id: 0);
+  @override
+  Future<void> updateProfile({String? firstName, String? lastName, String? bio}) async {}
+  @override
+  Future<bool> setUsername(String username) async => true;
+  @override
+  Future<void> setProfilePhoto(String path) async {}
+  @override
+  Future<void> logOut() async {}
+  @override
+  Future<void> setMuted(int chatId, bool muted) async {}
+  @override
+  Future<void> clearHistory(int chatId) async {}
+  @override
+  Future<void> leaveChat(int chatId) async {}
+  @override
+  Future<void> blockUser(int userId, bool blocked) async {}
+  @override
+  Future<void> sendVoice(int chatId, String path, int seconds) async {}
+  @override
   bool get isDemo => true;
   @override
   Stream<AuthState> get authState => const Stream.empty();

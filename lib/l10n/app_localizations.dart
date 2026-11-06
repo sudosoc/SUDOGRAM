@@ -1333,6 +1333,162 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'سماح'**
   String get allow;
+
+  /// No description provided for @profile.
+  ///
+  /// In ar, this message translates to:
+  /// **'البروفايل'**
+  String get profile;
+
+  /// No description provided for @firstName.
+  ///
+  /// In ar, this message translates to:
+  /// **'الاسم الأول'**
+  String get firstName;
+
+  /// No description provided for @lastName.
+  ///
+  /// In ar, this message translates to:
+  /// **'اسم العيلة'**
+  String get lastName;
+
+  /// No description provided for @bioLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'النبذة'**
+  String get bioLabel;
+
+  /// No description provided for @changePhoto.
+  ///
+  /// In ar, this message translates to:
+  /// **'تغيير الصورة'**
+  String get changePhoto;
+
+  /// No description provided for @logout.
+  ///
+  /// In ar, this message translates to:
+  /// **'تسجيل خروج'**
+  String get logout;
+
+  /// No description provided for @logoutConfirm.
+  ///
+  /// In ar, this message translates to:
+  /// **'تسجّل خروج من الحساب ده؟ الأرشيف المحلي هيفضل على الجهاز.'**
+  String get logoutConfirm;
+
+  /// No description provided for @saved.
+  ///
+  /// In ar, this message translates to:
+  /// **'اتحفظ'**
+  String get saved;
+
+  /// No description provided for @usernameTaken.
+  ///
+  /// In ar, this message translates to:
+  /// **'اسم المستخدم مأخوذ أو غير صالح'**
+  String get usernameTaken;
+
+  /// No description provided for @mute.
+  ///
+  /// In ar, this message translates to:
+  /// **'كتم'**
+  String get mute;
+
+  /// No description provided for @unmute.
+  ///
+  /// In ar, this message translates to:
+  /// **'إلغاء الكتم'**
+  String get unmute;
+
+  /// No description provided for @clearHistory.
+  ///
+  /// In ar, this message translates to:
+  /// **'مسح المحادثة'**
+  String get clearHistory;
+
+  /// No description provided for @deleteChat.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف الشات'**
+  String get deleteChat;
+
+  /// No description provided for @leaveChat.
+  ///
+  /// In ar, this message translates to:
+  /// **'مغادرة وحذف'**
+  String get leaveChat;
+
+  /// No description provided for @blockUser.
+  ///
+  /// In ar, this message translates to:
+  /// **'حظر'**
+  String get blockUser;
+
+  /// No description provided for @unblockUser.
+  ///
+  /// In ar, this message translates to:
+  /// **'إلغاء الحظر'**
+  String get unblockUser;
+
+  /// No description provided for @gallery.
+  ///
+  /// In ar, this message translates to:
+  /// **'المعرض'**
+  String get gallery;
+
+  /// No description provided for @cameraPhoto.
+  ///
+  /// In ar, this message translates to:
+  /// **'تصوير صورة'**
+  String get cameraPhoto;
+
+  /// No description provided for @cameraVideo.
+  ///
+  /// In ar, this message translates to:
+  /// **'تسجيل فيديو'**
+  String get cameraVideo;
+
+  /// No description provided for @fileLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'ملف'**
+  String get fileLabel;
+
+  /// No description provided for @sendFailed.
+  ///
+  /// In ar, this message translates to:
+  /// **'فشل الإرسال: {e}'**
+  String sendFailed(String e);
+
+  /// No description provided for @recording.
+  ///
+  /// In ar, this message translates to:
+  /// **'بيسجّل…'**
+  String get recording;
+
+  /// No description provided for @micDenied.
+  ///
+  /// In ar, this message translates to:
+  /// **'إذن المايك مرفوض'**
+  String get micDenied;
+
+  /// No description provided for @micUnsupported.
+  ///
+  /// In ar, this message translates to:
+  /// **'الموبايل ده مش بيسجل صوت بصيغة Opus'**
+  String get micUnsupported;
+
+  /// No description provided for @confirm.
+  ///
+  /// In ar, this message translates to:
+  /// **'متأكد؟'**
+  String get confirm;
+
+  /// No description provided for @cancelAction.
+  ///
+  /// In ar, this message translates to:
+  /// **'إلغاء'**
+  String get cancelAction;
 }
 
 class _AppLocalizationsDelegate

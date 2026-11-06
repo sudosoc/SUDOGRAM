@@ -167,6 +167,39 @@ class GhostGateway implements TelegramGateway {
       _inner.setAutoDelete(chatId, seconds);
 
   @override
+  Future<ProfileInfo?> me() => _inner.me();
+
+  @override
+  Future<void> updateProfile({String? firstName, String? lastName, String? bio}) =>
+      _inner.updateProfile(firstName: firstName, lastName: lastName, bio: bio);
+
+  @override
+  Future<bool> setUsername(String username) => _inner.setUsername(username);
+
+  @override
+  Future<void> setProfilePhoto(String path) => _inner.setProfilePhoto(path);
+
+  @override
+  Future<void> logOut() => _inner.logOut();
+
+  @override
+  Future<void> setMuted(int chatId, bool muted) => _inner.setMuted(chatId, muted);
+
+  @override
+  Future<void> clearHistory(int chatId) => _inner.clearHistory(chatId);
+
+  @override
+  Future<void> leaveChat(int chatId) => _inner.leaveChat(chatId);
+
+  @override
+  Future<void> blockUser(int userId, bool blocked) =>
+      _inner.blockUser(userId, blocked);
+
+  @override
+  Future<void> sendVoice(int chatId, String path, int seconds) =>
+      _inner.sendVoice(chatId, path, seconds);
+
+  @override
   Future<void> forwardMessages(int toChatId, int fromChatId, List<int> ids) =>
       _inner.forwardMessages(toChatId, fromChatId, ids);
   @override

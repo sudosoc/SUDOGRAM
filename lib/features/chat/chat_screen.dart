@@ -11,6 +11,9 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:record/record.dart';
+import 'dart:async';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -70,6 +73,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     DraftStore.set(widget.chat.id, _editing == null ? _c.text : '');
     _c.dispose();
     _scroll.dispose();
+    _recTimer?.cancel();
+    _recorder.dispose();
     super.dispose();
   }
 
@@ -158,11 +163,119 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
   }
 
-  Future<void> _attachMedia() async {
-    final picked = await FilePicker.pickFiles(type: FileType.media);
-    final paths = [for (final f in picked) if (f.path != null) f.path!];
-    if (paths.isEmpty || !mounted) return;
-    await _gateway.sendMedia(widget.chat.id, paths);
+  Future<void> _safe(Future<void> Function() f) async {
+    try {
+      await f();
+    } catch (e) {
+      if (!mounted) return;
+      final l = AppLocalizations.of(context);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(l.sendFailed('$e'))));
+    }
+  }
+
+  Future<void> _sendPaths(List<String> paths) =>
+      _safe(() => _gateway.sendMedia(widget.chat.id, paths));
+
+  Future<void> _pickGallery() async {
+    final picked = await ImagePicker().pickMultipleMedia();
+    if (picked.isEmpty || !mounted) return;
+    await _sendPaths([for (final x in picked) x.path]);
+  }
+
+  Future<void> _pickCamera({required bool video}) async {
+    final x = video
+        ? await ImagePicker().pickVideo(source: ImageSource.camera)
+        : await ImagePicker().pickImage(source: ImageSource.camera);
+    if (x == null || !mounted) return;
+    await _sendPaths([x.path]);
+  }
+
+  void _attachSheet() {
+    final l = AppLocalizations.of(context);
+    Widget item(IconData i, String t, VoidCallback f) => ListTile(
+          leading: Icon(i),
+          title: Text(t),
+          onTap: () {
+            Navigator.of(context).pop();
+            f();
+          },
+        );
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Padding(
+        padding: const EdgeInsets.all(12),
+        child: GlassSurface(
+          blur: true,
+          radius: 24,
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            item(Icons.photo_library_outlined, l.gallery, _pickGallery),
+            item(Icons.photo_camera_outlined, l.cameraPhoto,
+                () => _pickCamera(video: false)),
+            item(Icons.videocam_outlined, l.cameraVideo,
+                () => _pickCamera(video: true)),
+            item(Icons.attach_file, l.fileLabel, () => _safe(_attach)),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  // ---- voice notes (tap mic to start, tap send to deliver)
+  final _recorder = AudioRecorder();
+  bool _recording = false;
+  int _recSeconds = 0;
+  Timer? _recTimer;
+  String? _recPath;
+
+  Future<void> _startRecording() async {
+    final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      if (!await _recorder.hasPermission()) {
+        messenger.showSnackBar(SnackBar(content: Text(l.micDenied)));
+        return;
+      }
+      if (!await _recorder.isEncoderSupported(AudioEncoder.opus)) {
+        messenger.showSnackBar(SnackBar(content: Text(l.micUnsupported)));
+        return;
+      }
+      final tmp = await getTemporaryDirectory();
+      _recPath = '${tmp.path}/voice_${DateTime.now().millisecondsSinceEpoch}.ogg';
+      await _recorder.start(
+          const RecordConfig(encoder: AudioEncoder.opus, bitRate: 32000, sampleRate: 48000),
+          path: _recPath!);
+      _recSeconds = 0;
+      _recTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (mounted) setState(() => _recSeconds++);
+      });
+      setState(() => _recording = true);
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(l.sendFailed('$e'))));
+    }
+  }
+
+  Future<void> _stopRecording({required bool send}) async {
+    _recTimer?.cancel();
+    final secs = _recSeconds;
+    String? path;
+    try {
+      path = await _recorder.stop();
+    } catch (_) {
+      path = null;
+    }
+    if (mounted) setState(() => _recording = false);
+    if (!send || path == null || secs < 1) {
+      if (path != null) {
+        try {
+          await File(path).delete();
+        } catch (_) {}
+      }
+      return;
+    }
+    await _safe(() => _gateway.sendVoice(widget.chat.id, path!, secs));
   }
 
   Future<void> _send() async {
@@ -686,13 +799,38 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   radius: 26,
                   padding: const EdgeInsets.symmetric(
                       horizontal: 14, vertical: 4),
-                  child: Row(children: [
+                  child: _recording
+                      ? Row(children: [
+                          IconButton(
+                            icon: const Icon(Icons.delete_outline),
+                            onPressed: () => _stopRecording(send: false),
+                          ),
+                          const Icon(Icons.fiber_manual_record,
+                              size: 14, color: GlassTokens.ringDanger),
+                          const SizedBox(width: 6),
+                          Text(
+                              '${l.recording} ${_recSeconds ~/ 60}:${(_recSeconds % 60).toString().padLeft(2, '0')}'),
+                          const Spacer(),
+                          IconButton(
+                            icon: const Icon(Icons.send_rounded),
+                            onPressed: () => _stopRecording(send: true),
+                          ),
+                        ])
+                      : Row(children: [
+                    IconButton(
+                      tooltip: l.attach,
+                      icon: const Icon(Icons.attach_file),
+                      onPressed: _attachSheet,
+                    ),
                     Expanded(
                       child: TextField(
                         controller: _c,
                         minLines: 1,
                         maxLines: 6,
-                        onChanged: _onChanged,
+                        onChanged: (v) {
+                          _onChanged(v);
+                          setState(() {});
+                        },
                         decoration: InputDecoration(
                           hintText: l.typeMessage,
                           border: InputBorder.none,
@@ -700,21 +838,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         ),
                       ),
                     ),
-                    IconButton(
-                      tooltip: l.attachMedia,
-                      icon: const Icon(Icons.photo_library_outlined),
-                      onPressed: _attachMedia,
-                    ),
-                    IconButton(
-                      tooltip: l.attachFile,
-                      icon: const Icon(Icons.attach_file),
-                      onPressed: _attach,
-                    ),
-                    IconButton(
-                      tooltip: l.send,
-                      icon: const Icon(Icons.send_rounded),
-                      onPressed: _send,
-                    ),
+                    if (_c.text.trim().isEmpty && _editing == null)
+                      IconButton(
+                        tooltip: l.kindVoice,
+                        icon: const Icon(Icons.mic_none),
+                        onPressed: _startRecording,
+                      )
+                    else
+                      IconButton(
+                        tooltip: l.send,
+                        icon: const Icon(Icons.send_rounded),
+                        onPressed: () => _safe(_send),
+                      ),
                   ]),
                 ),
               ]),

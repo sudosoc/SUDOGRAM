@@ -352,3 +352,24 @@ class MentionCandidate {
   final String name;
   final String username;
 }
+
+
+/// The logged-in account's own profile.
+class ProfileInfo {
+  const ProfileInfo({
+    required this.id,
+    this.firstName = '',
+    this.lastName = '',
+    this.username = '',
+    this.phone = '',
+    this.bio = '',
+    this.avatar,
+  });
+  final int id;
+  final String firstName;
+  final String lastName;
+  final String username;
+  final String phone;
+  final String bio;
+  final Attachment? avatar;
+}

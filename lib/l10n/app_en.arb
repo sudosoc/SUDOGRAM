@@ -268,5 +268,38 @@
   "backgroundTitle": "Allow background activity",
   "backgroundBody": "To show new messages when the app is closed, SUDOGRAM must keep running in the background. Please allow it on the next screen.",
   "later": "Later",
-  "allow": "Allow"
+  "allow": "Allow",
+  "profile": "Profile",
+  "firstName": "First name",
+  "lastName": "Last name",
+  "bioLabel": "Bio",
+  "changePhoto": "Change photo",
+  "logout": "Log out",
+  "logoutConfirm": "Log out of this account? Your local archive stays on this device.",
+  "saved": "Saved",
+  "usernameTaken": "Username is taken or invalid",
+  "mute": "Mute",
+  "unmute": "Unmute",
+  "clearHistory": "Clear history",
+  "deleteChat": "Delete chat",
+  "leaveChat": "Leave and delete",
+  "blockUser": "Block",
+  "unblockUser": "Unblock",
+  "gallery": "Gallery",
+  "cameraPhoto": "Take photo",
+  "cameraVideo": "Record video",
+  "fileLabel": "File",
+  "sendFailed": "Couldn't send: {e}",
+  "@sendFailed": {
+    "placeholders": {
+      "e": {
+        "type": "String"
+      }
+    }
+  },
+  "recording": "Recording…",
+  "micDenied": "Microphone permission denied",
+  "micUnsupported": "This phone can't record voice notes in Opus",
+  "confirm": "Are you sure?",
+  "cancelAction": "Cancel"
 }

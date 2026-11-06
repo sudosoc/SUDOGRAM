@@ -118,5 +118,23 @@ abstract class TelegramGateway {
   /// Self-destruct timer for new messages (0 = off).
   Future<void> setAutoDelete(int chatId, int seconds);
 
+  Future<ProfileInfo?> me();
+  Future<void> updateProfile({String? firstName, String? lastName, String? bio});
+
+  /// Returns false when the username is taken or invalid.
+  Future<bool> setUsername(String username);
+  Future<void> setProfilePhoto(String path);
+  Future<void> logOut();
+
+  Future<void> setMuted(int chatId, bool muted);
+  Future<void> clearHistory(int chatId);
+
+  /// Leaves a group/channel (if it is one) and removes the chat from the list.
+  Future<void> leaveChat(int chatId);
+  Future<void> blockUser(int userId, bool blocked);
+
+  /// Sends a recorded voice note (OGG/Opus file).
+  Future<void> sendVoice(int chatId, String path, int seconds);
+
   Future<void> dispose();
 }

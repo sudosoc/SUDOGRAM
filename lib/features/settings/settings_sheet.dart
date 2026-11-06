@@ -1,5 +1,6 @@
 import '../downloads/keep_alive.dart';
 import 'devices_screen.dart';
+import 'profile_screen.dart';
 import 'privacy_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -69,6 +70,7 @@ class _SettingsSheet extends ConsumerWidget {
                   (_) => const ContactLogScreen()),
               (l.rules, Icons.rule, (_) => const RulesScreen()),
               (l.joinParts, Icons.merge_type, (_) => const JoinPartsScreen()),
+              (l.profile, Icons.account_circle_outlined, (_) => const ProfileScreen()),
               (l.devices, Icons.devices_other, (_) => const DevicesScreen()),
               (l.privacy, Icons.shield_outlined, (_) => const PrivacyScreen()),
               (l.networkInspector, Icons.network_check,

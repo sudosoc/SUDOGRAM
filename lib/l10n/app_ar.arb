@@ -268,5 +268,38 @@
   "backgroundTitle": "السماح بالعمل في الخلفية",
   "backgroundBody": "عشان تظهرلك الرسايل الجديدة والتطبيق مقفول، لازم SUDOGRAM يفضل شغال في الخلفية. وافق في الشاشة الجاية.",
   "later": "بعدين",
-  "allow": "سماح"
+  "allow": "سماح",
+  "profile": "البروفايل",
+  "firstName": "الاسم الأول",
+  "lastName": "اسم العيلة",
+  "bioLabel": "النبذة",
+  "changePhoto": "تغيير الصورة",
+  "logout": "تسجيل خروج",
+  "logoutConfirm": "تسجّل خروج من الحساب ده؟ الأرشيف المحلي هيفضل على الجهاز.",
+  "saved": "اتحفظ",
+  "usernameTaken": "اسم المستخدم مأخوذ أو غير صالح",
+  "mute": "كتم",
+  "unmute": "إلغاء الكتم",
+  "clearHistory": "مسح المحادثة",
+  "deleteChat": "حذف الشات",
+  "leaveChat": "مغادرة وحذف",
+  "blockUser": "حظر",
+  "unblockUser": "إلغاء الحظر",
+  "gallery": "المعرض",
+  "cameraPhoto": "تصوير صورة",
+  "cameraVideo": "تسجيل فيديو",
+  "fileLabel": "ملف",
+  "sendFailed": "فشل الإرسال: {e}",
+  "@sendFailed": {
+    "placeholders": {
+      "e": {
+        "type": "String"
+      }
+    }
+  },
+  "recording": "بيسجّل…",
+  "micDenied": "إذن المايك مرفوض",
+  "micUnsupported": "الموبايل ده مش بيسجل صوت بصيغة Opus",
+  "confirm": "متأكد؟",
+  "cancelAction": "إلغاء"
 }

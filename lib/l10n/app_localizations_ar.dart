@@ -653,4 +653,85 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get allow => 'سماح';
+
+  @override
+  String get profile => 'البروفايل';
+
+  @override
+  String get firstName => 'الاسم الأول';
+
+  @override
+  String get lastName => 'اسم العيلة';
+
+  @override
+  String get bioLabel => 'النبذة';
+
+  @override
+  String get changePhoto => 'تغيير الصورة';
+
+  @override
+  String get logout => 'تسجيل خروج';
+
+  @override
+  String get logoutConfirm =>
+      'تسجّل خروج من الحساب ده؟ الأرشيف المحلي هيفضل على الجهاز.';
+
+  @override
+  String get saved => 'اتحفظ';
+
+  @override
+  String get usernameTaken => 'اسم المستخدم مأخوذ أو غير صالح';
+
+  @override
+  String get mute => 'كتم';
+
+  @override
+  String get unmute => 'إلغاء الكتم';
+
+  @override
+  String get clearHistory => 'مسح المحادثة';
+
+  @override
+  String get deleteChat => 'حذف الشات';
+
+  @override
+  String get leaveChat => 'مغادرة وحذف';
+
+  @override
+  String get blockUser => 'حظر';
+
+  @override
+  String get unblockUser => 'إلغاء الحظر';
+
+  @override
+  String get gallery => 'المعرض';
+
+  @override
+  String get cameraPhoto => 'تصوير صورة';
+
+  @override
+  String get cameraVideo => 'تسجيل فيديو';
+
+  @override
+  String get fileLabel => 'ملف';
+
+  @override
+  String sendFailed(String e) {
+    return 'فشل الإرسال: $e';
+  }
+
+  @override
+  String get recording => 'بيسجّل…';
+
+  @override
+  String get micDenied => 'إذن المايك مرفوض';
+
+  @override
+  String get micUnsupported => 'الموبايل ده مش بيسجل صوت بصيغة Opus';
+
+  @override
+  String get confirm => 'متأكد؟';
+
+  @override
+  String get cancelAction => 'إلغاء';
 }
