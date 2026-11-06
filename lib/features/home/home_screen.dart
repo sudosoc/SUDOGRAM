@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../downloads/keep_alive.dart';
 import '../../core/drafts.dart';
 import '../chat/avatar.dart';
 import 'archive_screen.dart';
 import '../chat/contacts_screen.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
@@ -14,17 +16,19 @@ import '../../data/archive/archive_db.dart';
 import '../../domain/models.dart';
 import '../../l10n/app_localizations.dart';
 import '../chat/chat_screen.dart';
-import '../settings/settings_sheet.dart';
+import '../settings/settings_screen.dart';
 import 'chat_actions.dart';
+import 'hidden_screen.dart';
+import '../settings/ghost_screen.dart';
 
 String kindLabel(AppLocalizations l, MessageKind k) => switch (k) {
-      MessageKind.photo => l.kindPhoto,
-      MessageKind.video => l.kindVideo,
-      MessageKind.voice => l.kindVoice,
-      MessageKind.document => l.kindDocument,
-      MessageKind.sticker => l.kindSticker,
-      _ => l.kindOther,
-    };
+  MessageKind.photo => l.kindPhoto,
+  MessageKind.video => l.kindVideo,
+  MessageKind.voice => l.kindVoice,
+  MessageKind.document => l.kindDocument,
+  MessageKind.sticker => l.kindSticker,
+  _ => l.kindOther,
+};
 
 String _fmtTime(DateTime t) {
   final n = DateTime.now();
@@ -45,6 +49,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _searching = false;
   String _query = '';
   String? _folder; // null = all chats
+  int _titleTaps = 0;
+  DateTime _lastTap = DateTime(2000);
+
+  void _titleTap(Set<String> methods) {
+    if (!methods.contains('title')) return;
+    final now = DateTime.now();
+    _titleTaps = now.difference(_lastTap).inMilliseconds < 700
+        ? _titleTaps + 1
+        : 1;
+    _lastTap = now;
+    if (_titleTaps >= 3) {
+      _titleTaps = 0;
+      _openVault();
+    }
+  }
+
+  String _titleText(AppLocalizations l, AppSettings s) {
+    switch (s.titleMode) {
+      case 1:
+        final u = ref.watch(meProvider).value?.username ?? '';
+        return u.isEmpty ? l.appTitle : '@$u';
+      case 2:
+        return '';
+      default:
+        return l.appTitle;
+    }
+  }
 
   @override
   void initState() {
@@ -66,11 +97,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         content: Text(l.backgroundBody),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text(l.later)),
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l.later),
+          ),
           TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: Text(l.allow)),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l.allow),
+          ),
         ],
       ),
     );
@@ -83,17 +116,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final l = AppLocalizations.of(context);
     final ok = await ref
         .read(vaultUnlockProvider.notifier)
-        .unlock(reason: l.vaultAuthReason);
+        .unlock(
+          reason: l.vaultAuthReason,
+          requireAuth: ref.read(settingsProvider).hiddenAuth,
+        );
     if (!mounted) return;
     if (!ok) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text(l.vaultUnavailable),
-        duration: const Duration(seconds: 1),
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l.vaultUnavailable),
+          duration: const Duration(seconds: 1),
+        ),
+      );
       return;
     }
-    await Navigator.of(context).push(MaterialPageRoute<void>(
-        builder: (_) => const HiddenChatsScreen()));
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const HiddenChatsScreen()));
   }
 
   @override
@@ -111,8 +150,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               tooltip: l.newChat,
               backgroundColor: GlassScope.of(context).accent,
               onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                      builder: (_) => const ContactsScreen())),
+                MaterialPageRoute<void>(builder: (_) => const ContactsScreen()),
+              ),
               child: const Icon(Icons.edit_outlined),
             ),
       body: SafeArea(
@@ -126,12 +165,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     child: _searching
                         ? TextField(
                             autofocus: true,
-                            decoration:
-                                InputDecoration(hintText: l.searchHint),
-                            onChanged: (v) => setState(() => _query = v),
+                            decoration: InputDecoration(hintText: l.searchHint),
+                            onChanged: (v) {
+                              if (settings.hiddenMethods.contains('code') &&
+                                  settings.hiddenCode.isNotEmpty &&
+                                  v.trim() == settings.hiddenCode) {
+                                setState(() {
+                                  _searching = false;
+                                  _query = '';
+                                });
+                                _openVault();
+                                return;
+                              }
+                              setState(() => _query = v);
+                            },
                           )
-                        : Text(l.appTitle,
-                            style: Theme.of(context).textTheme.titleLarge),
+                        : GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () => _titleTap(settings.hiddenMethods),
+                            child: SizedBox(
+                              height: 40,
+                              child: Align(
+                                alignment: AlignmentDirectional.centerStart,
+                                child: Text(
+                                  _titleText(l, settings),
+                                  style: Theme.of(context).textTheme.titleLarge,
+                                ),
+                              ),
+                            ),
+                          ),
                   ),
                   if (demo)
                     Padding(
@@ -139,39 +201,72 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       child: GlassSurface(
                         radius: 14,
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
-                        child: Text(l.demoMode,
-                            style: const TextStyle(fontSize: 12)),
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        child: Text(
+                          l.demoMode,
+                          style: const TextStyle(fontSize: 12),
+                        ),
                       ),
                     ),
                   GestureDetector(
-                    onTap: () => ref
-                        .read(settingsProvider.notifier)
-                        .setGhostGlobal(!settings.ghostGlobal),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const GhostScreen(),
+                      ),
+                    ),
+                    onLongPress: () {
+                      if (settings.hiddenMethods.contains('ghost')) {
+                        _openVault();
+                      } else {
+                        ref
+                            .read(settingsProvider.notifier)
+                            .setGhostGlobal(!settings.ghostGlobal);
+                      }
+                    },
                     child: GlassSurface(
                       radius: 16,
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 6),
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
                       borderColor: settings.ghostGlobal
                           ? GlassTokens.ghost.withValues(alpha: 0.6)
                           : null,
-                      child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        Icon(Icons.visibility_off_outlined,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.visibility_off_outlined,
                             size: 16,
                             color: settings.ghostGlobal
                                 ? GlassTokens.ghost
-                                : Colors.white54),
-                        const SizedBox(width: 4),
-                        Text(l.ghostMode,
-                            style: const TextStyle(fontSize: 12)),
-                      ]),
+                                : Colors.white54,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            settings.ghostGlobal
+                                ? l.ghostOnShort
+                                : l.ghostOffShort,
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
                   GlassIconButton(
                     icon: Icons.tune,
                     tooltip: l.settings,
-                    onPressed: () => showSettingsSheet(context),
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const SettingsScreen(),
+                      ),
+                    ),
+                    onLongPress: settings.hiddenMethods.contains('settings')
+                        ? _openVault
+                        : null,
                   ),
                   const SizedBox(width: 8),
                   GlassIconButton(
@@ -181,7 +276,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       _searching = !_searching;
                       if (!_searching) _query = '';
                     }),
-                    onLongPress: _openVault,
+                    onLongPress: settings.hiddenMethods.contains('search')
+                        ? _openVault
+                        : null,
                   ),
                 ],
               ),
@@ -211,29 +308,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 error: (e, _) => Center(child: Text(l.errorGeneric)),
                 data: (all) {
                   final q = _query.trim().toLowerCase();
-                  final inFolder = _folder == null ? null : settings.folders[_folder];
-                  final shown = all.where((c) {
-                    final hidden = settings.hiddenChats.contains(c.id);
-                    if (hidden) return false; // hidden chats live on their own screen
-                    if (inFolder != null && !inFolder.contains(c.id)) return false;
-                    final name =
-                        (settings.aliases[c.id] ?? c.title).toLowerCase();
-                    return q.isEmpty || name.contains(q);
-                  }).toList()
-                    // Pinned chats first; the rest keep Telegram's order.
-                    ..sort((a, b) {
-                      final pa = settings.pinned.contains(a.id) ? 0 : 1;
-                      final pb = settings.pinned.contains(b.id) ? 0 : 1;
-                      return pa.compareTo(pb);
-                    });
+                  final inFolder = _folder == null
+                      ? null
+                      : settings.folders[_folder];
+                  final shown =
+                      all.where((c) {
+                          final hidden = settings.hiddenChats.contains(c.id);
+                          if (hidden) return false; // hidden chats live on their own screen
+                          if (inFolder != null && !inFolder.contains(c.id)) {
+                            return false;
+                          }
+                          final name = (settings.aliases[c.id] ?? c.title)
+                              .toLowerCase();
+                          return q.isEmpty || name.contains(q);
+                        }).toList()
+                        // Pinned chats first; the rest keep Telegram's order.
+                        ..sort((a, b) {
+                          final pa = settings.pinned.contains(a.id) ? 0 : 1;
+                          final pb = settings.pinned.contains(b.id) ? 0 : 1;
+                          return pa.compareTo(pb);
+                        });
                   final hits = q.isEmpty
                       ? const <SearchHit>[]
                       : ref
-                          .read(archiveProvider)
-                          .search(q)
-                          .where((h) =>
-                              !settings.hiddenChats.contains(h.message.chatId))
-                          .toList();
+                            .read(archiveProvider)
+                            .search(q)
+                            .where(
+                              (h) => !settings.hiddenChats.contains(
+                                h.message.chatId,
+                              ),
+                            )
+                            .toList();
                   if (shown.isEmpty && hits.isEmpty && q.isEmpty) {
                     return Center(child: Text(l.noChats));
                   }
@@ -242,35 +347,46 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
                     children: [
                       if (q.isEmpty && _folder == null)
-                        ref.watch(archivedProvider).maybeWhen(
+                        ref
+                            .watch(archivedProvider)
+                            .maybeWhen(
                               data: (a) => a.isEmpty
                                   ? const SizedBox.shrink()
                                   : ListTile(
-                                      leading: const Icon(Icons.archive_outlined),
+                                      leading: const Icon(
+                                        Icons.archive_outlined,
+                                      ),
                                       title: Text(l.archive),
                                       trailing: Text('${a.length}'),
                                       onTap: () => Navigator.of(context).push(
-                                          MaterialPageRoute<void>(
-                                              builder: (_) =>
-                                                  const ArchiveScreen())),
+                                        MaterialPageRoute<void>(
+                                          builder: (_) => const ArchiveScreen(),
+                                        ),
+                                      ),
                                     ),
                               orElse: () => const SizedBox.shrink(),
                             ),
                       for (final c in shown)
-                        _ChatRow(
+                        ChatRow(
                           chat: c,
                           hidden: settings.hiddenChats.contains(c.id),
                           pinned: settings.pinned.contains(c.id),
                           alias: settings.aliases[c.id],
                         ),
                       if (q.length >= 2)
-                        _GlobalHits(query: q, chats: {for (final c in all) c.id: c}),
+                        _GlobalHits(
+                          query: q,
+                          chats: {for (final c in all) c.id: c},
+                        ),
                       if (hits.isNotEmpty) ...[
                         Padding(
                           padding: const EdgeInsets.fromLTRB(8, 16, 8, 6),
-                          child: Text(l.archiveResults,
-                              style: const TextStyle(
-                                  color: GlassTokens.textSecondary)),
+                          child: Text(
+                            l.archiveResults,
+                            style: const TextStyle(
+                              color: GlassTokens.textSecondary,
+                            ),
+                          ),
                         ),
                         for (final h in hits)
                           if (byId[h.message.chatId] != null)
@@ -288,147 +404,228 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 }
 
-class _ChatRow extends ConsumerWidget {
-  const _ChatRow({
+class ChatRow extends ConsumerWidget {
+  const ChatRow({
+    super.key,
     required this.chat,
     required this.hidden,
     required this.pinned,
     this.alias,
+    this.showPreview = true,
+    this.inHidden = false,
   });
 
+  final bool showPreview;
+  final bool inHidden;
   final ChatSummary chat;
   final bool hidden;
   final bool pinned;
   final String? alias;
 
   Color? get _ring => switch (chat.risk) {
-        RiskLevel.safe => GlassTokens.ringSafe,
-        RiskLevel.caution => GlassTokens.ringCaution,
-        RiskLevel.danger => GlassTokens.ringDanger,
-        RiskLevel.none => null,
-      };
+    RiskLevel.safe => GlassTokens.ringSafe,
+    RiskLevel.caution => GlassTokens.ringCaution,
+    RiskLevel.danger => GlassTokens.ringDanger,
+    RiskLevel.none => null,
+  };
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return ValueListenableBuilder<int>(
-        valueListenable: DraftStore.changes,
-        builder: (context, _, _) => _build(context, ref));
+      valueListenable: DraftStore.changes,
+      builder: (context, _, _) => _build(context, ref),
+    );
   }
 
   Widget _build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
     final draft = DraftStore.get(chat.id);
-    final preview = draft.isNotEmpty
+    final preview = !showPreview
+        ? '•••'
+        : draft.isNotEmpty
         ? '${l.draft}: $draft'
-        : (chat.lastText.isNotEmpty ? chat.lastText : kindLabel(l, chat.lastKind));
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: InkWell(
+        : (chat.lastText.isNotEmpty
+              ? chat.lastText
+              : kindLabel(l, chat.lastKind));
+    final accent = GlassScope.of(context).accent;
+    Widget swipeBg(IconData i, AlignmentGeometry al, Color c) => Container(
+      alignment: al,
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      decoration: BoxDecoration(
+        color: c.withValues(alpha: 0.35),
         borderRadius: BorderRadius.circular(20),
-        onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
-            builder: (_) => ChatScreen(chat: chat))),
-        onLongPress: () => showChatActions(context, ref, chat),
-        child: GlassSurface(
-          radius: 20,
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            children: [
-              AvatarCircle(
-                  title: chat.title, photo: chat.avatar, ring: _ring),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(children: [
-                      Flexible(
-                        child: Text(alias ?? chat.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w600, fontSize: 16)),
+      ),
+      child: Icon(i),
+    );
+    return Dismissible(
+      key: ValueKey('row_${chat.id}_$inHidden'),
+      background: swipeBg(
+        pinned ? Icons.push_pin_outlined : Icons.push_pin,
+        AlignmentDirectional.centerStart,
+        accent,
+      ),
+      secondaryBackground: swipeBg(
+        Icons.archive_outlined,
+        AlignmentDirectional.centerEnd,
+        GlassTokens.ringCaution,
+      ),
+      confirmDismiss: (dir) async {
+        if (dir == DismissDirection.startToEnd) {
+          ref.read(settingsProvider.notifier).togglePin(chat.id);
+        } else if (!inHidden) {
+          ref.read(gatewayProvider).setArchived(chat.id, true);
+        }
+        return false; // the list rebuilds itself from state
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(builder: (_) => ChatScreen(chat: chat)),
+          ),
+          onLongPress: () =>
+              showChatActions(context, ref, chat, inHidden: inHidden),
+          child: GlassSurface(
+            radius: 20,
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                AvatarCircle(
+                  title: chat.title,
+                  photo: chat.avatar,
+                  ring: _ring,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              alias ?? chat.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                          if (chat.type == ChatType.secret)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 4),
+                              child: Icon(
+                                Icons.lock,
+                                size: 13,
+                                color: Color(0xFF22C55E),
+                              ),
+                            ),
+                          if (chat.type == ChatType.group)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 4),
+                              child: Icon(
+                                Icons.group_outlined,
+                                size: 14,
+                                color: GlassTokens.textSecondary,
+                              ),
+                            ),
+                          if (chat.type == ChatType.channel)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 4),
+                              child: Icon(
+                                Icons.campaign_outlined,
+                                size: 14,
+                                color: GlassTokens.textSecondary,
+                              ),
+                            ),
+                          if (chat.muted)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 4),
+                              child: Icon(
+                                Icons.volume_off,
+                                size: 13,
+                                color: GlassTokens.textSecondary,
+                              ),
+                            ),
+                          if (pinned)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 6),
+                              child: Icon(
+                                Icons.push_pin,
+                                size: 13,
+                                color: GlassTokens.textSecondary,
+                              ),
+                            ),
+                          if (hidden)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 6),
+                              child: Icon(
+                                Icons.lock_outline,
+                                size: 14,
+                                color: GlassTokens.ghost,
+                              ),
+                            ),
+                        ],
                       ),
-                      if (chat.type == ChatType.secret)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 4),
-                          child: Icon(Icons.lock,
-                              size: 13, color: Color(0xFF22C55E)),
-                        ),
-                      if (chat.type == ChatType.group)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 4),
-                          child: Icon(Icons.group_outlined,
-                              size: 14, color: GlassTokens.textSecondary),
-                        ),
-                      if (chat.type == ChatType.channel)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 4),
-                          child: Icon(Icons.campaign_outlined,
-                              size: 14, color: GlassTokens.textSecondary),
-                        ),
-                      if (chat.muted)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 4),
-                          child: Icon(Icons.volume_off,
-                              size: 13, color: GlassTokens.textSecondary),
-                        ),
-                      if (pinned)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 6),
-                          child: Icon(Icons.push_pin,
-                              size: 13, color: GlassTokens.textSecondary),
-                        ),
-                      if (hidden)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 6),
-                          child: Icon(Icons.lock_outline,
-                              size: 14, color: GlassTokens.ghost),
-                        ),
-                    ]),
-                    const SizedBox(height: 2),
-                    Text(preview,
+                      const SizedBox(height: 2),
+                      Text(
+                        preview,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                            color: draft.isNotEmpty
-                                ? GlassTokens.ringDanger
-                                : GlassTokens.textSecondary)),
+                          color: draft.isNotEmpty
+                              ? GlassTokens.ringDanger
+                              : GlassTokens.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    if (chat.lastTime != null)
+                      Text(
+                        _fmtTime(chat.lastTime!),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: GlassTokens.textTertiary,
+                        ),
+                      ),
+                    if (chat.unread == 0 && chat.markedUnread)
+                      Container(
+                        margin: const EdgeInsets.only(top: 6),
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: GlassScope.of(context).accent,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    if (chat.unread > 0)
+                      Container(
+                        margin: const EdgeInsets.only(top: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: GlassScope.of(context).accent,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '${chat.unread}',
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                      ),
                   ],
                 ),
-              ),
-              const SizedBox(width: 8),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  if (chat.lastTime != null)
-                    Text(_fmtTime(chat.lastTime!),
-                        style: const TextStyle(
-                            fontSize: 12, color: GlassTokens.textTertiary)),
-                  if (chat.unread == 0 && chat.markedUnread)
-                    Container(
-                      margin: const EdgeInsets.only(top: 6),
-                      width: 12,
-                      height: 12,
-                      decoration: BoxDecoration(
-                        color: GlassScope.of(context).accent,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  if (chat.unread > 0)
-                    Container(
-                      margin: const EdgeInsets.only(top: 4),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 7, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: GlassScope.of(context).accent,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text('${chat.unread}',
-                          style: const TextStyle(fontSize: 12)),
-                    ),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -449,23 +646,36 @@ class _HitRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
-        onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
-            builder: (_) => ChatScreen(chat: chat))),
+        onTap: () => Navigator.of(
+          context,
+        ).push(MaterialPageRoute<void>(builder: (_) => ChatScreen(chat: chat))),
         child: GlassSurface(
           radius: 16,
           padding: const EdgeInsets.all(12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(chat.title,
-                  style: const TextStyle(
-                      fontSize: 13, color: GlassTokens.textSecondary)),
+              Text(
+                chat.title,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: GlassTokens.textSecondary,
+                ),
+              ),
               const SizedBox(height: 2),
-              Text(hit.message.text, maxLines: 2, overflow: TextOverflow.ellipsis),
+              Text(
+                hit.message.text,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
               if (hit.deleted)
-                Text(l.deletedBadge,
-                    style: const TextStyle(
-                        fontSize: 11, color: GlassTokens.ringDanger)),
+                Text(
+                  l.deletedBadge,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: GlassTokens.ringDanger,
+                  ),
+                ),
             ],
           ),
         ),
@@ -473,60 +683,6 @@ class _HitRow extends StatelessWidget {
     );
   }
 }
-
-
-/// All hidden chats in one place; opened by long-press on search + biometric.
-/// Closes itself whenever the vault locks (app leaves the foreground).
-class HiddenChatsScreen extends ConsumerWidget {
-  const HiddenChatsScreen({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l = AppLocalizations.of(context);
-    ref.listen<bool>(vaultUnlockProvider, (_, open) {
-      if (!open && Navigator.of(context).canPop()) {
-        Navigator.of(context).popUntil((r) => r.isFirst);
-      }
-    });
-    final settings = ref.watch(settingsProvider);
-    final all = ref.watch(chatsProvider).value ?? const <ChatSummary>[];
-    final shown = [
-      for (final c in all)
-        if (settings.hiddenChats.contains(c.id)) c
-    ];
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        title: Row(children: [
-          const Icon(Icons.lock_outline, size: 18, color: GlassTokens.ghost),
-          const SizedBox(width: 8),
-          Text(l.hiddenChatsTitle),
-        ]),
-      ),
-      body: shown.isEmpty
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Text(l.noHiddenChats, textAlign: TextAlign.center),
-              ),
-            )
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
-              children: [
-                for (final c in shown)
-                  _ChatRow(
-                    chat: c,
-                    hidden: true,
-                    pinned: settings.pinned.contains(c.id),
-                    alias: settings.aliases[c.id],
-                  ),
-              ],
-            ),
-    );
-  }
-}
-
 
 /// Server-side search results ("Telegram results") for the home search box.
 class _GlobalHits extends ConsumerStatefulWidget {
@@ -548,34 +704,47 @@ class _GlobalHitsState extends ConsumerState<_GlobalHits> {
     final hidden = ref.watch(settingsProvider).hiddenChats;
     if (_for != widget.query) {
       _for = widget.query;
-      _f = Future<void>.delayed(const Duration(milliseconds: 500))
-          .then((_) => _for == widget.query
-              ? ref.read(gatewayProvider).searchGlobal(widget.query)
-              : <ChatMessage>[]);
+      _f = Future<void>.delayed(const Duration(milliseconds: 500)).then(
+        (_) => _for == widget.query
+            ? ref.read(gatewayProvider).searchGlobal(widget.query)
+            : <ChatMessage>[],
+      );
     }
     return FutureBuilder<List<ChatMessage>>(
       future: _f,
       builder: (_, snap) {
         final list = [
           for (final m in snap.data ?? const <ChatMessage>[])
-            if (!hidden.contains(m.chatId) && widget.chats[m.chatId] != null) m
+            if (!hidden.contains(m.chatId) && widget.chats[m.chatId] != null) m,
         ];
         if (list.isEmpty) return const SizedBox.shrink();
-        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(8, 16, 8, 6),
-            child: Text(l.telegramResults,
-                style: const TextStyle(color: GlassTokens.textSecondary)),
-          ),
-          for (final m in list)
-            ListTile(
-              dense: true,
-              title: Text(widget.chats[m.chatId]!.title),
-              subtitle: Text(m.text, maxLines: 2, overflow: TextOverflow.ellipsis),
-              onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
-                  builder: (_) => ChatScreen(chat: widget.chats[m.chatId]!))),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 16, 8, 6),
+              child: Text(
+                l.telegramResults,
+                style: const TextStyle(color: GlassTokens.textSecondary),
+              ),
             ),
-        ]);
+            for (final m in list)
+              ListTile(
+                dense: true,
+                title: Text(widget.chats[m.chatId]!.title),
+                subtitle: Text(
+                  m.text,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => ChatScreen(chat: widget.chats[m.chatId]!),
+                  ),
+                ),
+              ),
+          ],
+        );
       },
     );
   }

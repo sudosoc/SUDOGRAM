@@ -75,6 +75,7 @@ class _SudogramAppState extends ConsumerState<SudogramApp>
       ref.read(notifierProvider).onChats(chats,
           enabled: st.notifications,
           privateIds: st.hiddenChats,
+          silentIds: st.hiddenNotify == 1 ? st.hiddenChats : const {},
           hiddenBody: _ar() ? 'رسالة جديدة' : 'New message');
     });
     return MaterialApp(

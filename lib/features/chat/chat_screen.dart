@@ -32,6 +32,10 @@ import 'package:lottie/lottie.dart';
 import 'info_screen.dart';
 import 'voice_player.dart';
 import 'file_card.dart';
+import 'contact_card.dart';
+import '../home/chat_actions.dart';
+import '../settings/ghost_screen.dart';
+import 'status_text.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key, required this.chat});
@@ -91,8 +95,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         });
         return;
       }
-      final more = await _gateway.loadOlder(widget.chat.id);
-      if (!more) return;
+      if (tries == 0) {
+        await _gateway.loadAround(widget.chat.id, id);
+        await Future<void>.delayed(const Duration(milliseconds: 150));
+        continue;
+      }
+      await _gateway.loadOlder(widget.chat.id);
       await Future<void>.delayed(const Duration(milliseconds: 120));
     }
   }
@@ -144,7 +152,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   /// Marks incoming messages read — only when Ghost is off for this chat.
   void _maybeMarkRead(List<ChatMessage> list) {
-    if (ref.read(settingsProvider).ghostFor(widget.chat.id)) return;
+    if (ref.read(settingsProvider).blocksRead(widget.chat.id)) return;
     final ids = [
       for (final m in list)
         if (!m.outgoing) m.id
@@ -783,33 +791,186 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
   }
 
-  String _statusText(AppLocalizations l, ChatStatus s) {
-    if (s.typing) return l.typing;
-    switch (s.seen) {
-      case SeenKind.online:
-        return l.online;
-      case SeenKind.recently:
-        return l.seenRecently;
-      case SeenKind.lastWeek:
-        return l.seenWeek;
-      case SeenKind.lastMonth:
-        return l.seenMonth;
-      case SeenKind.at:
-        final t = s.lastSeen;
-        if (t == null) return '';
-        final hh = t.hour.toString().padLeft(2, '0');
-        final mm = t.minute.toString().padLeft(2, '0');
-        return l.seenAt('${t.day}/${t.month} $hh:$mm');
-      case SeenKind.unknown:
-        return widget.chat.type == ChatType.secret
-            ? l.secretChat
-            : widget.chat.type == ChatType.group
-            ? l.groupLabel
-            : widget.chat.type == ChatType.channel
-                ? l.channelLabel
-                : '';
+  Future<void> _openInfo() async {
+    final r = await Navigator.of(context).push<InfoResult>(MaterialPageRoute(
+        builder: (_) => ChatInfoScreen(chat: widget.chat)));
+    if (!mounted) return;
+    if (r is InfoSearch) {
+      setState(() {
+        _searching = true;
+        _hits = null;
+      });
+    } else if (r is InfoJump) {
+      _jumpTo(r.messageId);
     }
   }
+
+  ChatSummary get _liveChat =>
+      ref.read(chatsProvider).value?.where((c) => c.id == widget.chat.id).firstOrNull ??
+      widget.chat;
+
+  Widget _moreMenu(AppLocalizations l) {
+    final chat = _liveChat;
+    final s = ref.watch(settingsProvider);
+    final isPrivate = chat.type == ChatType.private;
+    final hidden = s.hiddenChats.contains(chat.id);
+    PopupMenuItem<String> item(String v, IconData i, String t, {bool danger = false}) =>
+        PopupMenuItem(
+          value: v,
+          child: Row(children: [
+            Icon(i, size: 20, color: danger ? GlassTokens.ringDanger : null),
+            const SizedBox(width: 12),
+            Flexible(
+                child: Text(t,
+                    style: danger
+                        ? const TextStyle(color: GlassTokens.ringDanger)
+                        : null)),
+          ]),
+        );
+    return PopupMenuButton<String>(
+      tooltip: l.more,
+      icon: const Icon(Icons.more_vert),
+      onSelected: (v) async {
+        final sc = ref.read(settingsProvider.notifier);
+        switch (v) {
+          case 'info':
+            _openInfo();
+          case 'search':
+            setState(() {
+              _searching = true;
+              _hits = null;
+            });
+          case 'mute':
+            _gateway.setMuted(chat.id, !chat.muted);
+          case 'scheduled':
+            _showScheduled();
+          case 'media':
+            _openInfo();
+          case 'pin':
+            sc.togglePin(chat.id);
+          case 'hide':
+            sc.setHidden(chat.id, !hidden);
+          case 'archive':
+            _gateway.setArchived(chat.id, true);
+            if (mounted) Navigator.of(context).pop();
+          case 'unread':
+            _gateway.markUnread(chat.id, true);
+            if (mounted) Navigator.of(context).pop();
+          case 'clear':
+            runChatDanger(context, ref, chat, ChatDanger.clear);
+          case 'block':
+            runChatDanger(context, ref, chat, ChatDanger.block);
+          case 'leave':
+            final nav = Navigator.of(context);
+            final ok = await runChatDanger(context, ref, chat, ChatDanger.leave);
+            if (ok) nav.pop();
+        }
+      },
+      itemBuilder: (_) => [
+        item('info', Icons.account_circle_outlined, l.menuProfile),
+        item('search', Icons.search, l.searchInChat),
+        item('media', Icons.perm_media_outlined, l.menuMedia),
+        item('mute', chat.muted ? Icons.notifications_outlined : Icons.notifications_off_outlined,
+            chat.muted ? l.unmute : l.mute),
+        item('scheduled', Icons.schedule_send_outlined, l.scheduledMessages),
+        item('pin', s.pinned.contains(chat.id) ? Icons.push_pin : Icons.push_pin_outlined,
+            s.pinned.contains(chat.id) ? l.unpin : l.pin),
+        item('hide', hidden ? Icons.lock_open : Icons.lock_outline,
+            hidden ? l.unhideChat : l.hideChat),
+        item('unread', Icons.mark_chat_unread_outlined, l.markUnread),
+        item('archive', Icons.archive_outlined, l.archiveChat),
+        const PopupMenuDivider(),
+        item('clear', Icons.cleaning_services_outlined, l.clearHistory, danger: true),
+        if (isPrivate) item('block', Icons.block, l.blockUser, danger: true),
+        item('leave', Icons.delete_outline,
+            isPrivate || chat.type == ChatType.secret ? l.deleteChat : l.leaveChat,
+            danger: true),
+      ],
+    );
+  }
+
+  /// The eye button: per-chat Ghost controls.
+  void _ghostSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => Consumer(builder: (sctx, ref, _) {
+        final l = AppLocalizations.of(sctx);
+        final s = ref.watch(settingsProvider);
+        final c = ref.read(settingsProvider.notifier);
+        final id = widget.chat.id;
+        final override = s.ghostOverrides[id];
+        return Padding(
+          padding: const EdgeInsets.all(12),
+          child: GlassSurface(
+            blur: true,
+            radius: 28,
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: SingleChildScrollView(
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(children: [
+                    const Icon(Icons.visibility_off_outlined, color: GlassTokens.ghost),
+                    const SizedBox(width: 10),
+                    Expanded(
+                        child: Text(l.chatControls,
+                            style: Theme.of(sctx).textTheme.titleMedium)),
+                  ]),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                  child: SegmentedButton<int>(
+                    showSelectedIcon: false,
+                    segments: [
+                      ButtonSegment(value: 0, label: Text(l.ghostFollow)),
+                      ButtonSegment(value: 1, label: Text(l.ghostOnShort)),
+                      ButtonSegment(value: 2, label: Text(l.ghostOffShort)),
+                    ],
+                    selected: {override == null ? 0 : (override ? 1 : 2)},
+                    onSelectionChanged: (v) => c.setGhostOverride(
+                        id, v.first == 0 ? null : v.first == 1),
+                  ),
+                ),
+                SwitchListTile(
+                  title: Text(l.ghostReadReceipts),
+                  value: s.chatHidesRead(id) ?? s.ghostRead,
+                  onChanged: (v) => c.setChatGhostPart(id, 'read', v),
+                ),
+                SwitchListTile(
+                  title: Text(l.ghostTypingT),
+                  value: s.chatHidesTyping(id) ?? s.ghostTyping,
+                  onChanged: (v) => c.setChatGhostPart(id, 'typing', v),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.restart_alt),
+                  title: Text(l.ghostResetChat),
+                  onTap: () {
+                    c.setGhostOverride(id, null);
+                    c.setChatGhostPart(id, 'read', null);
+                    c.setChatGhostPart(id, 'typing', null);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.tune),
+                  title: Text(l.ghostSettings),
+                  onTap: () {
+                    Navigator.pop(sctx);
+                    Navigator.of(context).push(MaterialPageRoute<void>(
+                        builder: (_) => const GhostScreen()));
+                  },
+                ),
+              ]),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  String _statusText(AppLocalizations l, ChatStatus s) =>
+      chatStatusText(l, s, widget.chat.type);
 
   String _dayLabel(AppLocalizations l, DateTime t) {
     final n = DateTime.now();
@@ -936,67 +1097,63 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     icon: const BackButtonIcon(),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
-                  GestureDetector(
-                    onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                            builder: (_) =>
-                                ChatInfoScreen(chat: widget.chat))),
-                    child: AvatarCircle(
-                        title: widget.chat.title,
-                        photo: widget.chat.avatar,
-                        size: 38),
-                  ),
-                  const SizedBox(width: 10),
                   Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                            ref.watch(settingsProvider)
-                                    .aliases[widget.chat.id] ??
-                                widget.chat.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.w600, fontSize: 16)),
-                        StreamBuilder<ChatStatus>(
-                          stream: _gateway.watchChatStatus(widget.chat.id),
-                          initialData: ChatStatus.none,
-                          builder: (_, snap) {
-                            final t = _statusText(
-                                l, snap.data ?? ChatStatus.none);
-                            return t.isEmpty
-                                ? const SizedBox.shrink()
-                                : Text(t,
-                                    style: TextStyle(
-                                        fontSize: 12,
-                                        color: (snap.data?.typing ?? false)
-                                            ? GlassScope.of(context).accent
-                                            : GlassTokens.textSecondary));
-                          },
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: _openInfo,
+                      child: Row(children: [
+                        AvatarCircle(
+                            title: widget.chat.title,
+                            photo: widget.chat.avatar,
+                            size: 38),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                  ref.watch(settingsProvider)
+                                          .aliases[widget.chat.id] ??
+                                      widget.chat.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 16)),
+                              StreamBuilder<ChatStatus>(
+                                stream: _gateway.watchChatStatus(widget.chat.id),
+                                initialData: ChatStatus.none,
+                                builder: (_, snap) {
+                                  final t = _statusText(
+                                      l, snap.data ?? ChatStatus.none);
+                                  return t.isEmpty
+                                      ? const SizedBox.shrink()
+                                      : Text(t,
+                                          style: TextStyle(
+                                              fontSize: 12,
+                                              color: (snap.data?.typing ?? false)
+                                                  ? GlassScope.of(context).accent
+                                                  : GlassTokens.textSecondary));
+                                },
+                              ),
+                            ],
+                          ),
                         ),
-                      ],
+                      ]),
                     ),
-                  ),
-                  IconButton(
-                    tooltip: l.searchInChat,
-                    icon: Icon(_searching ? Icons.close : Icons.search),
-                    onPressed: () => setState(() {
-                      _searching = !_searching;
-                      _hits = null;
-                    }),
                   ),
                   Tooltip(
-                    message:
-                        ghost ? l.ghostOffForChat : l.ghostOnForChat,
+                    message: l.chatControls,
                     child: IconButton(
-                      icon: Icon(Icons.visibility_off_outlined,
+                      icon: Icon(
+                          ghost
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
                           color: ghost ? GlassTokens.ghost : Colors.white54),
-                      onPressed: () => ref
-                          .read(settingsProvider.notifier)
-                          .setGhostOverride(widget.chat.id, !ghost),
+                      onPressed: _ghostSheet,
                     ),
                   ),
+                  _moreMenu(l),
                 ]),
               ),
             ),
@@ -1309,7 +1466,8 @@ class _Bubble extends StatelessWidget {
     final previewPath = preview != null && preview.downloaded
         ? preview.localPath
         : null;
-    final showText = m.text.isNotEmpty || (m.file == null && !isVisual);
+    final contact = contactOf(m);
+    final showText = contact == null && (m.text.isNotEmpty || (m.file == null && !isVisual));
     final text = m.text.isNotEmpty ? m.text : kindLabel(l, m.kind);
     final sticker = m.kind == MessageKind.sticker;
     return Align(
@@ -1429,6 +1587,7 @@ class _Bubble extends StatelessWidget {
                   onDownload: () => onDownload(m.file!.fileId),
                   onCancel: () => onCancel(m.file!.fileId),
                 ),
+              if (contact != null) ContactCardView(card: contact),
               if (m.poll != null)
                 _PollView(
                   poll: m.poll!,

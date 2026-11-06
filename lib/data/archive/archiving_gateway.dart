@@ -259,6 +259,14 @@ class ArchivingGateway implements TelegramGateway {
       _inner.scheduledMessages(chatId);
 
   @override
+  Future<void> loadAround(int chatId, int messageId) =>
+      _inner.loadAround(chatId, messageId);
+
+  @override
+  Future<List<ChatMessage>> sharedMedia(int chatId, String filter) =>
+      _inner.sharedMedia(chatId, filter);
+
+  @override
   Future<void> forwardMessages(int toChatId, int fromChatId, List<int> ids) =>
       _inner.forwardMessages(toChatId, fromChatId, ids);
   @override

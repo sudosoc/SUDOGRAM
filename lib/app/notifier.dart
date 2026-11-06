@@ -36,6 +36,7 @@ class MessageNotifier {
     required bool enabled,
     required Set<int> privateIds,
     required String hiddenBody,
+    Set<int> silentIds = const {},
   }) {
     final first = _lastUnread.isEmpty;
     for (final c in chats) {
@@ -43,7 +44,7 @@ class MessageNotifier {
       _lastUnread[c.id] = c.unread;
       if (first || before == null || !enabled || !_ready) continue;
       if (c.unread <= before || c.muted || c.lastOutgoing) continue;
-      if (c.id == openChat) continue;
+      if (c.id == openChat || silentIds.contains(c.id)) continue;
       final hidden = privateIds.contains(c.id);
       _plugin.show(
         c.id.abs() % 2000000000,

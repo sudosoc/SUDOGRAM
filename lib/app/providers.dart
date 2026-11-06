@@ -72,6 +72,9 @@ final gatewayProvider = Provider<TelegramGateway>((ref) {
     arch,
     isGhost: (id) => ref.read(settingsProvider).ghostFor(id),
     globalGhost: () => ref.read(settingsProvider).ghostGlobal,
+    blocksRead: (id) => ref.read(settingsProvider).blocksRead(id),
+    blocksTyping: (id) => ref.read(settingsProvider).blocksTyping(id),
+    blocksOnline: () => ref.read(settingsProvider).hidesOnline,
   );
   ref.onDispose(g.dispose);
   return g;
@@ -93,6 +96,10 @@ final archivedProvider = StreamProvider<List<ChatSummary>>(
 final messagesProvider = StreamProvider.family<List<ChatMessage>, int>(
     (ref, id) => ref.watch(gatewayProvider).watchMessages(id));
 
+/// My own profile (for the @username title option).
+final meProvider = FutureProvider<ProfileInfo?>(
+    (ref) async => ref.read(gatewayProvider).me());
+
 /// Whether hidden chats are currently visible. Resets on app pause (see
 /// the lifecycle hook in the app root).
 class VaultUnlock extends Notifier<bool> {
@@ -101,8 +108,12 @@ class VaultUnlock extends Notifier<bool> {
 
   void lock() => state = false;
 
-  Future<bool> unlock({required String reason}) async {
+  Future<bool> unlock({required String reason, bool requireAuth = true}) async {
     if (state) return true;
+    if (!requireAuth) {
+      state = true;
+      return true;
+    }
     try {
       final ok = await LocalAuthentication().authenticate(
         localizedReason: reason,

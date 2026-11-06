@@ -26,7 +26,11 @@ class AppSettings {
     this.profiles = const {},
     this.accent = 0xFF4F46E5,
     this.localeCode,
+    this.x = const {},
   });
+
+  /// Extra options kept as one JSON blob (see the typed getters below).
+  final Map<String, dynamic> x;
 
   /// Ghost Mode is on by default: this client exists to avoid leaking presence.
   final bool ghostGlobal;
@@ -58,6 +62,55 @@ class AppSettings {
 
   bool ghostFor(int chatId) => ghostOverrides[chatId] ?? ghostGlobal;
 
+  // ---- Ghost details -------------------------------------------------
+  bool get ghostRead => x['ghostRead'] as bool? ?? true;
+  bool get ghostTyping => x['ghostTyping'] as bool? ?? true;
+  bool get ghostOnline => x['ghostOnline'] as bool? ?? true;
+
+  /// Hidden chats are always ghosted, whatever the other switches say.
+  bool get ghostForceHidden => x['ghostForceHidden'] as bool? ?? true;
+
+  Map<String, dynamic> get _parts =>
+      (x['ghostParts'] as Map?)?.cast<String, dynamic>() ?? const {};
+
+  /// Per-chat override of the read/typing switches (null = follow global).
+  bool? chatHidesRead(int id) => _parts['$id:read'] as bool?;
+  bool? chatHidesTyping(int id) => _parts['$id:typing'] as bool?;
+
+  bool _ghostOn(int id) =>
+      ghostFor(id) || (ghostForceHidden && hiddenChats.contains(id));
+
+  /// True when we must NOT send read receipts for this chat.
+  bool blocksRead(int id) =>
+      _ghostOn(id) && (chatHidesRead(id) ?? ghostRead);
+  bool blocksTyping(int id) =>
+      _ghostOn(id) && (chatHidesTyping(id) ?? ghostTyping);
+
+  /// True when we must not appear online.
+  bool get hidesOnline => ghostGlobal && ghostOnline;
+
+  // ---- Home title ------------------------------------------------------
+  /// 0 = app name, 1 = my @username, 2 = nothing.
+  int get titleMode => x['titleMode'] as int? ?? 0;
+
+  // ---- Hidden chats ----------------------------------------------------
+  /// Ways to open the hidden chats: search (long-press search), title
+  /// (3 taps on the title), ghost (long-press ghost chip), code (type the
+  /// secret word in search), settings (long-press the settings button).
+  Set<String> get hiddenMethods =>
+      {for (final e in (x['hiddenMethods'] as List? ?? const ['search'])) e as String};
+  String get hiddenCode => x['hiddenCode'] as String? ?? '';
+  bool get hiddenAuth => x['hiddenAuth'] as bool? ?? true;
+  bool get hiddenPreview => x['hiddenPreview'] as bool? ?? true;
+  bool get hiddenSections => x['hiddenSections'] as bool? ?? true;
+
+  /// 0 = generic "New message", 1 = no notification at all.
+  int get hiddenNotify => x['hiddenNotify'] as int? ?? 0;
+  Map<String, Set<int>> get hiddenFolders => {
+        for (final e in (x['hiddenFolders'] as Map? ?? const {}).entries)
+          e.key as String: {for (final i in e.value as List) i as int}
+      };
+
   AppSettings copyWith({
     bool? ghostGlobal,
     Map<int, bool>? ghostOverrides,
@@ -73,6 +126,7 @@ class AppSettings {
     int? accent,
     String? localeCode,
     bool clearLocale = false,
+    Map<String, dynamic>? x,
   }) {
     return AppSettings(
       ghostGlobal: ghostGlobal ?? this.ghostGlobal,
@@ -88,6 +142,7 @@ class AppSettings {
       profiles: profiles ?? this.profiles,
       accent: accent ?? this.accent,
       localeCode: clearLocale ? null : (localeCode ?? this.localeCode),
+      x: x ?? this.x,
     );
   }
 
@@ -101,6 +156,7 @@ class AppSettings {
   static const _kLocal = 'local_org';
   static const _kAccent = 'accent';
   static const _kLocale = 'locale';
+  static const _kX = 'extra_json';
 
   factory AppSettings.load(SharedPreferences p) {
     final overrides = <int, bool>{};
@@ -127,7 +183,18 @@ class AppSettings {
       profiles: _loadLocal(p)['profiles'] as Map<String, Map<String, bool>>,
       accent: p.getInt(_kAccent) ?? GlassTokens.accentDefault.toARGB32(),
       localeCode: p.getString(_kLocale),
+      x: _loadX(p),
     );
+  }
+
+  static Map<String, dynamic> _loadX(SharedPreferences p) {
+    final raw = p.getString(_kX);
+    if (raw == null) return const {};
+    try {
+      return Map<String, dynamic>.from(jsonDecode(raw) as Map);
+    } catch (_) {
+      return const {};
+    }
   }
 
   static Map<String, Object> _loadLocal(SharedPreferences p) {
@@ -181,6 +248,7 @@ class AppSettings {
     await p.setInt(_kWall, wallpaper);
     await p.setBool(_kLock, appLock);
     await p.setInt(_kAccent, accent);
+    await p.setString(_kX, jsonEncode(x));
     if (localeCode == null) {
       await p.remove(_kLocale);
     } else {
@@ -209,6 +277,67 @@ class SettingsController extends Notifier<AppSettings> {
       map[chatId] = value;
     }
     _set(state.copyWith(ghostOverrides: map));
+  }
+
+  void setX(String key, Object? value) {
+    final m = Map<String, dynamic>.of(state.x);
+    if (value == null) {
+      m.remove(key);
+    } else {
+      m[key] = value;
+    }
+    _set(state.copyWith(x: m));
+  }
+
+  void setChatGhostPart(int chatId, String part, bool? value) {
+    final m = Map<String, dynamic>.of(
+        (state.x['ghostParts'] as Map?)?.cast<String, dynamic>() ?? {});
+    if (value == null) {
+      m.remove('$chatId:$part');
+    } else {
+      m['$chatId:$part'] = value;
+    }
+    setX('ghostParts', m);
+  }
+
+  void toggleHiddenMethod(String id) {
+    final cur = state.hiddenMethods;
+    cur.contains(id) ? cur.remove(id) : cur.add(id);
+    if (cur.isEmpty) return; // never lock yourself out
+    setX('hiddenMethods', cur.toList());
+  }
+
+  void toggleInHiddenFolder(String name, int chatId) {
+    final map = {
+      for (final e in state.hiddenFolders.entries) e.key: Set<int>.of(e.value)
+    };
+    final set = map.putIfAbsent(name, () => <int>{});
+    set.contains(chatId) ? set.remove(chatId) : set.add(chatId);
+    setX('hiddenFolders', {for (final e in map.entries) e.key: e.value.toList()});
+  }
+
+  void addHiddenFolder(String name) {
+    final map = {
+      for (final e in state.hiddenFolders.entries) e.key: e.value.toList()
+    };
+    map.putIfAbsent(name, () => <int>[]);
+    setX('hiddenFolders', map);
+  }
+
+  void renameHiddenFolder(String from, String to) {
+    final map = <String, List<int>>{};
+    for (final e in state.hiddenFolders.entries) {
+      map[e.key == from ? to : e.key] = e.value.toList();
+    }
+    setX('hiddenFolders', map);
+  }
+
+  void deleteHiddenFolder(String name) {
+    final map = {
+      for (final e in state.hiddenFolders.entries)
+        if (e.key != name) e.key: e.value.toList()
+    };
+    setX('hiddenFolders', map);
   }
 
   void setHidden(int chatId, bool hidden) {

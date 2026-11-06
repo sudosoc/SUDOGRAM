@@ -1753,6 +1753,510 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'اختار وقت في المستقبل'**
   String get pickTime;
+
+  /// No description provided for @more.
+  ///
+  /// In ar, this message translates to:
+  /// **'المزيد'**
+  String get more;
+
+  /// No description provided for @menuProfile.
+  ///
+  /// In ar, this message translates to:
+  /// **'عرض البروفايل'**
+  String get menuProfile;
+
+  /// No description provided for @menuMedia.
+  ///
+  /// In ar, this message translates to:
+  /// **'الميديا والملفات واللينكات'**
+  String get menuMedia;
+
+  /// No description provided for @chatControls.
+  ///
+  /// In ar, this message translates to:
+  /// **'تحكمات الشات'**
+  String get chatControls;
+
+  /// No description provided for @ghostFollow.
+  ///
+  /// In ar, this message translates to:
+  /// **'زي العام'**
+  String get ghostFollow;
+
+  /// No description provided for @ghostOnShort.
+  ///
+  /// In ar, this message translates to:
+  /// **'جوست شغال'**
+  String get ghostOnShort;
+
+  /// No description provided for @ghostOffShort.
+  ///
+  /// In ar, this message translates to:
+  /// **'جوست مقفول'**
+  String get ghostOffShort;
+
+  /// No description provided for @ghostReadReceipts.
+  ///
+  /// In ar, this message translates to:
+  /// **'اخفي علامة القراءة'**
+  String get ghostReadReceipts;
+
+  /// No description provided for @ghostTypingT.
+  ///
+  /// In ar, this message translates to:
+  /// **'اخفي \"بيكتب...\"'**
+  String get ghostTypingT;
+
+  /// No description provided for @ghostResetChat.
+  ///
+  /// In ar, this message translates to:
+  /// **'رجّع اعدادات الجوست للشات ده'**
+  String get ghostResetChat;
+
+  /// No description provided for @ghostSettings.
+  ///
+  /// In ar, this message translates to:
+  /// **'اعدادات الجوست'**
+  String get ghostSettings;
+
+  /// No description provided for @ghostStatusOn.
+  ///
+  /// In ar, this message translates to:
+  /// **'الجوست شغال'**
+  String get ghostStatusOn;
+
+  /// No description provided for @ghostStatusOff.
+  ///
+  /// In ar, this message translates to:
+  /// **'الجوست مقفول'**
+  String get ghostStatusOff;
+
+  /// No description provided for @ghostWhatToHide.
+  ///
+  /// In ar, this message translates to:
+  /// **'اخفي ايه'**
+  String get ghostWhatToHide;
+
+  /// No description provided for @ghostReadHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'الرسايل تفضل مش مقروءة عند المرسل'**
+  String get ghostReadHint;
+
+  /// No description provided for @ghostTypingHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'محدش هيشوف \"بيكتب...\"'**
+  String get ghostTypingHint;
+
+  /// No description provided for @ghostOnlineStatus.
+  ///
+  /// In ar, this message translates to:
+  /// **'اخفي ظهوري أونلاين'**
+  String get ghostOnlineStatus;
+
+  /// No description provided for @ghostOnlineHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'بيشتغل بس لما الجوست شغال'**
+  String get ghostOnlineHint;
+
+  /// No description provided for @ghostForceHidden.
+  ///
+  /// In ar, this message translates to:
+  /// **'الجوست دايماً على الشاتات المخفية'**
+  String get ghostForceHidden;
+
+  /// No description provided for @ghostForceHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'الشاتات المخفية مبتبعتش قراءة ولا كتابة'**
+  String get ghostForceHint;
+
+  /// No description provided for @ghostPerChat.
+  ///
+  /// In ar, this message translates to:
+  /// **'استثناءات الشاتات'**
+  String get ghostPerChat;
+
+  /// No description provided for @ghostNoOverrides.
+  ///
+  /// In ar, this message translates to:
+  /// **'مفيش شات ليه اعدادات خاصة. اضغط على العين جوا أي شات.'**
+  String get ghostNoOverrides;
+
+  /// No description provided for @contactMessage.
+  ///
+  /// In ar, this message translates to:
+  /// **'رسالة'**
+  String get contactMessage;
+
+  /// No description provided for @contactCopyPhone.
+  ///
+  /// In ar, this message translates to:
+  /// **'انسخ الرقم'**
+  String get contactCopyPhone;
+
+  /// No description provided for @contactCopyName.
+  ///
+  /// In ar, this message translates to:
+  /// **'انسخ الاسم'**
+  String get contactCopyName;
+
+  /// No description provided for @contactCall.
+  ///
+  /// In ar, this message translates to:
+  /// **'اتصل'**
+  String get contactCall;
+
+  /// No description provided for @botLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'بوت'**
+  String get botLabel;
+
+  /// No description provided for @copyLink.
+  ///
+  /// In ar, this message translates to:
+  /// **'انسخ اللينك'**
+  String get copyLink;
+
+  /// No description provided for @commonGroups.
+  ///
+  /// In ar, this message translates to:
+  /// **'جروبات مشتركة'**
+  String get commonGroups;
+
+  /// No description provided for @sharedPhotos.
+  ///
+  /// In ar, this message translates to:
+  /// **'صور'**
+  String get sharedPhotos;
+
+  /// No description provided for @sharedVideos.
+  ///
+  /// In ar, this message translates to:
+  /// **'فيديوهات'**
+  String get sharedVideos;
+
+  /// No description provided for @sharedFiles.
+  ///
+  /// In ar, this message translates to:
+  /// **'ملفات'**
+  String get sharedFiles;
+
+  /// No description provided for @sharedVoice.
+  ///
+  /// In ar, this message translates to:
+  /// **'صوتيات'**
+  String get sharedVoice;
+
+  /// No description provided for @sharedLinks.
+  ///
+  /// In ar, this message translates to:
+  /// **'لينكات'**
+  String get sharedLinks;
+
+  /// No description provided for @noMedia.
+  ///
+  /// In ar, this message translates to:
+  /// **'لسه مفيش حاجة متشاركة'**
+  String get noMedia;
+
+  /// No description provided for @unblock.
+  ///
+  /// In ar, this message translates to:
+  /// **'فك الحظر'**
+  String get unblock;
+
+  /// No description provided for @yesAction.
+  ///
+  /// In ar, this message translates to:
+  /// **'أيوه'**
+  String get yesAction;
+
+  /// No description provided for @clearHistoryQ.
+  ///
+  /// In ar, this message translates to:
+  /// **'تمسح كل الرسايل في الشات ده من عندك؟'**
+  String get clearHistoryQ;
+
+  /// No description provided for @deleteChatQ.
+  ///
+  /// In ar, this message translates to:
+  /// **'تمسح الشات ده؟ هيتشال من قايمتك.'**
+  String get deleteChatQ;
+
+  /// No description provided for @leaveChatQ.
+  ///
+  /// In ar, this message translates to:
+  /// **'تخرج من الجروب/القناة وتشيلها من قايمتك؟'**
+  String get leaveChatQ;
+
+  /// No description provided for @blockQ.
+  ///
+  /// In ar, this message translates to:
+  /// **'تحظر المستخدم ده؟ مش هيقدر يبعتلك.'**
+  String get blockQ;
+
+  /// No description provided for @unblockQ.
+  ///
+  /// In ar, this message translates to:
+  /// **'تفك الحظر عن المستخدم ده؟'**
+  String get unblockQ;
+
+  /// No description provided for @doneMsg.
+  ///
+  /// In ar, this message translates to:
+  /// **'تمام'**
+  String get doneMsg;
+
+  /// No description provided for @titleStyle.
+  ///
+  /// In ar, this message translates to:
+  /// **'عنوان الشاشة الرئيسية'**
+  String get titleStyle;
+
+  /// No description provided for @titleAppName.
+  ///
+  /// In ar, this message translates to:
+  /// **'اسم التطبيق'**
+  String get titleAppName;
+
+  /// No description provided for @titleUsername.
+  ///
+  /// In ar, this message translates to:
+  /// **'اليوزر نيم بتاعي'**
+  String get titleUsername;
+
+  /// No description provided for @titleNothing.
+  ///
+  /// In ar, this message translates to:
+  /// **'ولا حاجة'**
+  String get titleNothing;
+
+  /// No description provided for @accentColor.
+  ///
+  /// In ar, this message translates to:
+  /// **'لون التطبيق'**
+  String get accentColor;
+
+  /// No description provided for @settingsAccount.
+  ///
+  /// In ar, this message translates to:
+  /// **'الحساب'**
+  String get settingsAccount;
+
+  /// No description provided for @settingsGhostHidden.
+  ///
+  /// In ar, this message translates to:
+  /// **'الجوست والشاتات المخفية'**
+  String get settingsGhostHidden;
+
+  /// No description provided for @settingsChats.
+  ///
+  /// In ar, this message translates to:
+  /// **'المظهر والشات'**
+  String get settingsChats;
+
+  /// No description provided for @settingsTools.
+  ///
+  /// In ar, this message translates to:
+  /// **'أدوات'**
+  String get settingsTools;
+
+  /// No description provided for @settingsPresets.
+  ///
+  /// In ar, this message translates to:
+  /// **'إعدادات محفوظة'**
+  String get settingsPresets;
+
+  /// No description provided for @hiddenSettings.
+  ///
+  /// In ar, this message translates to:
+  /// **'اعدادات الشاتات المخفية'**
+  String get hiddenSettings;
+
+  /// No description provided for @hiddenOpenMethods.
+  ///
+  /// In ar, this message translates to:
+  /// **'طرق فتح الشاتات المخفية'**
+  String get hiddenOpenMethods;
+
+  /// No description provided for @mSearch.
+  ///
+  /// In ar, this message translates to:
+  /// **'ضغطة مطولة على أيقونة البحث'**
+  String get mSearch;
+
+  /// No description provided for @mTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'3 ضغطات على العنوان فوق'**
+  String get mTitle;
+
+  /// No description provided for @mGhost.
+  ///
+  /// In ar, this message translates to:
+  /// **'ضغطة مطولة على زرار الجوست'**
+  String get mGhost;
+
+  /// No description provided for @mSettings.
+  ///
+  /// In ar, this message translates to:
+  /// **'ضغطة مطولة على زرار الاعدادات'**
+  String get mSettings;
+
+  /// No description provided for @mCode.
+  ///
+  /// In ar, this message translates to:
+  /// **'اكتب كلمة سر في البحث'**
+  String get mCode;
+
+  /// No description provided for @hiddenCodeChange.
+  ///
+  /// In ar, this message translates to:
+  /// **'غيّر كلمة السر'**
+  String get hiddenCodeChange;
+
+  /// No description provided for @hiddenCodeHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'3 حروف على الأقل'**
+  String get hiddenCodeHint;
+
+  /// No description provided for @lastMethodWarn.
+  ///
+  /// In ar, this message translates to:
+  /// **'لازم تسيب طريقة فتح واحدة على الأقل شغالة'**
+  String get lastMethodWarn;
+
+  /// No description provided for @hiddenSecurity.
+  ///
+  /// In ar, this message translates to:
+  /// **'الأمان والخصوصية'**
+  String get hiddenSecurity;
+
+  /// No description provided for @hiddenRequireAuth.
+  ///
+  /// In ar, this message translates to:
+  /// **'اطلب البصمة / الرقم السري عند الفتح'**
+  String get hiddenRequireAuth;
+
+  /// No description provided for @hiddenShowPreview.
+  ///
+  /// In ar, this message translates to:
+  /// **'اعرض آخر رسالة في القايمة'**
+  String get hiddenShowPreview;
+
+  /// No description provided for @hiddenSectionsT.
+  ///
+  /// In ar, this message translates to:
+  /// **'اعرض أقسام أشخاص / جروبات / قنوات'**
+  String get hiddenSectionsT;
+
+  /// No description provided for @hiddenNotifyT.
+  ///
+  /// In ar, this message translates to:
+  /// **'اشعارات الشاتات المخفية'**
+  String get hiddenNotifyT;
+
+  /// No description provided for @notifyGeneric.
+  ///
+  /// In ar, this message translates to:
+  /// **'نص عام'**
+  String get notifyGeneric;
+
+  /// No description provided for @notifyNone.
+  ///
+  /// In ar, this message translates to:
+  /// **'بدون'**
+  String get notifyNone;
+
+  /// No description provided for @unhideAll.
+  ///
+  /// In ar, this message translates to:
+  /// **'اظهر كل الشاتات المخفية'**
+  String get unhideAll;
+
+  /// No description provided for @unhideAllQ.
+  ///
+  /// In ar, this message translates to:
+  /// **'ترجّع كل الشاتات المخفية للقايمة الرئيسية؟'**
+  String get unhideAllQ;
+
+  /// No description provided for @lockNow.
+  ///
+  /// In ar, this message translates to:
+  /// **'اقفل دلوقتي'**
+  String get lockNow;
+
+  /// No description provided for @sectAll.
+  ///
+  /// In ar, this message translates to:
+  /// **'الكل'**
+  String get sectAll;
+
+  /// No description provided for @sectPeople.
+  ///
+  /// In ar, this message translates to:
+  /// **'أشخاص'**
+  String get sectPeople;
+
+  /// No description provided for @sectGroups.
+  ///
+  /// In ar, this message translates to:
+  /// **'جروبات'**
+  String get sectGroups;
+
+  /// No description provided for @sectChannels.
+  ///
+  /// In ar, this message translates to:
+  /// **'قنوات'**
+  String get sectChannels;
+
+  /// No description provided for @sectSecret.
+  ///
+  /// In ar, this message translates to:
+  /// **'سرية'**
+  String get sectSecret;
+
+  /// No description provided for @newSection.
+  ///
+  /// In ar, this message translates to:
+  /// **'قسم جديد'**
+  String get newSection;
+
+  /// No description provided for @sectionName.
+  ///
+  /// In ar, this message translates to:
+  /// **'اسم القسم'**
+  String get sectionName;
+
+  /// No description provided for @renameSection.
+  ///
+  /// In ar, this message translates to:
+  /// **'غيّر اسم القسم'**
+  String get renameSection;
+
+  /// No description provided for @deleteSection.
+  ///
+  /// In ar, this message translates to:
+  /// **'امسح القسم'**
+  String get deleteSection;
+
+  /// No description provided for @deleteSectionQ.
+  ///
+  /// In ar, this message translates to:
+  /// **'تمسح القسم ده؟ الشاتات هتفضل مخفية.'**
+  String get deleteSectionQ;
+
+  /// No description provided for @sectionEmpty.
+  ///
+  /// In ar, this message translates to:
+  /// **'القسم فاضي. اضغط مطولاً على شات عشان تضيفه هنا.'**
+  String get sectionEmpty;
 }
 
 class _AppLocalizationsDelegate

@@ -873,4 +873,262 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pickTime => 'Pick a time in the future';
+
+  @override
+  String get more => 'More';
+
+  @override
+  String get menuProfile => 'View profile';
+
+  @override
+  String get menuMedia => 'Media, files and links';
+
+  @override
+  String get chatControls => 'Chat controls';
+
+  @override
+  String get ghostFollow => 'Follow global';
+
+  @override
+  String get ghostOnShort => 'Ghost on';
+
+  @override
+  String get ghostOffShort => 'Ghost off';
+
+  @override
+  String get ghostReadReceipts => 'Hide read receipts';
+
+  @override
+  String get ghostTypingT => 'Hide typing indicator';
+
+  @override
+  String get ghostResetChat => 'Reset this chat\'s ghost options';
+
+  @override
+  String get ghostSettings => 'Ghost settings';
+
+  @override
+  String get ghostStatusOn => 'Ghost is ON';
+
+  @override
+  String get ghostStatusOff => 'Ghost is OFF';
+
+  @override
+  String get ghostWhatToHide => 'What to hide';
+
+  @override
+  String get ghostReadHint => 'Messages stay unread for the sender';
+
+  @override
+  String get ghostTypingHint => 'Others never see \"typing...\"';
+
+  @override
+  String get ghostOnlineStatus => 'Hide online status';
+
+  @override
+  String get ghostOnlineHint => 'Only applies while Ghost is on';
+
+  @override
+  String get ghostForceHidden => 'Always ghost hidden chats';
+
+  @override
+  String get ghostForceHint =>
+      'Hidden chats never send read receipts or typing';
+
+  @override
+  String get ghostPerChat => 'Per-chat overrides';
+
+  @override
+  String get ghostNoOverrides =>
+      'No chat has its own ghost options. Tap the eye icon inside a chat to set them.';
+
+  @override
+  String get contactMessage => 'Message';
+
+  @override
+  String get contactCopyPhone => 'Copy number';
+
+  @override
+  String get contactCopyName => 'Copy name';
+
+  @override
+  String get contactCall => 'Call';
+
+  @override
+  String get botLabel => 'Bot';
+
+  @override
+  String get copyLink => 'Copy link';
+
+  @override
+  String get commonGroups => 'Groups in common';
+
+  @override
+  String get sharedPhotos => 'Photos';
+
+  @override
+  String get sharedVideos => 'Videos';
+
+  @override
+  String get sharedFiles => 'Files';
+
+  @override
+  String get sharedVoice => 'Voice';
+
+  @override
+  String get sharedLinks => 'Links';
+
+  @override
+  String get noMedia => 'Nothing shared yet';
+
+  @override
+  String get unblock => 'Unblock';
+
+  @override
+  String get yesAction => 'Yes';
+
+  @override
+  String get clearHistoryQ =>
+      'Delete all messages in this chat from your side?';
+
+  @override
+  String get deleteChatQ =>
+      'Delete this chat? It will be removed from your list.';
+
+  @override
+  String get leaveChatQ =>
+      'Leave this group or channel and remove it from your list?';
+
+  @override
+  String get blockQ => 'Block this user? They won\'t be able to message you.';
+
+  @override
+  String get unblockQ => 'Unblock this user?';
+
+  @override
+  String get doneMsg => 'Done';
+
+  @override
+  String get titleStyle => 'Home title';
+
+  @override
+  String get titleAppName => 'App name';
+
+  @override
+  String get titleUsername => 'My @username';
+
+  @override
+  String get titleNothing => 'Nothing';
+
+  @override
+  String get accentColor => 'Accent colour';
+
+  @override
+  String get settingsAccount => 'Account';
+
+  @override
+  String get settingsGhostHidden => 'Ghost and hidden chats';
+
+  @override
+  String get settingsChats => 'Appearance and chats';
+
+  @override
+  String get settingsTools => 'Tools';
+
+  @override
+  String get settingsPresets => 'Presets';
+
+  @override
+  String get hiddenSettings => 'Hidden chats settings';
+
+  @override
+  String get hiddenOpenMethods => 'Ways to open hidden chats';
+
+  @override
+  String get mSearch => 'Long-press the search icon';
+
+  @override
+  String get mTitle => 'Tap the title 3 times';
+
+  @override
+  String get mGhost => 'Long-press the Ghost button';
+
+  @override
+  String get mSettings => 'Long-press the settings button';
+
+  @override
+  String get mCode => 'Type a secret word in search';
+
+  @override
+  String get hiddenCodeChange => 'Change secret word';
+
+  @override
+  String get hiddenCodeHint => 'At least 3 characters';
+
+  @override
+  String get lastMethodWarn => 'At least one way to open must stay on';
+
+  @override
+  String get hiddenSecurity => 'Security and privacy';
+
+  @override
+  String get hiddenRequireAuth => 'Ask for fingerprint / passcode when opening';
+
+  @override
+  String get hiddenShowPreview => 'Show message previews in the list';
+
+  @override
+  String get hiddenSectionsT => 'Show People / Groups / Channels sections';
+
+  @override
+  String get hiddenNotifyT => 'Notifications from hidden chats';
+
+  @override
+  String get notifyGeneric => 'Generic text';
+
+  @override
+  String get notifyNone => 'None';
+
+  @override
+  String get unhideAll => 'Unhide all chats';
+
+  @override
+  String get unhideAllQ => 'Move every hidden chat back to the main list?';
+
+  @override
+  String get lockNow => 'Lock now';
+
+  @override
+  String get sectAll => 'All';
+
+  @override
+  String get sectPeople => 'People';
+
+  @override
+  String get sectGroups => 'Groups';
+
+  @override
+  String get sectChannels => 'Channels';
+
+  @override
+  String get sectSecret => 'Secret';
+
+  @override
+  String get newSection => 'New section';
+
+  @override
+  String get sectionName => 'Section name';
+
+  @override
+  String get renameSection => 'Rename section';
+
+  @override
+  String get deleteSection => 'Delete section';
+
+  @override
+  String get deleteSectionQ => 'Delete this section? Its chats stay hidden.';
+
+  @override
+  String get sectionEmpty =>
+      'This section is empty. Long-press a chat to add it here.';
 }

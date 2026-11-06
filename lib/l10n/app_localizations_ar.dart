@@ -873,4 +873,257 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get pickTime => 'اختار وقت في المستقبل';
+
+  @override
+  String get more => 'المزيد';
+
+  @override
+  String get menuProfile => 'عرض البروفايل';
+
+  @override
+  String get menuMedia => 'الميديا والملفات واللينكات';
+
+  @override
+  String get chatControls => 'تحكمات الشات';
+
+  @override
+  String get ghostFollow => 'زي العام';
+
+  @override
+  String get ghostOnShort => 'جوست شغال';
+
+  @override
+  String get ghostOffShort => 'جوست مقفول';
+
+  @override
+  String get ghostReadReceipts => 'اخفي علامة القراءة';
+
+  @override
+  String get ghostTypingT => 'اخفي \"بيكتب...\"';
+
+  @override
+  String get ghostResetChat => 'رجّع اعدادات الجوست للشات ده';
+
+  @override
+  String get ghostSettings => 'اعدادات الجوست';
+
+  @override
+  String get ghostStatusOn => 'الجوست شغال';
+
+  @override
+  String get ghostStatusOff => 'الجوست مقفول';
+
+  @override
+  String get ghostWhatToHide => 'اخفي ايه';
+
+  @override
+  String get ghostReadHint => 'الرسايل تفضل مش مقروءة عند المرسل';
+
+  @override
+  String get ghostTypingHint => 'محدش هيشوف \"بيكتب...\"';
+
+  @override
+  String get ghostOnlineStatus => 'اخفي ظهوري أونلاين';
+
+  @override
+  String get ghostOnlineHint => 'بيشتغل بس لما الجوست شغال';
+
+  @override
+  String get ghostForceHidden => 'الجوست دايماً على الشاتات المخفية';
+
+  @override
+  String get ghostForceHint => 'الشاتات المخفية مبتبعتش قراءة ولا كتابة';
+
+  @override
+  String get ghostPerChat => 'استثناءات الشاتات';
+
+  @override
+  String get ghostNoOverrides =>
+      'مفيش شات ليه اعدادات خاصة. اضغط على العين جوا أي شات.';
+
+  @override
+  String get contactMessage => 'رسالة';
+
+  @override
+  String get contactCopyPhone => 'انسخ الرقم';
+
+  @override
+  String get contactCopyName => 'انسخ الاسم';
+
+  @override
+  String get contactCall => 'اتصل';
+
+  @override
+  String get botLabel => 'بوت';
+
+  @override
+  String get copyLink => 'انسخ اللينك';
+
+  @override
+  String get commonGroups => 'جروبات مشتركة';
+
+  @override
+  String get sharedPhotos => 'صور';
+
+  @override
+  String get sharedVideos => 'فيديوهات';
+
+  @override
+  String get sharedFiles => 'ملفات';
+
+  @override
+  String get sharedVoice => 'صوتيات';
+
+  @override
+  String get sharedLinks => 'لينكات';
+
+  @override
+  String get noMedia => 'لسه مفيش حاجة متشاركة';
+
+  @override
+  String get unblock => 'فك الحظر';
+
+  @override
+  String get yesAction => 'أيوه';
+
+  @override
+  String get clearHistoryQ => 'تمسح كل الرسايل في الشات ده من عندك؟';
+
+  @override
+  String get deleteChatQ => 'تمسح الشات ده؟ هيتشال من قايمتك.';
+
+  @override
+  String get leaveChatQ => 'تخرج من الجروب/القناة وتشيلها من قايمتك؟';
+
+  @override
+  String get blockQ => 'تحظر المستخدم ده؟ مش هيقدر يبعتلك.';
+
+  @override
+  String get unblockQ => 'تفك الحظر عن المستخدم ده؟';
+
+  @override
+  String get doneMsg => 'تمام';
+
+  @override
+  String get titleStyle => 'عنوان الشاشة الرئيسية';
+
+  @override
+  String get titleAppName => 'اسم التطبيق';
+
+  @override
+  String get titleUsername => 'اليوزر نيم بتاعي';
+
+  @override
+  String get titleNothing => 'ولا حاجة';
+
+  @override
+  String get accentColor => 'لون التطبيق';
+
+  @override
+  String get settingsAccount => 'الحساب';
+
+  @override
+  String get settingsGhostHidden => 'الجوست والشاتات المخفية';
+
+  @override
+  String get settingsChats => 'المظهر والشات';
+
+  @override
+  String get settingsTools => 'أدوات';
+
+  @override
+  String get settingsPresets => 'إعدادات محفوظة';
+
+  @override
+  String get hiddenSettings => 'اعدادات الشاتات المخفية';
+
+  @override
+  String get hiddenOpenMethods => 'طرق فتح الشاتات المخفية';
+
+  @override
+  String get mSearch => 'ضغطة مطولة على أيقونة البحث';
+
+  @override
+  String get mTitle => '3 ضغطات على العنوان فوق';
+
+  @override
+  String get mGhost => 'ضغطة مطولة على زرار الجوست';
+
+  @override
+  String get mSettings => 'ضغطة مطولة على زرار الاعدادات';
+
+  @override
+  String get mCode => 'اكتب كلمة سر في البحث';
+
+  @override
+  String get hiddenCodeChange => 'غيّر كلمة السر';
+
+  @override
+  String get hiddenCodeHint => '3 حروف على الأقل';
+
+  @override
+  String get lastMethodWarn => 'لازم تسيب طريقة فتح واحدة على الأقل شغالة';
+
+  @override
+  String get hiddenSecurity => 'الأمان والخصوصية';
+
+  @override
+  String get hiddenRequireAuth => 'اطلب البصمة / الرقم السري عند الفتح';
+
+  @override
+  String get hiddenShowPreview => 'اعرض آخر رسالة في القايمة';
+
+  @override
+  String get hiddenSectionsT => 'اعرض أقسام أشخاص / جروبات / قنوات';
+
+  @override
+  String get hiddenNotifyT => 'اشعارات الشاتات المخفية';
+
+  @override
+  String get notifyGeneric => 'نص عام';
+
+  @override
+  String get notifyNone => 'بدون';
+
+  @override
+  String get unhideAll => 'اظهر كل الشاتات المخفية';
+
+  @override
+  String get unhideAllQ => 'ترجّع كل الشاتات المخفية للقايمة الرئيسية؟';
+
+  @override
+  String get lockNow => 'اقفل دلوقتي';
+
+  @override
+  String get sectAll => 'الكل';
+
+  @override
+  String get sectPeople => 'أشخاص';
+
+  @override
+  String get sectGroups => 'جروبات';
+
+  @override
+  String get sectChannels => 'قنوات';
+
+  @override
+  String get sectSecret => 'سرية';
+
+  @override
+  String get newSection => 'قسم جديد';
+
+  @override
+  String get sectionName => 'اسم القسم';
+
+  @override
+  String get renameSection => 'غيّر اسم القسم';
+
+  @override
+  String get deleteSection => 'امسح القسم';
+
+  @override
+  String get deleteSectionQ => 'تمسح القسم ده؟ الشاتات هتفضل مخفية.';
+
+  @override
+  String get sectionEmpty => 'القسم فاضي. اضغط مطولاً على شات عشان تضيفه هنا.';
 }

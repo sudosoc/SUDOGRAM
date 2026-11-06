@@ -182,5 +182,11 @@ abstract class TelegramGateway {
   Future<void> scheduleText(int chatId, String text, DateTime at);
   Future<List<ChatMessage>> scheduledMessages(int chatId);
 
+  /// Loads the history around [messageId] so it can be scrolled to.
+  Future<void> loadAround(int chatId, int messageId);
+
+  /// Shared media of a chat. [filter]: photo, video, document, audio, voice, link.
+  Future<List<ChatMessage>> sharedMedia(int chatId, String filter);
+
   Future<void> dispose();
 }

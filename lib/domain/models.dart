@@ -140,6 +140,7 @@ class ChatMessage {
     this.myReactions = const {},
     this.poll,
     this.link,
+    this.contact,
     this.sendState = 0,
   });
 
@@ -181,6 +182,9 @@ class ChatMessage {
   final PollData? poll;
   final LinkPreview? link;
 
+  /// Set for shared contacts (null otherwise; archived copies parse the text).
+  final ContactCard? contact;
+
   /// 0 = delivered, 1 = sending, 2 = failed.
   final int sendState;
 
@@ -220,6 +224,7 @@ class ChatMessage {
       myReactions: myReactions ?? this.myReactions,
       poll: poll ?? this.poll,
       link: link,
+      contact: contact,
       sendState: sendState ?? this.sendState,
     );
   }
@@ -292,13 +297,45 @@ class ContactChange {
 
 
 /// Profile / group info shown on the chat info page.
+class ContactCard {
+  const ContactCard({required this.name, required this.phone, this.userId = 0});
+  final String name;
+  final String phone;
+  final int userId;
+
+  /// Rebuilds a card from the archived text form `👤 name +phone`.
+  static ContactCard? parse(String text) {
+    if (!text.startsWith('👤 ')) return null;
+    final body = text.substring(3).trim();
+    final i = body.lastIndexOf(' +');
+    if (i < 0) return ContactCard(name: body, phone: '');
+    return ContactCard(
+        name: body.substring(0, i).trim(), phone: body.substring(i + 2).trim());
+  }
+}
+
 class ChatInfo {
   const ChatInfo({
     this.username = '',
     this.phone = '',
     this.about = '',
     this.members = 0,
+    this.userId = 0,
+    this.isContact = false,
+    this.isBot = false,
+    this.blocked = false,
+    this.commonGroups = 0,
+    this.firstName = '',
+    this.lastName = '',
   });
+
+  final int userId;
+  final bool isContact;
+  final bool isBot;
+  final bool blocked;
+  final int commonGroups;
+  final String firstName;
+  final String lastName;
 
   final String username;
   final String phone;

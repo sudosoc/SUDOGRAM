@@ -12,46 +12,103 @@ Future<String?> _ask(BuildContext context, String title, String hint,
   final c = TextEditingController(text: initial);
   return showDialog<String>(
     context: context,
-    builder: (_) => AlertDialog(
+    builder: (dctx) => AlertDialog(
       title: Text(title),
       content: TextField(
           controller: c, autofocus: true, decoration: InputDecoration(hintText: hint)),
       actions: [
         TextButton(
-            onPressed: () => Navigator.pop(context, c.text),
+            onPressed: () => Navigator.pop(dctx),
+            child: Text(AppLocalizations.of(context).cancelAction)),
+        TextButton(
+            onPressed: () => Navigator.pop(dctx, c.text),
             child: Text(AppLocalizations.of(context).vaultSave)),
       ],
     ),
   );
 }
 
-Future<bool> _confirm(BuildContext context) async {
+/// Public text prompt (used by other screens).
+Future<String?> askText(BuildContext context, String title, String hint,
+        {String initial = ''}) =>
+    _ask(context, title, hint, initial: initial);
+
+/// Yes/no dialog. The buttons use the dialog's own context, so it closes
+/// correctly even when [context] belongs to a screen that is busy.
+Future<bool> confirmDialog(BuildContext context, String message,
+    {String? action, bool danger = true}) async {
   final l = AppLocalizations.of(context);
   return await showDialog<bool>(
         context: context,
-        builder: (_) => AlertDialog(
+        builder: (dctx) => AlertDialog(
           title: Text(l.confirm),
+          content: Text(message),
           actions: [
             TextButton(
-                onPressed: () => Navigator.pop(context, false),
+                onPressed: () => Navigator.pop(dctx, false),
                 child: Text(l.cancelAction)),
             TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('OK')),
+                onPressed: () => Navigator.pop(dctx, true),
+                child: Text(action ?? l.yesAction,
+                    style: danger
+                        ? const TextStyle(color: GlassTokens.ringDanger)
+                        : null)),
           ],
         ),
       ) ??
       false;
 }
 
+enum ChatDanger { clear, leave, block, unblock }
+
+/// Confirms, runs and reports a destructive chat action. Returns true when
+/// it went through. Errors are shown instead of being swallowed.
+Future<bool> runChatDanger(
+    BuildContext root, WidgetRef ref, ChatSummary chat, ChatDanger what) async {
+  final l = AppLocalizations.of(root);
+  final messenger = ScaffoldMessenger.of(root);
+  final g = ref.read(gatewayProvider);
+  final msg = switch (what) {
+    ChatDanger.clear => l.clearHistoryQ,
+    ChatDanger.leave =>
+      chat.type == ChatType.private || chat.type == ChatType.secret
+          ? l.deleteChatQ
+          : l.leaveChatQ,
+    ChatDanger.block => l.blockQ,
+    ChatDanger.unblock => l.unblockQ,
+  };
+  if (!await confirmDialog(root, msg, danger: what != ChatDanger.unblock)) {
+    return false;
+  }
+  try {
+    switch (what) {
+      case ChatDanger.clear:
+        await g.clearHistory(chat.id);
+      case ChatDanger.leave:
+        await g.leaveChat(chat.id);
+      case ChatDanger.block:
+        await g.blockUser(chat.id, true);
+      case ChatDanger.unblock:
+        await g.blockUser(chat.id, false);
+    }
+    messenger.showSnackBar(SnackBar(content: Text(l.doneMsg)));
+    return true;
+  } catch (e) {
+    messenger.showSnackBar(SnackBar(content: Text(l.sendFailed('$e'))));
+    return false;
+  }
+}
+
 /// Local-only actions for a chat: pin, folders, alias, hide, ghost.
-void showChatActions(BuildContext context, WidgetRef ref, ChatSummary chat) {
+void showChatActions(BuildContext context, WidgetRef ref, ChatSummary chat,
+    {bool inHidden = false}) {
+  final root = context;
   showModalBottomSheet<void>(
     context: context,
     backgroundColor: Colors.transparent,
     isScrollControlled: true,
-    builder: (sheet) => Consumer(builder: (context, ref, _) {
-      final l = AppLocalizations.of(context);
+    builder: (sheet) => Consumer(builder: (sctx, ref, _) {
+      final l = AppLocalizations.of(sctx);
       final s = ref.watch(settingsProvider);
       final c = ref.read(settingsProvider.notifier);
       final pinned = s.pinned.contains(chat.id);
@@ -107,7 +164,7 @@ void showChatActions(BuildContext context, WidgetRef ref, ChatSummary chat) {
                 subtitle: s.aliases[chat.id] == null ? null : Text(s.aliases[chat.id]!),
                 onTap: () async {
                   Navigator.pop(sheet);
-                  final v = await _ask(context, l.rename, l.aliasHint,
+                  final v = await _ask(root, l.rename, l.aliasHint,
                       initial: s.aliases[chat.id] ?? '');
                   if (v != null) c.setAlias(chat.id, v);
                 },
@@ -137,19 +194,24 @@ void showChatActions(BuildContext context, WidgetRef ref, ChatSummary chat) {
                 ),
               ),
               Wrap(spacing: 8, children: [
-                for (final name in s.folders.keys)
+                for (final name in (inHidden ? s.hiddenFolders : s.folders).keys)
                   FilterChip(
                     label: Text(name),
-                    selected: s.folders[name]!.contains(chat.id),
-                    onSelected: (_) => c.toggleInFolder(name, chat.id),
+                    selected: (inHidden ? s.hiddenFolders : s.folders)[name]!
+                        .contains(chat.id),
+                    onSelected: (_) => inHidden
+                        ? c.toggleInHiddenFolder(name, chat.id)
+                        : c.toggleInFolder(name, chat.id),
                   ),
                 ActionChip(
                   avatar: const Icon(Icons.add, size: 16),
                   label: Text(l.newFolder),
                   onPressed: () async {
-                    final n = await _ask(context, l.newFolder, l.folderName);
+                    final n = await _ask(root, l.newFolder, l.folderName);
                     if (n != null && n.trim().isNotEmpty) {
-                      c.toggleInFolder(n.trim(), chat.id);
+                      inHidden
+                          ? c.toggleInHiddenFolder(n.trim(), chat.id)
+                          : c.toggleInFolder(n.trim(), chat.id);
                     }
                   },
                 ),
@@ -161,11 +223,9 @@ void showChatActions(BuildContext context, WidgetRef ref, ChatSummary chat) {
                     color: GlassTokens.ringDanger),
                 title: Text(l.clearHistory,
                     style: const TextStyle(color: GlassTokens.ringDanger)),
-                onTap: () async {
+                onTap: () {
                   Navigator.pop(sheet);
-                  if (await _confirm(context)) {
-                    await ref.read(gatewayProvider).clearHistory(chat.id);
-                  }
+                  runChatDanger(root, ref, chat, ChatDanger.clear);
                 },
               ),
               ListTile(
@@ -174,11 +234,9 @@ void showChatActions(BuildContext context, WidgetRef ref, ChatSummary chat) {
                 title: Text(
                     chat.type == ChatType.private ? l.deleteChat : l.leaveChat,
                     style: const TextStyle(color: GlassTokens.ringDanger)),
-                onTap: () async {
+                onTap: () {
                   Navigator.pop(sheet);
-                  if (await _confirm(context)) {
-                    await ref.read(gatewayProvider).leaveChat(chat.id);
-                  }
+                  runChatDanger(root, ref, chat, ChatDanger.leave);
                 },
               ),
               if (chat.type == ChatType.private)
@@ -186,11 +244,9 @@ void showChatActions(BuildContext context, WidgetRef ref, ChatSummary chat) {
                   leading: const Icon(Icons.block, color: GlassTokens.ringDanger),
                   title: Text(l.blockUser,
                       style: const TextStyle(color: GlassTokens.ringDanger)),
-                  onTap: () async {
+                  onTap: () {
                     Navigator.pop(sheet);
-                    if (await _confirm(context)) {
-                      await ref.read(gatewayProvider).blockUser(chat.id, true);
-                    }
+                    runChatDanger(root, ref, chat, ChatDanger.block);
                   },
                 ),
             ]),

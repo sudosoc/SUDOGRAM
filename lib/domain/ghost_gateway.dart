@@ -11,7 +11,19 @@ typedef GhostPolicy = bool Function(int chatId);
 /// Everything else is forwarded untouched. There is deliberately no ad or
 /// sponsored-message API in [TelegramGateway], so nothing here can fetch them.
 class GhostGateway implements TelegramGateway {
-  GhostGateway(this._inner, {required this.isGhost, required this.globalGhost});
+  GhostGateway(
+    this._inner, {
+    required this.isGhost,
+    required this.globalGhost,
+    this.blocksRead,
+    this.blocksTyping,
+    this.blocksOnline,
+  });
+
+  /// Optional finer policies; default to [isGhost] / [globalGhost].
+  final GhostPolicy? blocksRead;
+  final GhostPolicy? blocksTyping;
+  final bool Function()? blocksOnline;
 
   final TelegramGateway _inner;
 
@@ -62,20 +74,20 @@ class GhostGateway implements TelegramGateway {
 
   @override
   Future<void> markRead(int chatId, List<int> messageIds) async {
-    if (isGhost(chatId)) return;
+    if ((blocksRead ?? isGhost)(chatId)) return;
     await _inner.markRead(chatId, messageIds);
   }
 
   @override
   Future<void> sendTyping(int chatId) async {
-    if (isGhost(chatId)) return;
+    if ((blocksTyping ?? isGhost)(chatId)) return;
     await _inner.sendTyping(chatId);
   }
 
   @override
   Future<void> setOnline(bool online) async {
     // While ghost is on globally we never appear online.
-    if (online && globalGhost()) {
+    if (online && (blocksOnline ?? globalGhost)()) {
       await _inner.setOnline(false);
       return;
     }
@@ -282,6 +294,14 @@ class GhostGateway implements TelegramGateway {
   @override
   Future<List<ChatMessage>> scheduledMessages(int chatId) =>
       _inner.scheduledMessages(chatId);
+
+  @override
+  Future<void> loadAround(int chatId, int messageId) =>
+      _inner.loadAround(chatId, messageId);
+
+  @override
+  Future<List<ChatMessage>> sharedMedia(int chatId, String filter) =>
+      _inner.sharedMedia(chatId, filter);
 
   @override
   Future<void> forwardMessages(int toChatId, int fromChatId, List<int> ids) =>

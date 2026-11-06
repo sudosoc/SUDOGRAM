@@ -616,4 +616,44 @@ void main() {
     expect(st['send_date'], 2000000000);
     expect(sent[2]['@type'], 'getChatScheduledMessages');
   });
+
+  test('shared contact becomes a card; around/shared-media requests', () async {
+    List<ChatMessage> got = const [];
+    final sub = g.watchMessages(5).listen((v) => got = v);
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    final m = Map<String, dynamic>.from(tmsg(70)['message'] as Map<String, dynamic>);
+    m['content'] = {
+      '@type': 'messageContact',
+      'contact': {
+        '@type': 'contact',
+        'phone_number': '201001234567',
+        'first_name': 'Ali',
+        'last_name': 'Hassan',
+        'user_id': 9,
+      },
+    };
+    t.push({'@type': 'updateNewMessage', 'message': m});
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    final c = got.firstWhere((x) => x.id == 70).contact!;
+    expect(c.name, 'Ali Hassan');
+    expect(c.phone, '201001234567');
+    expect(c.userId, 9);
+    final back = ContactCard.parse(got.firstWhere((x) => x.id == 70).text)!;
+    expect(back.name, 'Ali Hassan');
+    expect(back.phone, '201001234567');
+
+    final sent = <Map<String, dynamic>>[];
+    t.onRequest = (r) {
+      sent.add(r);
+      return {'@type': 'messages', 'total_count': 0, 'messages': []};
+    };
+    await g.loadAround(5, 40);
+    await g.sharedMedia(5, 'photo');
+    expect(sent[0]['@type'], 'getChatHistory');
+    expect(sent[0]['from_message_id'], 40);
+    expect(sent[0]['offset'], lessThan(0));
+    expect(sent[1]['@type'], 'searchChatMessages');
+    expect((sent[1]['filter'] as Map)['@type'], 'searchMessagesFilterPhoto');
+    await sub.cancel();
+  });
 }

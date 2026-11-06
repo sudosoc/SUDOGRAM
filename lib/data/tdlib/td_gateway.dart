@@ -32,6 +32,7 @@ class _Chat {
 /// Ads: this class never calls `getChatSponsoredMessages`, so sponsored
 /// messages are never requested and never shown.
 class TdlibGateway implements TelegramGateway {
+  final _userExtra = <int, Map<String, Object>>{};
   TdlibGateway({
     required this.transportFactory,
     required this.apiId,
@@ -326,6 +327,12 @@ class TdlibGateway implements TelegramGateway {
     };
     final before = _users[id];
     _users[id] = now;
+    _userExtra[id] = {
+      'contact': u['is_contact'] == true,
+      'bot': (u['type'] as Map?)?['@type'] == 'userTypeBot',
+      'first': (u['first_name'] ?? '').toString(),
+      'last': (u['last_name'] ?? '').toString(),
+    };
     if (u['status'] != null) _setSeen(id, u['status']);
     if (names.isNotEmpty) {
       // Messages loaded before we knew the sender's name get it now.
@@ -834,9 +841,21 @@ class TdlibGateway implements TelegramGateway {
       },
       poll: _poll(m['content'] as Map?),
       link: _link(m['content'] as Map?),
+      contact: _contact(m['content'] as Map?),
       reactions: _reactions(m['interaction_info']).$1,
       myReactions: _reactions(m['interaction_info']).$2,
     );
+  }
+
+  ContactCard? _contact(Map? content) {
+    if (content?['@type'] != 'messageContact') return null;
+    final c = content!['contact'] as Map?;
+    if (c == null) return null;
+    final name = '${c['first_name'] ?? ''} ${c['last_name'] ?? ''}'.trim();
+    return ContactCard(
+        name: name,
+        phone: (c['phone_number'] ?? '').toString(),
+        userId: asInt(c['user_id']));
   }
 
   String _txt(Object? v) => v is Map ? (v['text'] ?? '').toString() : (v ?? '').toString();
@@ -1040,6 +1059,54 @@ class TdlibGateway implements TelegramGateway {
   }
 
   @override
+  Future<void> loadAround(int chatId, int messageId) async {
+    try {
+      final r = await _td.request({
+        '@type': 'getChatHistory',
+        'chat_id': chatId,
+        'from_message_id': messageId,
+        'offset': -25,
+        'limit': 50,
+        'only_local': false,
+      });
+      for (final m in ((r['messages'] as List?) ?? const []).whereType<Map>()) {
+        _upsertMessage(chatId, _parseMessage(Map<String, dynamic>.from(m)));
+      }
+    } on TdError {
+      // the caller falls back to paging
+    }
+  }
+
+  @override
+  Future<List<ChatMessage>> sharedMedia(int chatId, String filter) async {
+    final type = switch (filter) {
+      'photo' => 'searchMessagesFilterPhoto',
+      'video' => 'searchMessagesFilterVideo',
+      'audio' => 'searchMessagesFilterAudio',
+      'voice' => 'searchMessagesFilterVoiceNote',
+      'link' => 'searchMessagesFilterUrl',
+      _ => 'searchMessagesFilterDocument',
+    };
+    try {
+      final r = await _td.request({
+        '@type': 'searchChatMessages',
+        'chat_id': chatId,
+        'query': '',
+        'from_message_id': 0,
+        'offset': 0,
+        'limit': 100,
+        'filter': {'@type': type},
+      });
+      return [
+        for (final m in (r['messages'] as List? ?? const []).whereType<Map>())
+          _parseMessage(Map<String, dynamic>.from(m))
+      ];
+    } on TdError {
+      return const [];
+    }
+  }
+
+  @override
   Future<void> editText(int chatId, int messageId, String text) async {
     await _td.request({
       '@type': 'editMessageText',
@@ -1176,16 +1243,29 @@ class TdlibGateway implements TelegramGateway {
       if (c.type == ChatType.private || c.type == ChatType.secret) {
         final u = _users[c.userId];
         String about = '';
+        var common = 0;
+        var blocked = false;
         try {
           final f = await _td.request(
               {'@type': 'getUserFullInfo', 'user_id': c.userId});
           final bio = f['bio'];
           about = bio is Map ? (bio['text'] ?? '').toString() : (bio ?? '').toString();
+          common = asInt(f['group_in_common_count']);
+          blocked = f['block_list'] != null || f['is_blocked'] == true;
         } on TdError {
           // optional
         }
         return ChatInfo(
-            username: u?['username'] ?? '', phone: u?['phone'] ?? '', about: about);
+            username: u?['username'] ?? '',
+            phone: u?['phone'] ?? '',
+            about: about,
+            userId: c.userId,
+            isContact: _userExtra[c.userId]?['contact'] == true,
+            isBot: _userExtra[c.userId]?['bot'] == true,
+            blocked: blocked,
+            commonGroups: common,
+            firstName: (_userExtra[c.userId]?['first'] ?? '').toString(),
+            lastName: (_userExtra[c.userId]?['last'] ?? '').toString());
       }
       if (c.supergroup) {
         final f = await _td.request(
