@@ -17,6 +17,7 @@ import 'package:path_provider/path_provider.dart';
 import '../splitter/file_splitter.dart';
 import '../splitter/smart_splitter.dart';
 import 'avatar.dart';
+import 'info_screen.dart';
 import 'voice_player.dart';
 import 'file_card.dart';
 
@@ -34,6 +35,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   int _limit = 4096;
   int _parts = 1;
   late final _gateway = ref.read(gatewayProvider);
+  late final _notifier = ref.read(notifierProvider);
   final _scroll = ScrollController();
   ChatMessage? _replyTo;
   ChatMessage? _editing;
@@ -47,6 +49,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   void initState() {
     super.initState();
     _gateway.openChat(widget.chat.id);
+    _notifier.openChat = widget.chat.id;
     _scroll.addListener(_onScroll);
     _gateway.pinnedMessage(widget.chat.id).then((m) {
       if (mounted) setState(() => _pinned = m);
@@ -59,6 +62,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   void dispose() {
     _gateway.closeChat(widget.chat.id);
+    if (_notifier.openChat == widget.chat.id) _notifier.openChat = null;
     _c.dispose();
     _scroll.dispose();
     super.dispose();
@@ -181,6 +185,30 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           radius: 24,
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
+            if (!m.deletedByPeer)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  for (final e in const ['👍', '❤️', '😂', '😮', '😢', '🙏', '🔥'])
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        _gateway.toggleReaction(widget.chat.id, m.id, e,
+                            on: !m.myReactions.contains(e));
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: m.myReactions.contains(e)
+                              ? Colors.white24
+                              : null,
+                        ),
+                        child: Text(e, style: const TextStyle(fontSize: 24)),
+                      ),
+                    ),
+                ],
+              ),
             if (widget.chat.canSend && !m.deletedByPeer)
               item(Icons.reply, l.reply, () => setState(() {
                     _replyTo = m;
@@ -406,10 +434,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     icon: const BackButtonIcon(),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
-                  AvatarCircle(
-                      title: widget.chat.title,
-                      photo: widget.chat.avatar,
-                      size: 38),
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                            builder: (_) =>
+                                ChatInfoScreen(chat: widget.chat))),
+                    child: AvatarCircle(
+                        title: widget.chat.title,
+                        photo: widget.chat.avatar,
+                        size: 38),
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
@@ -772,6 +806,25 @@ class _Bubble extends StatelessWidget {
                   file: m.file!,
                   onDownload: () => onDownload(m.file!.fileId),
                   onCancel: () => onCancel(m.file!.fileId),
+                ),
+              if (m.reactions.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Wrap(spacing: 4, runSpacing: 4, children: [
+                    for (final e in m.reactions.entries)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          color: m.myReactions.contains(e.key)
+                              ? accent.withValues(alpha: 0.5)
+                              : Colors.white12,
+                        ),
+                        child: Text('${e.key} ${e.value}',
+                            style: const TextStyle(fontSize: 12)),
+                      ),
+                  ]),
                 ),
               Padding(
                 padding: const EdgeInsets.only(top: 3),

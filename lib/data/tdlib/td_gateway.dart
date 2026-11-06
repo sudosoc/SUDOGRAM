@@ -17,6 +17,8 @@ class _Chat {
   Map<String, dynamic>? last;
   ChatType type = ChatType.private;
   int userId = 0; // for private chats
+  int groupId = 0; // basic group / supergroup id
+  bool supergroup = false;
   Attachment? avatar;
   bool muted = false;
   bool canSend = true;
@@ -148,6 +150,10 @@ class TdlibGateway implements TelegramGateway {
       case 'updateNewMessage':
         final m = Map<String, dynamic>.from(u['message'] as Map);
         _upsertMessage(asInt(m['chat_id']), _parseMessage(m));
+      case 'updateMessageInteractionInfo':
+        final (counts, mine) = _reactions(u['interaction_info']);
+        _patchMessage(asInt(u['chat_id']), asInt(u['message_id']),
+            (m) => m.copyWith(reactions: counts, myReactions: mine));
       case 'updateMessageContent':
         _onMessageContent(u);
       case 'updateMessageEdited':
@@ -441,9 +447,13 @@ class TdlibGateway implements TelegramGateway {
         chat.userId = asInt(t!['user_id']);
       case 'chatTypeBasicGroup':
         chat.type = ChatType.group;
+        chat.groupId = asInt(t!['basic_group_id']);
+        chat.supergroup = false;
       case 'chatTypeSupergroup':
+        chat.groupId = asInt(t!['supergroup_id']);
+        chat.supergroup = true;
         chat.type =
-            t!['is_channel'] == true ? ChatType.channel : ChatType.group;
+            t['is_channel'] == true ? ChatType.channel : ChatType.group;
     }
   }
 
@@ -740,7 +750,23 @@ class TdlibGateway implements TelegramGateway {
       thumb: thumb,
       emoji: emoji,
       read: outgoing && id <= (_chats[chatId]?.readOutbox ?? 0),
+      reactions: _reactions(m['interaction_info']).$1,
+      myReactions: _reactions(m['interaction_info']).$2,
     );
+  }
+
+  (Map<String, int>, Set<String>) _reactions(Object? info) {
+    final list = ((info as Map?)?['reactions'] as Map?)?['reactions'] as List?;
+    final counts = <String, int>{};
+    final mine = <String>{};
+    for (final r in (list ?? const []).whereType<Map>()) {
+      final type = r['type'] as Map?;
+      if (type?['@type'] != 'reactionTypeEmoji') continue;
+      final e = (type!['emoji'] ?? '').toString();
+      counts[e] = asInt(r['total_count']);
+      if (r['is_chosen'] == true) mine.add(e);
+    }
+    return (counts, mine);
   }
 
   LiveValue<List<ChatMessage>> _live(int chatId) =>
@@ -1003,6 +1029,69 @@ class TdlibGateway implements TelegramGateway {
       final r = await _td.request(
           {'@type': 'getChatPinnedMessage', 'chat_id': chatId});
       return _parseMessage(Map<String, dynamic>.from(r));
+    } on TdError {
+      return null;
+    }
+  }
+
+  @override
+  Future<void> toggleReaction(int chatId, int messageId, String emoji,
+      {required bool on}) async {
+    try {
+      await _td.request({
+        '@type': on ? 'addMessageReaction' : 'removeMessageReaction',
+        'chat_id': chatId,
+        'message_id': messageId,
+        'reaction_type': {'@type': 'reactionTypeEmoji', 'emoji': emoji},
+        if (on) 'is_big': false,
+        if (on) 'update_recent_reactions': true,
+      });
+    } on TdError {
+      // reaction rejected by the server (e.g. not allowed in this chat)
+    }
+  }
+
+  @override
+  Future<ChatInfo?> chatInfo(int chatId) async {
+    final c = _chats[chatId];
+    if (c == null) return null;
+    try {
+      if (c.type == ChatType.private || c.type == ChatType.secret) {
+        final u = _users[c.userId];
+        String about = '';
+        try {
+          final f = await _td.request(
+              {'@type': 'getUserFullInfo', 'user_id': c.userId});
+          final bio = f['bio'];
+          about = bio is Map ? (bio['text'] ?? '').toString() : (bio ?? '').toString();
+        } on TdError {
+          // optional
+        }
+        return ChatInfo(
+            username: u?['username'] ?? '', phone: u?['phone'] ?? '', about: about);
+      }
+      if (c.supergroup) {
+        final f = await _td.request(
+            {'@type': 'getSupergroupFullInfo', 'supergroup_id': c.groupId});
+        String username = '';
+        try {
+          final sg = await _td
+              .request({'@type': 'getSupergroup', 'supergroup_id': c.groupId});
+          final names = (sg['usernames'] as Map?)?['active_usernames'] as List?;
+          if (names != null && names.isNotEmpty) username = names.first.toString();
+        } on TdError {
+          // optional
+        }
+        return ChatInfo(
+            username: username,
+            about: (f['description'] ?? '').toString(),
+            members: asInt(f['member_count']));
+      }
+      final f = await _td.request(
+          {'@type': 'getBasicGroupFullInfo', 'basic_group_id': c.groupId});
+      return ChatInfo(
+          about: (f['description'] ?? '').toString(),
+          members: (f['members'] as List?)?.length ?? 0);
     } on TdError {
       return null;
     }

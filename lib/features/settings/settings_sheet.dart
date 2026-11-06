@@ -46,6 +46,12 @@ class _SettingsSheet extends ConsumerWidget {
               onChanged: c.setAppLock,
             ),
             SwitchListTile(
+              title: Text(l.notificationsTitle),
+              subtitle: Text(l.notificationsHint),
+              value: s.notifications,
+              onChanged: c.setNotifications,
+            ),
+            SwitchListTile(
               title: Text(l.performanceMode),
               value: s.performanceMode,
               onChanged: c.setPerformanceMode,

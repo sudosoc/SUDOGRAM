@@ -17,7 +17,15 @@ void keepAliveCallback() => FlutterForegroundTask.setTaskHandler(_IdleHandler())
 
 /// Starts a foreground service while [pending] > 0 and stops it at 0.
 class DownloadKeepAlive {
-  DownloadKeepAlive(this.pending, {required this.title, required this.text});
+  DownloadKeepAlive(this.pending,
+      {required this.title,
+      required this.text,
+      this.keepConnected = _no,
+      this.idleText = ''});
+
+  static bool _no() => false;
+  final bool Function() keepConnected;
+  final String idleText;
 
   final ValueListenable<int> pending;
   final String title;
@@ -43,24 +51,28 @@ class DownloadKeepAlive {
     _sync();
   }
 
+  Future<void> refresh() => _sync();
+
   Future<void> _sync() async {
     if (!_inited) return;
     try {
       final n = pending.value;
       final running = await FlutterForegroundTask.isRunningService;
-      if (n > 0) {
+      final want = n > 0 || keepConnected();
+      final label = n > 0 ? text(n) : idleText;
+      if (want) {
         if (await FlutterForegroundTask.checkNotificationPermission() !=
             NotificationPermission.granted) {
           await FlutterForegroundTask.requestNotificationPermission();
         }
         if (running) {
           await FlutterForegroundTask.updateService(
-              notificationTitle: title, notificationText: text(n));
+              notificationTitle: title, notificationText: label);
         } else {
           await FlutterForegroundTask.startService(
             serviceId: 4711,
             notificationTitle: title,
-            notificationText: text(n),
+            notificationText: label,
             callback: keepAliveCallback,
           );
         }

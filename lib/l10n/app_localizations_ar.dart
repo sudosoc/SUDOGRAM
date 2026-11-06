@@ -519,4 +519,36 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get newChat => 'شات جديد';
+
+  @override
+  String get notificationsTitle => 'الإشعارات';
+
+  @override
+  String get notificationsHint => 'يفضل متصل في الخلفية ويعرض الرسايل الجديدة';
+
+  @override
+  String get keepConnectedText => 'متصل';
+
+  @override
+  String get newMessage => 'رسالة جديدة';
+
+  @override
+  String get info => 'معلومات';
+
+  @override
+  String get username => 'اسم المستخدم';
+
+  @override
+  String get phone => 'الموبايل';
+
+  @override
+  String get about => 'نبذة';
+
+  @override
+  String membersCount(String n) {
+    return '$n عضو';
+  }
+
+  @override
+  String get react => 'تفاعل';
 }

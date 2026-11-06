@@ -211,5 +211,22 @@
   "searchInChat": "بحث في الشات",
   "pinnedMessage": "رسالة مثبتة",
   "noResults": "مفيش نتايج",
-  "newChat": "شات جديد"
+  "newChat": "شات جديد",
+  "notificationsTitle": "الإشعارات",
+  "notificationsHint": "يفضل متصل في الخلفية ويعرض الرسايل الجديدة",
+  "keepConnectedText": "متصل",
+  "newMessage": "رسالة جديدة",
+  "info": "معلومات",
+  "username": "اسم المستخدم",
+  "phone": "الموبايل",
+  "about": "نبذة",
+  "membersCount": "{n} عضو",
+  "@membersCount": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "react": "تفاعل"
 }

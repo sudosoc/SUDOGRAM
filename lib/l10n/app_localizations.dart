@@ -1075,6 +1075,66 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'شات جديد'**
   String get newChat;
+
+  /// No description provided for @notificationsTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'الإشعارات'**
+  String get notificationsTitle;
+
+  /// No description provided for @notificationsHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'يفضل متصل في الخلفية ويعرض الرسايل الجديدة'**
+  String get notificationsHint;
+
+  /// No description provided for @keepConnectedText.
+  ///
+  /// In ar, this message translates to:
+  /// **'متصل'**
+  String get keepConnectedText;
+
+  /// No description provided for @newMessage.
+  ///
+  /// In ar, this message translates to:
+  /// **'رسالة جديدة'**
+  String get newMessage;
+
+  /// No description provided for @info.
+  ///
+  /// In ar, this message translates to:
+  /// **'معلومات'**
+  String get info;
+
+  /// No description provided for @username.
+  ///
+  /// In ar, this message translates to:
+  /// **'اسم المستخدم'**
+  String get username;
+
+  /// No description provided for @phone.
+  ///
+  /// In ar, this message translates to:
+  /// **'الموبايل'**
+  String get phone;
+
+  /// No description provided for @about.
+  ///
+  /// In ar, this message translates to:
+  /// **'نبذة'**
+  String get about;
+
+  /// No description provided for @membersCount.
+  ///
+  /// In ar, this message translates to:
+  /// **'{n} عضو'**
+  String membersCount(String n);
+
+  /// No description provided for @react.
+  ///
+  /// In ar, this message translates to:
+  /// **'تفاعل'**
+  String get react;
 }
 
 class _AppLocalizationsDelegate

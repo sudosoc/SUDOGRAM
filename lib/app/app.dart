@@ -30,11 +30,21 @@ class _SudogramAppState extends ConsumerState<SudogramApp>
         ref.read(pendingDownloadsProvider),
         title: 'SUDOGRAM',
         text: (n) => '↓ $n',
+        keepConnected: () => ref.read(settingsProvider).notifications,
+        idleText: _ar() ? 'متصل' : 'Connected',
       )..init();
+      ref.read(notifierProvider).init();
     });
   }
 
   DownloadKeepAlive? _keepAlive;
+
+  /// This widget sits above MaterialApp, so it has no localizations yet.
+  bool _ar() {
+    final code = ref.read(settingsProvider).localeCode ??
+        WidgetsBinding.instance.platformDispatcher.locale.languageCode;
+    return code == 'ar';
+  }
 
   @override
   void dispose() {
@@ -56,6 +66,17 @@ class _SudogramAppState extends ConsumerState<SudogramApp>
   @override
   Widget build(BuildContext context) {
     final s = ref.watch(settingsProvider);
+    ref.listen(settingsProvider.select((x) => x.notifications),
+        (_, _) => _keepAlive?.refresh());
+    ref.listen(chatsProvider, (_, next) {
+      final chats = next.value;
+      if (chats == null) return;
+      final st = ref.read(settingsProvider);
+      ref.read(notifierProvider).onChats(chats,
+          enabled: st.notifications,
+          privateIds: st.hiddenChats,
+          hiddenBody: _ar() ? 'رسالة جديدة' : 'New message');
+    });
     return MaterialApp(
       onGenerateTitle: (c) => AppLocalizations.of(c).appTitle,
       debugShowCheckedModeBanner: false,

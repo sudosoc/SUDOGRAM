@@ -518,4 +518,37 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get newChat => 'New chat';
+
+  @override
+  String get notificationsTitle => 'Notifications';
+
+  @override
+  String get notificationsHint =>
+      'Stay connected in the background and show new messages';
+
+  @override
+  String get keepConnectedText => 'Connected';
+
+  @override
+  String get newMessage => 'New message';
+
+  @override
+  String get info => 'Info';
+
+  @override
+  String get username => 'Username';
+
+  @override
+  String get phone => 'Phone';
+
+  @override
+  String get about => 'About';
+
+  @override
+  String membersCount(String n) {
+    return '$n members';
+  }
+
+  @override
+  String get react => 'React';
 }

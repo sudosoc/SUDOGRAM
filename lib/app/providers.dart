@@ -1,3 +1,4 @@
+import 'notifier.dart';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -135,6 +136,8 @@ class AppLocked extends Notifier<bool> {
     }
   }
 }
+
+final notifierProvider = Provider<MessageNotifier>((ref) => MessageNotifier());
 
 final appLockedProvider = NotifierProvider<AppLocked, bool>(AppLocked.new);
 

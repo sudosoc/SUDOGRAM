@@ -159,6 +159,13 @@ class MockGateway implements TelegramGateway {
   Future<ChatMessage?> pinnedMessage(int chatId) async => null;
 
   @override
+  Future<void> toggleReaction(int chatId, int messageId, String emoji,
+      {required bool on}) async {}
+
+  @override
+  Future<ChatInfo?> chatInfo(int chatId) async => const ChatInfo();
+
+  @override
   Future<void> forwardMessages(int toChatId, int fromChatId, List<int> ids) async {}
   @override
   Stream<ChatStatus> watchChatStatus(int chatId) =>

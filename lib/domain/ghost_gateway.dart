@@ -119,6 +119,14 @@ class GhostGateway implements TelegramGateway {
       _inner.pinnedMessage(chatId);
 
   @override
+  Future<void> toggleReaction(int chatId, int messageId, String emoji,
+          {required bool on}) =>
+      _inner.toggleReaction(chatId, messageId, emoji, on: on);
+
+  @override
+  Future<ChatInfo?> chatInfo(int chatId) => _inner.chatInfo(chatId);
+
+  @override
   Future<void> forwardMessages(int toChatId, int fromChatId, List<int> ids) =>
       _inner.forwardMessages(toChatId, fromChatId, ids);
   @override

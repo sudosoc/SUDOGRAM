@@ -85,5 +85,12 @@ abstract class TelegramGateway {
   /// The currently pinned message of a chat, if any.
   Future<ChatMessage?> pinnedMessage(int chatId);
 
+  /// Adds or removes our emoji reaction on a message.
+  Future<void> toggleReaction(int chatId, int messageId, String emoji,
+      {required bool on});
+
+  /// Profile / group details for the info page.
+  Future<ChatInfo?> chatInfo(int chatId);
+
   Future<void> dispose();
 }

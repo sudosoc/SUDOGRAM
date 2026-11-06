@@ -380,4 +380,19 @@ void main() {
     expect((await g.searchChat(1, '  ')).length, 0);
     expect((await g.pinnedMessage(1))?.id, 4);
   });
+
+  test('reactions parse and toggle; group info loads', () async {
+    final sent = <String>[];
+    t.onRequest = (r) {
+      sent.add(r['@type'] as String);
+      if (r['@type'] == 'getSupergroupFullInfo') {
+        return {'@type': 'supergroupFullInfo', 'description': 'hi', 'member_count': 12};
+      }
+      return {'@type': 'ok'};
+    };
+    await g.toggleReaction(1, 2, '👍', on: true);
+    await g.toggleReaction(1, 2, '👍', on: false);
+    expect(sent, ['addMessageReaction', 'removeMessageReaction']);
+    expect(await g.chatInfo(999), isNull); // unknown chat
+  });
 }

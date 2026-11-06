@@ -211,5 +211,22 @@
   "searchInChat": "Search in chat",
   "pinnedMessage": "Pinned message",
   "noResults": "No results",
-  "newChat": "New chat"
+  "newChat": "New chat",
+  "notificationsTitle": "Notifications",
+  "notificationsHint": "Stay connected in the background and show new messages",
+  "keepConnectedText": "Connected",
+  "newMessage": "New message",
+  "info": "Info",
+  "username": "Username",
+  "phone": "Phone",
+  "about": "About",
+  "membersCount": "{n} members",
+  "@membersCount": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "react": "React"
 }

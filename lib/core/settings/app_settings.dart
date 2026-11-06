@@ -17,6 +17,7 @@ class AppSettings {
     this.ghostOverrides = const {},
     this.hiddenChats = const {},
     this.performanceMode = false,
+    this.notifications = true,
     this.appLock = false,
     this.pinned = const {},
     this.aliases = const {},
@@ -33,6 +34,7 @@ class AppSettings {
   final Map<int, bool> ghostOverrides;
   final Set<int> hiddenChats;
   final bool performanceMode;
+  final bool notifications;
   final bool appLock;
 
   /// Local-only organisation (nothing is sent to Telegram).
@@ -59,6 +61,7 @@ class AppSettings {
     Map<int, bool>? ghostOverrides,
     Set<int>? hiddenChats,
     bool? performanceMode,
+    bool? notifications,
     bool? appLock,
     Set<int>? pinned,
     Map<int, String>? aliases,
@@ -73,6 +76,7 @@ class AppSettings {
       ghostOverrides: ghostOverrides ?? this.ghostOverrides,
       hiddenChats: hiddenChats ?? this.hiddenChats,
       performanceMode: performanceMode ?? this.performanceMode,
+      notifications: notifications ?? this.notifications,
       appLock: appLock ?? this.appLock,
       pinned: pinned ?? this.pinned,
       aliases: aliases ?? this.aliases,
@@ -87,6 +91,7 @@ class AppSettings {
   static const _kOverrides = 'ghost_overrides';
   static const _kHidden = 'hidden_chats';
   static const _kPerf = 'performance_mode';
+  static const _kNotif = 'notifications';
   static const _kLock = 'app_lock';
   static const _kLocal = 'local_org';
   static const _kAccent = 'accent';
@@ -108,6 +113,7 @@ class AppSettings {
       ghostOverrides: overrides,
       hiddenChats: hidden,
       performanceMode: p.getBool(_kPerf) ?? false,
+      notifications: p.getBool(_kNotif) ?? true,
       appLock: p.getBool(_kLock) ?? false,
       pinned: _loadLocal(p)['pinned'] as Set<int>,
       aliases: _loadLocal(p)['aliases'] as Map<int, String>,
@@ -165,6 +171,7 @@ class AppSettings {
     );
     await p.setStringList(_kHidden, [for (final id in hiddenChats) '$id']);
     await p.setBool(_kPerf, performanceMode);
+    await p.setBool(_kNotif, notifications);
     await p.setBool(_kLock, appLock);
     await p.setInt(_kAccent, accent);
     if (localeCode == null) {
@@ -202,6 +209,9 @@ class SettingsController extends Notifier<AppSettings> {
     hidden ? set.add(chatId) : set.remove(chatId);
     _set(state.copyWith(hiddenChats: set));
   }
+
+  void setNotifications(bool value) =>
+      _set(state.copyWith(notifications: value));
 
   void setPerformanceMode(bool value) =>
       _set(state.copyWith(performanceMode: value));

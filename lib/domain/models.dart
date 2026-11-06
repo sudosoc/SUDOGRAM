@@ -130,6 +130,8 @@ class ChatMessage {
     this.thumb,
     this.emoji = '',
     this.read = false,
+    this.reactions = const {},
+    this.myReactions = const {},
   });
 
   final int id;
@@ -163,6 +165,10 @@ class ChatMessage {
   /// For outgoing messages: the other side has read it.
   final bool read;
 
+  /// Emoji reactions: emoji -> count, and the ones we chose.
+  final Map<String, int> reactions;
+  final Set<String> myReactions;
+
   ChatMessage copyWith({
     int? id,
     String? text,
@@ -173,6 +179,8 @@ class ChatMessage {
     Attachment? thumb,
     String? senderName,
     bool? read,
+    Map<String, int>? reactions,
+    Set<String>? myReactions,
   }) {
     return ChatMessage(
       id: id ?? this.id,
@@ -191,6 +199,8 @@ class ChatMessage {
       thumb: thumb ?? this.thumb,
       emoji: emoji,
       read: read ?? this.read,
+      reactions: reactions ?? this.reactions,
+      myReactions: myReactions ?? this.myReactions,
     );
   }
 }
@@ -258,4 +268,20 @@ class ContactChange {
   final String? oldValue;
   final String? newValue;
   final DateTime at;
+}
+
+
+/// Profile / group info shown on the chat info page.
+class ChatInfo {
+  const ChatInfo({
+    this.username = '',
+    this.phone = '',
+    this.about = '',
+    this.members = 0,
+  });
+
+  final String username;
+  final String phone;
+  final String about;
+  final int members;
 }
