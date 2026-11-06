@@ -50,6 +50,10 @@ abstract class TelegramGateway {
   /// Sends a local file as a document.
   Future<void> sendFile(int chatId, String path, {String caption = ''});
 
+  /// Sends photos/videos. One item is a normal message; several become
+  /// albums of up to 10 items each, sent in order.
+  Future<void> sendMedia(int chatId, List<String> paths, {String caption = ''});
+
   /// Profile changes of contacts (name, username, phone) as they happen.
   Stream<ContactChange> contactChanges();
 

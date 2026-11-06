@@ -415,4 +415,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String ruleImported(int count) {
     return 'اتستورد $count قواعد';
   }
+
+  @override
+  String get attachMedia => 'صور وفيديوهات';
 }

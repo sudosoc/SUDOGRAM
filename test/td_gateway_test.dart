@@ -202,4 +202,23 @@ void main() {
     expect(seen.first.oldValue, 'ali1');
     expect(seen.first.newValue, 'ali2');
   });
+
+  test('media: single item is a message, many become albums of 10', () async {
+    await g.sendMedia(1, ['/a/x.jpg']);
+    expect(t.sent.last['@type'], 'sendMessage');
+    expect(t.sent.last['input_message_content']['@type'], 'inputMessagePhoto');
+    await g.sendMedia(1, ['/a/v.MP4']);
+    expect(t.sent.last['input_message_content']['@type'], 'inputMessageVideo');
+    expect(t.sent.last['input_message_content']['supports_streaming'], isTrue);
+
+    t.sent.clear();
+    await g.sendMedia(1, [for (var i = 0; i < 12; i++) i.isEven ? '/a/$i.jpg' : '/a/$i.mov'],
+        caption: 'hi');
+    final albums = t.sent.where((r) => r['@type'] == 'sendMessageAlbum').toList();
+    expect(albums.length, 2);
+    expect((albums[0]['input_message_contents'] as List).length, 10);
+    expect((albums[1]['input_message_contents'] as List).length, 2);
+    expect(albums[0]['input_message_contents'][0]['caption']['text'], 'hi');
+    expect(albums[1]['input_message_contents'][0]['caption']['text'], '');
+  });
 }

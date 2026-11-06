@@ -170,5 +170,6 @@
         "type": "int"
       }
     }
-  }
+  },
+  "attachMedia": "Photos and videos"
 }

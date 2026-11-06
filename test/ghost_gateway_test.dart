@@ -45,6 +45,8 @@ class _Recorder implements TelegramGateway {
   @override
   Future<void> sendFile(int chatId, String path, {String caption = ''}) async {}
   @override
+  Future<void> sendMedia(int chatId, List<String> paths, {String caption = ''}) async {}
+  @override
   Stream<ContactChange> contactChanges() => const Stream.empty();
 
   @override

@@ -49,6 +49,7 @@ dependencies:
   flutter_foreground_task: ^11.0.3
   file_picker: ^13.3.2
   open_filex: ^5.0.0
+  camera: ^0.12.2
 
 dev_dependencies:
   flutter_test:

@@ -90,6 +90,9 @@ class GhostGateway implements TelegramGateway {
   Future<void> sendFile(int chatId, String path, {String caption = ''}) =>
       _inner.sendFile(chatId, path, caption: caption);
   @override
+  Future<void> sendMedia(int chatId, List<String> paths, {String caption = ''}) =>
+      _inner.sendMedia(chatId, paths, caption: caption);
+  @override
   Stream<ContactChange> contactChanges() => _inner.contactChanges();
 
   @override

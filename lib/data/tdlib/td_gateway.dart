@@ -179,6 +179,48 @@ class TdlibGateway implements TelegramGateway {
     });
   }
 
+  static const _videoExt = {'mp4', 'mov', 'mkv', 'webm', 'avi', 'm4v', '3gp'};
+
+  Map<String, dynamic> _mediaContent(String path, String caption) {
+    final ext = path.split('.').last.toLowerCase();
+    final file = {'@type': 'inputFileLocal', 'path': path};
+    final cap = {'@type': 'formattedText', 'text': caption};
+    if (_videoExt.contains(ext)) {
+      return {
+        '@type': 'inputMessageVideo',
+        'video': file,
+        'supports_streaming': true,
+        'caption': cap,
+      };
+    }
+    return {'@type': 'inputMessagePhoto', 'photo': file, 'caption': cap};
+  }
+
+  @override
+  Future<void> sendMedia(int chatId, List<String> paths,
+      {String caption = ''}) async {
+    if (paths.isEmpty) return;
+    if (paths.length == 1) {
+      await _td.request({
+        '@type': 'sendMessage',
+        'chat_id': chatId,
+        'input_message_content': _mediaContent(paths.first, caption),
+      });
+      return;
+    }
+    for (var i = 0; i < paths.length; i += 10) {
+      final group = paths.sublist(i, i + 10 > paths.length ? paths.length : i + 10);
+      await _td.request({
+        '@type': 'sendMessageAlbum',
+        'chat_id': chatId,
+        'input_message_contents': [
+          for (var j = 0; j < group.length; j++)
+            _mediaContent(group[j], i == 0 && j == 0 ? caption : ''),
+        ],
+      });
+    }
+  }
+
   // ----------------------------------------------------------- contacts
 
   void _onUser(Map<String, dynamic> u) {

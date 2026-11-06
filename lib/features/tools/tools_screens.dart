@@ -14,6 +14,7 @@ import '../../data/vault/vault_store.dart';
 import '../../domain/models.dart';
 import '../../l10n/app_localizations.dart';
 import '../splitter/file_splitter.dart';
+import '../vault/intruder_camera.dart';
 
 Widget _page(BuildContext context, String title, Widget body) {
   return Scaffold(
@@ -61,14 +62,19 @@ class _VaultScreenState extends ConsumerState<VaultScreen> {
     ]);
     _a.clear();
     _b.clear();
+    IntruderCamera.requestPermission(); // ask for camera access once
     setState(() => _error = null);
   }
 
   void _unlock(AppLocalizations l) {
     final s = ref.read(vaultServiceProvider).unlock(_a.text);
     if (s == null) {
-      ref.read(archiveProvider).logIntruder('vault passcode');
+      final db = ref.read(archiveProvider);
       setState(() => _error = l.vaultWrong);
+      IntruderCamera.capture(ref.read(intruderDirProvider)).then((path) {
+        db.logIntruder(path == null ? 'vault passcode' : 'vault passcode|$path');
+        if (mounted) setState(() {});
+      });
     } else {
       setState(() {
         _session = s;
@@ -123,9 +129,20 @@ class _VaultScreenState extends ConsumerState<VaultScreen> {
             Text(l.intruderLog,
                 style: const TextStyle(color: GlassTokens.textSecondary)),
             for (final (t, w) in intruders.take(10))
-              Text('${t.toLocal().toString().substring(0, 16)}  $w',
-                  style: const TextStyle(
-                      fontSize: 12, color: GlassTokens.textTertiary)),
+              Row(children: [
+                if (w.contains('|') && File(w.split('|').last).existsSync())
+                  Padding(
+                    padding: const EdgeInsetsDirectional.only(end: 8, top: 4),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.file(File(w.split('|').last),
+                          width: 48, height: 48, fit: BoxFit.cover),
+                    ),
+                  ),
+                Text('${t.toLocal().toString().substring(0, 16)}  ${w.split('|').first}',
+                    style: const TextStyle(
+                        fontSize: 12, color: GlassTokens.textTertiary)),
+              ]),
           ],
         ],
       ),
@@ -437,14 +454,20 @@ class _JoinPartsState extends State<JoinPartsScreen> {
         ..createSync(recursive: true);
       final m = jsonDecode(await manifest.readAsString()) as Map<String, dynamic>;
       await manifest.copy('${work.path}/${m['name']}.manifest.json');
-      for (final p in (m['parts'] as List).cast<Map<String, dynamic>>()) {
+      // Data parts and parity parts. TDLib may rename files, so also match
+      // by the .partNNN / .parNNN suffix. A missing part is fine as long as
+      // enough parity was picked: join() rebuilds it.
+      final wanted = [
+        ...(m['parts'] as List).cast<Map<String, dynamic>>(),
+        ...((m['parity'] as List?) ?? const []).cast<Map<String, dynamic>>(),
+      ];
+      for (final p in wanted) {
         final want = p['file'] as String;
-        // TDLib may rename files, so match by the .partNNN suffix as well.
-        final suffix = want.substring(want.lastIndexOf('.part'));
-        final src = files.where((f) =>
-            f.path.endsWith(want) || f.path.endsWith(suffix)).toList();
-        if (src.isEmpty) throw FormatException('missing part $want');
-        await src.first.copy('${work.path}/$want');
+        final suffix = want.substring(want.lastIndexOf('.pa'));
+        final src = files
+            .where((f) => f.path.endsWith(want) || f.path.endsWith(suffix))
+            .toList();
+        if (src.isNotEmpty) await src.first.copy('${work.path}/$want');
       }
       final docs = await getApplicationDocumentsDirectory();
       final out = await FileSplitter.join(

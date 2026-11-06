@@ -115,6 +115,13 @@ class MockGateway implements TelegramGateway {
       sendText(chatId, caption.isEmpty ? path.split('/').last : caption);
 
   @override
+  Future<void> sendMedia(int chatId, List<String> paths, {String caption = ''}) async {
+    for (final p in paths) {
+      await sendText(chatId, p.split('/').last);
+    }
+  }
+
+  @override
   Stream<ContactChange> contactChanges() => const Stream.empty();
 
   @override

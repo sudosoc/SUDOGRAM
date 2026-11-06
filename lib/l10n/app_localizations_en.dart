@@ -414,4 +414,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String ruleImported(int count) {
     return 'Imported $count rules';
   }
+
+  @override
+  String get attachMedia => 'Photos and videos';
 }

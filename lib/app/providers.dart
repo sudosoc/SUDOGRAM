@@ -59,6 +59,8 @@ late VaultService _vault;
 
 final vaultServiceProvider = Provider<VaultService>((ref) => _vault);
 
+final intruderDirProvider = Provider<String>((ref) => '${_dir.path}/intruders');
+
 final archiveProvider = Provider<ArchiveDb>((ref) => _archive);
 
 /// The gateway the UI uses: raw gateway wrapped in the Ghost guard.

@@ -871,6 +871,12 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'اتستورد {count} قواعد'**
   String ruleImported(int count);
+
+  /// No description provided for @attachMedia.
+  ///
+  /// In ar, this message translates to:
+  /// **'صور وفيديوهات'**
+  String get attachMedia;
 }
 
 class _AppLocalizationsDelegate

@@ -77,13 +77,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final tmp = await getTemporaryDirectory();
     final out = Directory('${tmp.path}/split_${DateTime.now().millisecondsSinceEpoch}');
     try {
-      final r = await FileSplitter.split(file, out, partSize: _maxFile);
-      for (final p in [...r.parts, r.manifest]) {
+      // 3+ parts: add one Reed-Solomon parity part so one lost or damaged
+      // part can be rebuilt on the other side.
+      final r = await FileSplitter.split(file, out,
+          partSize: _maxFile, parityParts: count >= 3 ? 1 : 0);
+      for (final p in [...r.parts, ...r.parity, r.manifest]) {
         await _gateway.sendFile(widget.chat.id, p.path); // in order
       }
     } finally {
       if (await out.exists()) await out.delete(recursive: true);
     }
+  }
+
+  Future<void> _attachMedia() async {
+    final picked = await FilePicker.pickFiles(type: FileType.media);
+    final paths = [for (final f in picked) if (f.path != null) f.path!];
+    if (paths.isEmpty || !mounted) return;
+    await _gateway.sendMedia(widget.chat.id, paths);
   }
 
   Future<void> _send() async {
@@ -249,6 +259,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           filled: false,
                         ),
                       ),
+                    ),
+                    IconButton(
+                      tooltip: l.attachMedia,
+                      icon: const Icon(Icons.photo_library_outlined),
+                      onPressed: _attachMedia,
                     ),
                     IconButton(
                       tooltip: l.attachFile,
