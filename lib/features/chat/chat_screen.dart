@@ -17,6 +17,7 @@ import 'package:path_provider/path_provider.dart';
 import '../splitter/file_splitter.dart';
 import '../splitter/smart_splitter.dart';
 import 'avatar.dart';
+import 'voice_player.dart';
 import 'file_card.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
@@ -37,6 +38,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   ChatMessage? _replyTo;
   ChatMessage? _editing;
   bool _loadingOlder = false;
+  bool _searching = false;
+  List<ChatMessage>? _hits;
+  ChatMessage? _pinned;
   int _lastReadSig = 0;
 
   @override
@@ -44,6 +48,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     super.initState();
     _gateway.openChat(widget.chat.id);
     _scroll.addListener(_onScroll);
+    _gateway.pinnedMessage(widget.chat.id).then((m) {
+      if (mounted) setState(() => _pinned = m);
+    });
     _gateway.messageTextLimit().then((v) {
       if (mounted) setState(() => _limit = v);
     });
@@ -435,6 +442,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       ],
                     ),
                   ),
+                  IconButton(
+                    tooltip: l.searchInChat,
+                    icon: Icon(_searching ? Icons.close : Icons.search),
+                    onPressed: () => setState(() {
+                      _searching = !_searching;
+                      _hits = null;
+                    }),
+                  ),
                   Tooltip(
                     message:
                         ghost ? l.ghostOffForChat : l.ghostOnForChat,
@@ -449,6 +464,40 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 ]),
               ),
             ),
+            if (_searching)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+                child: TextField(
+                  autofocus: true,
+                  decoration: InputDecoration(hintText: l.searchInChat),
+                  onSubmitted: (v) async {
+                    final r = await _gateway.searchChat(widget.chat.id, v);
+                    if (mounted) setState(() => _hits = r);
+                  },
+                ),
+              ),
+            if (_pinned != null && !_searching)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+                child: GlassSurface(
+                  radius: 14,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  child: Row(children: [
+                    const Icon(Icons.push_pin, size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                          _pinned!.text.isNotEmpty
+                              ? _pinned!.text
+                              : kindLabel(l, _pinned!.kind),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 13)),
+                    ),
+                  ]),
+                ),
+              ),
             if (ghost)
               Padding(
                 padding: const EdgeInsets.only(bottom: 4),
@@ -460,9 +509,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               child: msgs.when(
                 loading: () => Center(child: Text(l.connecting)),
                 error: (e, _) => Center(child: Text(l.errorGeneric)),
-                data: (list) {
+                data: (list0) {
+                  final list = _searching && _hits != null ? _hits! : list0;
                   WidgetsBinding.instance
-                      .addPostFrameCallback((_) => _maybeMarkRead(list));
+                      .addPostFrameCallback((_) => _maybeMarkRead(list0));
                   if (list.isEmpty) return Center(child: Text(l.noMessages));
                   final byId = {for (final m in list) m.id: m};
                   return ListView.builder(
@@ -714,7 +764,10 @@ class _Bubble extends StatelessWidget {
                   ),
                 ),
               if (showText && !(sticker && m.text.isEmpty)) Text(text),
-              if (m.file != null && !isVisual)
+              if (m.file != null && m.kind == MessageKind.voice)
+                VoicePlayer(
+                    file: m.file!, onDownload: () => onDownload(m.file!.fileId))
+              else if (m.file != null && !isVisual)
                 FileCard(
                   file: m.file!,
                   onDownload: () => onDownload(m.file!.fileId),

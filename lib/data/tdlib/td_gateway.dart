@@ -922,6 +922,93 @@ class TdlibGateway implements TelegramGateway {
   }
 
   @override
+  Future<List<ChatSummary>> contacts() async {
+    try {
+      final r = await _td.request({'@type': 'getContacts'});
+      final ids = [for (final x in (r['user_ids'] as List? ?? const [])) asInt(x)];
+      final out = <ChatSummary>[];
+      for (final id in ids) {
+        if (_users[id] == null) {
+          try {
+            _onUser(Map<String, dynamic>.from(
+                await _td.request({'@type': 'getUser', 'user_id': id})));
+          } on TdError {
+            continue;
+          }
+        }
+        out.add(ChatSummary(
+          id: id, // user id; resolve with openPrivateChat
+          title: _users[id]?['name'] ?? '',
+          lastText: _users[id]?['username'] ?? '',
+          lastKind: MessageKind.text,
+          lastTime: null,
+          unread: 0,
+        ));
+      }
+      out.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+      return out;
+    } on TdError {
+      return const [];
+    }
+  }
+
+  Future<ChatSummary?> _chatFor(Map<String, dynamic> req) async {
+    try {
+      final r = await _td.request(req);
+      _applyChat(Map<String, dynamic>.from(r));
+      return _summary(_chat(asInt(r['id'])));
+    } on TdError {
+      return null;
+    }
+  }
+
+  @override
+  Future<ChatSummary?> openPrivateChat(int userId) => _chatFor(
+      {'@type': 'createPrivateChat', 'user_id': userId, 'force': false});
+
+  @override
+  Future<ChatSummary?> savedMessages() async {
+    try {
+      final me = await _td.request({'@type': 'getMe'});
+      return await openPrivateChat(asInt(me['id']));
+    } on TdError {
+      return null;
+    }
+  }
+
+  @override
+  Future<List<ChatMessage>> searchChat(int chatId, String query) async {
+    if (query.trim().isEmpty) return const [];
+    try {
+      final r = await _td.request({
+        '@type': 'searchChatMessages',
+        'chat_id': chatId,
+        'query': query,
+        'from_message_id': 0,
+        'offset': 0,
+        'limit': 50,
+      });
+      return [
+        for (final m in (r['messages'] as List? ?? const []).whereType<Map>())
+          _parseMessage(Map<String, dynamic>.from(m))
+      ];
+    } on TdError {
+      return const [];
+    }
+  }
+
+  @override
+  Future<ChatMessage?> pinnedMessage(int chatId) async {
+    try {
+      final r = await _td.request(
+          {'@type': 'getChatPinnedMessage', 'chat_id': chatId});
+      return _parseMessage(Map<String, dynamic>.from(r));
+    } on TdError {
+      return null;
+    }
+  }
+
+  @override
   Future<void> forwardMessages(
       int toChatId, int fromChatId, List<int> ids) async {
     await _td.request({

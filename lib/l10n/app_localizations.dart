@@ -1039,6 +1039,42 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'حذف'**
   String get delete;
+
+  /// No description provided for @contacts.
+  ///
+  /// In ar, this message translates to:
+  /// **'جهات الاتصال'**
+  String get contacts;
+
+  /// No description provided for @savedMessages.
+  ///
+  /// In ar, this message translates to:
+  /// **'الرسائل المحفوظة'**
+  String get savedMessages;
+
+  /// No description provided for @searchInChat.
+  ///
+  /// In ar, this message translates to:
+  /// **'بحث في الشات'**
+  String get searchInChat;
+
+  /// No description provided for @pinnedMessage.
+  ///
+  /// In ar, this message translates to:
+  /// **'رسالة مثبتة'**
+  String get pinnedMessage;
+
+  /// No description provided for @noResults.
+  ///
+  /// In ar, this message translates to:
+  /// **'مفيش نتايج'**
+  String get noResults;
+
+  /// No description provided for @newChat.
+  ///
+  /// In ar, this message translates to:
+  /// **'شات جديد'**
+  String get newChat;
 }
 
 class _AppLocalizationsDelegate

@@ -500,4 +500,22 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get delete => 'Delete';
+
+  @override
+  String get contacts => 'Contacts';
+
+  @override
+  String get savedMessages => 'Saved Messages';
+
+  @override
+  String get searchInChat => 'Search in chat';
+
+  @override
+  String get pinnedMessage => 'Pinned message';
+
+  @override
+  String get noResults => 'No results';
+
+  @override
+  String get newChat => 'New chat';
 }

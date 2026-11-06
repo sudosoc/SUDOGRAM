@@ -7,6 +7,16 @@ class _Recorder implements TelegramGateway {
   final calls = <String>[];
 
   @override
+  Future<List<ChatSummary>> contacts() async => const [];
+  @override
+  Future<ChatSummary?> openPrivateChat(int userId) async => null;
+  @override
+  Future<ChatSummary?> savedMessages() async => null;
+  @override
+  Future<List<ChatMessage>> searchChat(int chatId, String query) async => const [];
+  @override
+  Future<ChatMessage?> pinnedMessage(int chatId) async => null;
+  @override
   bool get isDemo => true;
   @override
   Stream<AuthState> get authState => const Stream.empty();

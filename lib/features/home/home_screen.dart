@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../chat/avatar.dart';
+import '../chat/contacts_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
@@ -64,6 +65,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
+      floatingActionButton: demo
+          ? null
+          : FloatingActionButton(
+              tooltip: l.newChat,
+              backgroundColor: GlassScope.of(context).accent,
+              onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                      builder: (_) => const ContactsScreen())),
+              child: const Icon(Icons.edit_outlined),
+            ),
       body: SafeArea(
         child: Column(
           children: [

@@ -205,5 +205,11 @@
   "muted": "مكتوم",
   "photoLoading": "بيتحمّل…",
   "mediaMessage": "رسالة",
-  "delete": "حذف"
+  "delete": "حذف",
+  "contacts": "جهات الاتصال",
+  "savedMessages": "الرسائل المحفوظة",
+  "searchInChat": "بحث في الشات",
+  "pinnedMessage": "رسالة مثبتة",
+  "noResults": "مفيش نتايج",
+  "newChat": "شات جديد"
 }

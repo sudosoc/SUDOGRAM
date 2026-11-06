@@ -501,4 +501,22 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get delete => 'حذف';
+
+  @override
+  String get contacts => 'جهات الاتصال';
+
+  @override
+  String get savedMessages => 'الرسائل المحفوظة';
+
+  @override
+  String get searchInChat => 'بحث في الشات';
+
+  @override
+  String get pinnedMessage => 'رسالة مثبتة';
+
+  @override
+  String get noResults => 'مفيش نتايج';
+
+  @override
+  String get newChat => 'شات جديد';
 }

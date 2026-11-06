@@ -70,5 +70,20 @@ abstract class TelegramGateway {
   /// Profile changes of contacts (name, username, phone) as they happen.
   Stream<ContactChange> contactChanges();
 
+  /// Saved contacts, alphabetical.
+  Future<List<ChatSummary>> contacts();
+
+  /// Opens (creating if needed) the private chat with [userId].
+  Future<ChatSummary?> openPrivateChat(int userId);
+
+  /// The "Saved Messages" chat.
+  Future<ChatSummary?> savedMessages();
+
+  /// Server-side search inside one chat, newest first.
+  Future<List<ChatMessage>> searchChat(int chatId, String query);
+
+  /// The currently pinned message of a chat, if any.
+  Future<ChatMessage?> pinnedMessage(int chatId);
+
   Future<void> dispose();
 }

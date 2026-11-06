@@ -205,5 +205,11 @@
   "muted": "Muted",
   "photoLoading": "Loading…",
   "mediaMessage": "Message",
-  "delete": "Delete"
+  "delete": "Delete",
+  "contacts": "Contacts",
+  "savedMessages": "Saved Messages",
+  "searchInChat": "Search in chat",
+  "pinnedMessage": "Pinned message",
+  "noResults": "No results",
+  "newChat": "New chat"
 }

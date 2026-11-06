@@ -354,4 +354,30 @@ void main() {
     expect(t.sent.last['revoke'], isTrue);
     await sub.cancel();
   });
+
+  test('contacts, in-chat search and pinned message map through', () async {
+    t.onRequest = (r) {
+      switch (r['@type']) {
+        case 'getContacts':
+          return {'@type': 'users', 'user_ids': [5, 6]};
+        case 'getUser':
+          return {
+            '@type': 'user',
+            'id': r['user_id'],
+            'first_name': r['user_id'] == 5 ? 'Zed' : 'Amr',
+            'last_name': '',
+          };
+        case 'searchChatMessages':
+          return {'@type': 'foundChatMessages', 'messages': [tmsg(3)['message'] ?? tmsg(3)]};
+        case 'getChatPinnedMessage':
+          return tmsg(4)['message'] as Map<String, dynamic>;
+      }
+      return {'@type': 'ok'};
+    };
+    final c = await g.contacts();
+    expect(c.map((e) => e.title), ['Amr', 'Zed']);
+    expect((await g.searchChat(1, 'x')).length, 1);
+    expect((await g.searchChat(1, '  ')).length, 0);
+    expect((await g.pinnedMessage(1))?.id, 4);
+  });
 }
