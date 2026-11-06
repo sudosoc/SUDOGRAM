@@ -32,9 +32,10 @@ jobs:
           key: tdjson-arm64-${{ env.TDLIB_REF }}-v1
       - if: steps.cache.outputs.cache-hit != 'true'
         run: |
+          sudo apt-get update && sudo apt-get install -y gperf php-cli cmake make
           git clone --depth 1 https://github.com/tdlib/td.git
           cd td/example/android
-          sdkmanager "ndk;27.2.12479018" "cmake;3.22.1" || true
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "ndk;27.2.12479018" "cmake;3.22.1" || true
           export ANDROID_NDK_ROOT="$ANDROID_SDK_ROOT/ndk/27.2.12479018"
           ./check-environment.sh
           ./fetch-sdk.sh

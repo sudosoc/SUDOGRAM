@@ -73,7 +73,7 @@ class GlassBackdrop extends StatelessWidget {
         _Blob(color: accent, alpha: 0.55, size: 520, top: -190, end: -200),
         _Blob(color: GlassTokens.cyan, alpha: 0.32, size: 560, top: 260, start: -280),
         _Blob(color: GlassTokens.violet, alpha: 0.45, size: 500, bottom: -230, end: -150),
-        if (child != null) child!,
+        ?child,
       ],
     );
   }
