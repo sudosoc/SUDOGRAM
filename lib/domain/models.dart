@@ -2,7 +2,7 @@
 /// `none` means no assessment exists (the ring is not drawn).
 enum RiskLevel { none, safe, caution, danger }
 
-enum MessageKind { text, photo, video, voice, document, sticker, other }
+enum MessageKind { text, photo, video, voice, document, sticker, poll, other }
 
 enum ChatType { private, group, channel, secret }
 
@@ -21,6 +21,7 @@ class ChatSummary {
     this.muted = false,
     this.canSend = true,
     this.lastOutgoing = false,
+    this.archived = false,
   });
 
   final int id;
@@ -42,6 +43,7 @@ class ChatSummary {
   /// False for channels and chats where we may not post.
   final bool canSend;
   final bool lastOutgoing;
+  final bool archived;
 
   ChatSummary copyWith({
     String? title,
@@ -67,6 +69,7 @@ class ChatSummary {
       muted: muted,
       canSend: canSend,
       lastOutgoing: lastOutgoing,
+      archived: archived,
     );
   }
 }
@@ -132,6 +135,8 @@ class ChatMessage {
     this.read = false,
     this.reactions = const {},
     this.myReactions = const {},
+    this.poll,
+    this.link,
   });
 
   final int id;
@@ -169,6 +174,9 @@ class ChatMessage {
   final Map<String, int> reactions;
   final Set<String> myReactions;
 
+  final PollData? poll;
+  final LinkPreview? link;
+
   ChatMessage copyWith({
     int? id,
     String? text,
@@ -181,6 +189,7 @@ class ChatMessage {
     bool? read,
     Map<String, int>? reactions,
     Set<String>? myReactions,
+    PollData? poll,
   }) {
     return ChatMessage(
       id: id ?? this.id,
@@ -201,6 +210,8 @@ class ChatMessage {
       read: read ?? this.read,
       reactions: reactions ?? this.reactions,
       myReactions: myReactions ?? this.myReactions,
+      poll: poll ?? this.poll,
+      link: link,
     );
   }
 }
@@ -284,4 +295,52 @@ class ChatInfo {
   final String phone;
   final String about;
   final int members;
+}
+
+
+class PollOption {
+  const PollOption(this.text, this.votes, this.chosen);
+  final String text;
+  final int votes;
+  final bool chosen;
+}
+
+class PollData {
+  const PollData({
+    required this.question,
+    required this.options,
+    required this.total,
+    this.closed = false,
+    this.multiple = false,
+  });
+  final String question;
+  final List<PollOption> options;
+  final int total;
+  final bool closed;
+  final bool multiple;
+}
+
+class LinkPreview {
+  const LinkPreview({required this.url, this.site = '', this.title = '', this.description = ''});
+  final String url;
+  final String site;
+  final String title;
+  final String description;
+}
+
+class DeviceSession {
+  const DeviceSession({
+    required this.id,
+    required this.app,
+    required this.device,
+    required this.location,
+    required this.lastActive,
+    required this.current,
+  });
+  final int id;
+  final String app;
+  final String device;
+  final String location;
+  final DateTime lastActive;
+  final bool current;
 }

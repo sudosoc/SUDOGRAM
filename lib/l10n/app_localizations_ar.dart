@@ -551,4 +551,42 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get react => 'تفاعل';
+
+  @override
+  String get archive => 'الأرشيف';
+
+  @override
+  String get archiveChat => 'أرشفة';
+
+  @override
+  String get unarchiveChat => 'إلغاء الأرشفة';
+
+  @override
+  String get draft => 'مسودة';
+
+  @override
+  String get devices => 'الأجهزة';
+
+  @override
+  String get thisDevice => 'الجهاز ده';
+
+  @override
+  String get terminate => 'تسجيل خروج';
+
+  @override
+  String get newGroup => 'مجموعة جديدة';
+
+  @override
+  String get groupName => 'اسم المجموعة';
+
+  @override
+  String get create => 'إنشاء';
+
+  @override
+  String get pollClosed => 'النتائج النهائية';
+
+  @override
+  String votesCount(String n) {
+    return '$n صوت';
+  }
 }

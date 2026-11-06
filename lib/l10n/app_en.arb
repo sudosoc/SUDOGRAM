@@ -228,5 +228,24 @@
       }
     }
   },
-  "react": "React"
+  "react": "React",
+  "archive": "Archive",
+  "archiveChat": "Archive",
+  "unarchiveChat": "Unarchive",
+  "draft": "Draft",
+  "devices": "Devices",
+  "thisDevice": "This device",
+  "terminate": "Log out",
+  "newGroup": "New group",
+  "groupName": "Group name",
+  "create": "Create",
+  "pollClosed": "Final results",
+  "votesCount": "{n} votes",
+  "@votesCount": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  }
 }

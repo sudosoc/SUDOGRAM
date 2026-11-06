@@ -1,3 +1,4 @@
+import 'devices_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -63,6 +64,7 @@ class _SettingsSheet extends ConsumerWidget {
                   (_) => const ContactLogScreen()),
               (l.rules, Icons.rule, (_) => const RulesScreen()),
               (l.joinParts, Icons.merge_type, (_) => const JoinPartsScreen()),
+              (l.devices, Icons.devices_other, (_) => const DevicesScreen()),
               (l.networkInspector, Icons.network_check,
                   (_) => const NetworkInspectorScreen()),
             ])

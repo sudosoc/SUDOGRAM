@@ -92,5 +92,17 @@ abstract class TelegramGateway {
   /// Profile / group details for the info page.
   Future<ChatInfo?> chatInfo(int chatId);
 
+  /// Chats in the Archive folder.
+  Stream<List<ChatSummary>> watchArchived();
+  Future<void> setArchived(int chatId, bool archived);
+
+  Future<void> votePoll(int chatId, int messageId, List<int> options);
+
+  /// Logged-in devices (Telegram "Devices" page).
+  Future<List<DeviceSession>> sessions();
+  Future<void> terminateSession(int id);
+
+  Future<ChatSummary?> createGroup(String title, List<int> userIds);
+
   Future<void> dispose();
 }

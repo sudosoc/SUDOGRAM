@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../core/drafts.dart';
 import '../chat/avatar.dart';
+import 'archive_screen.dart';
 import '../chat/contacts_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -202,6 +204,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   return ListView(
                     padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
                     children: [
+                      if (q.isEmpty && _folder == null)
+                        ref.watch(archivedProvider).maybeWhen(
+                              data: (a) => a.isEmpty
+                                  ? const SizedBox.shrink()
+                                  : ListTile(
+                                      leading: const Icon(Icons.archive_outlined),
+                                      title: Text(l.archive),
+                                      trailing: Text('${a.length}'),
+                                      onTap: () => Navigator.of(context).push(
+                                          MaterialPageRoute<void>(
+                                              builder: (_) =>
+                                                  const ArchiveScreen())),
+                                    ),
+                              orElse: () => const SizedBox.shrink(),
+                            ),
                       for (final c in shown)
                         _ChatRow(
                           chat: c,
@@ -254,9 +271,17 @@ class _ChatRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    return ValueListenableBuilder<int>(
+        valueListenable: DraftStore.changes,
+        builder: (context, _, _) => _build(context, ref));
+  }
+
+  Widget _build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
-    final preview =
-        chat.lastText.isNotEmpty ? chat.lastText : kindLabel(l, chat.lastKind);
+    final draft = DraftStore.get(chat.id);
+    final preview = draft.isNotEmpty
+        ? '${l.draft}: $draft'
+        : (chat.lastText.isNotEmpty ? chat.lastText : kindLabel(l, chat.lastKind));
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: InkWell(
@@ -319,8 +344,10 @@ class _ChatRow extends ConsumerWidget {
                     Text(preview,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            color: GlassTokens.textSecondary)),
+                        style: TextStyle(
+                            color: draft.isNotEmpty
+                                ? GlassTokens.ringDanger
+                                : GlassTokens.textSecondary)),
                   ],
                 ),
               ),

@@ -551,4 +551,42 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get react => 'React';
+
+  @override
+  String get archive => 'Archive';
+
+  @override
+  String get archiveChat => 'Archive';
+
+  @override
+  String get unarchiveChat => 'Unarchive';
+
+  @override
+  String get draft => 'Draft';
+
+  @override
+  String get devices => 'Devices';
+
+  @override
+  String get thisDevice => 'This device';
+
+  @override
+  String get terminate => 'Log out';
+
+  @override
+  String get newGroup => 'New group';
+
+  @override
+  String get groupName => 'Group name';
+
+  @override
+  String get create => 'Create';
+
+  @override
+  String get pollClosed => 'Final results';
+
+  @override
+  String votesCount(String n) {
+    return '$n votes';
+  }
 }

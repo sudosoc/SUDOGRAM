@@ -87,6 +87,9 @@ final authProvider = StreamProvider<AuthState>(
 final chatsProvider = StreamProvider<List<ChatSummary>>(
     (ref) => ref.watch(gatewayProvider).watchChats());
 
+final archivedProvider = StreamProvider<List<ChatSummary>>(
+    (ref) => ref.watch(gatewayProvider).watchArchived());
+
 final messagesProvider = StreamProvider.family<List<ChatMessage>, int>(
     (ref, id) => ref.watch(gatewayProvider).watchMessages(id));
 

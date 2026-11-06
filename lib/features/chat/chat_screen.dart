@@ -16,6 +16,8 @@ import 'package:path_provider/path_provider.dart';
 
 import '../splitter/file_splitter.dart';
 import '../splitter/smart_splitter.dart';
+import '../../core/drafts.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'avatar.dart';
 import 'info_screen.dart';
 import 'voice_player.dart';
@@ -50,6 +52,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     super.initState();
     _gateway.openChat(widget.chat.id);
     _notifier.openChat = widget.chat.id;
+    _c.text = DraftStore.get(widget.chat.id);
     _scroll.addListener(_onScroll);
     _gateway.pinnedMessage(widget.chat.id).then((m) {
       if (mounted) setState(() => _pinned = m);
@@ -63,6 +66,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   void dispose() {
     _gateway.closeChat(widget.chat.id);
     if (_notifier.openChat == widget.chat.id) _notifier.openChat = null;
+    DraftStore.set(widget.chat.id, _editing == null ? _c.text : '');
     _c.dispose();
     _scroll.dispose();
     super.dispose();
@@ -147,6 +151,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final editing = _editing;
     final reply = _replyTo;
     _c.clear();
+    DraftStore.set(widget.chat.id, '');
     setState(() {
       _parts = 1;
       _editing = null;
@@ -580,6 +585,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           onDownload: (id) => _gateway.downloadFile(id),
                           onCancel: (id) => _gateway.cancelDownload(id),
                           onOpen: () => _openMedia(m),
+                          onVote: (ids) =>
+                              _gateway.votePoll(widget.chat.id, m.id, ids),
                           onLongPress: () => _actions(m),
                         ),
                       ]);
@@ -686,6 +693,7 @@ class _Bubble extends StatelessWidget {
     required this.onDownload,
     required this.onCancel,
     required this.onOpen,
+    required this.onVote,
     this.forwardLabel,
     this.replied,
     this.showSender = false,
@@ -698,6 +706,7 @@ class _Bubble extends StatelessWidget {
   final void Function(int) onDownload;
   final void Function(int) onCancel;
   final VoidCallback onOpen;
+  final void Function(List<int>) onVote;
   final VoidCallback onLongPress;
 
   static String _hm(DateTime t) =>
@@ -807,6 +816,45 @@ class _Bubble extends StatelessWidget {
                   onDownload: () => onDownload(m.file!.fileId),
                   onCancel: () => onCancel(m.file!.fileId),
                 ),
+              if (m.poll != null)
+                _PollView(
+                  poll: m.poll!,
+                  onVote: (ids) => onVote(ids),
+                ),
+              if (m.link != null)
+                GestureDetector(
+                  onTap: () => launchUrl(Uri.parse(m.link!.url),
+                      mode: LaunchMode.externalApplication),
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 6),
+                    padding: const EdgeInsetsDirectional.only(start: 8),
+                    decoration: BoxDecoration(
+                      border: BorderDirectional(
+                          start: BorderSide(color: accent, width: 2)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (m.link!.site.isNotEmpty)
+                          Text(m.link!.site,
+                              style: TextStyle(fontSize: 12, color: accent)),
+                        if (m.link!.title.isNotEmpty)
+                          Text(m.link!.title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.w600, fontSize: 13)),
+                        if (m.link!.description.isNotEmpty)
+                          Text(m.link!.description,
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  fontSize: 12,
+                                  color: GlassTokens.textSecondary)),
+                      ],
+                    ),
+                  ),
+                ),
               if (m.reactions.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.only(top: 4),
@@ -857,6 +905,61 @@ class _Bubble extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+
+class _PollView extends StatelessWidget {
+  const _PollView({required this.poll, required this.onVote});
+
+  final PollData poll;
+  final void Function(List<int>) onVote;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final accent = GlassScope.of(context).accent;
+    final voted = poll.options.any((o) => o.chosen);
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        for (var i = 0; i < poll.options.length; i++)
+          InkWell(
+            onTap: poll.closed || voted ? null : () => onVote([i]),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Row(children: [
+                  Icon(
+                      poll.options[i].chosen
+                          ? Icons.check_circle
+                          : Icons.radio_button_unchecked,
+                      size: 16),
+                  const SizedBox(width: 6),
+                  Expanded(child: Text(poll.options[i].text)),
+                  if (voted || poll.closed)
+                    Text(poll.total == 0
+                        ? '0%'
+                        : '${(poll.options[i].votes * 100 / poll.total).round()}%'),
+                ]),
+                if (voted || poll.closed)
+                  LinearProgressIndicator(
+                    value: poll.total == 0
+                        ? 0
+                        : poll.options[i].votes / poll.total,
+                    color: accent,
+                  ),
+              ]),
+            ),
+          ),
+        Text(
+            poll.closed
+                ? l.pollClosed
+                : l.votesCount('${poll.total}'),
+            style: const TextStyle(
+                fontSize: 11, color: GlassTokens.textTertiary)),
+      ]),
     );
   }
 }

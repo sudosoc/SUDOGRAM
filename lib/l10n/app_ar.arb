@@ -228,5 +228,24 @@
       }
     }
   },
-  "react": "تفاعل"
+  "react": "تفاعل",
+  "archive": "الأرشيف",
+  "archiveChat": "أرشفة",
+  "unarchiveChat": "إلغاء الأرشفة",
+  "draft": "مسودة",
+  "devices": "الأجهزة",
+  "thisDevice": "الجهاز ده",
+  "terminate": "تسجيل خروج",
+  "newGroup": "مجموعة جديدة",
+  "groupName": "اسم المجموعة",
+  "create": "إنشاء",
+  "pollClosed": "النتائج النهائية",
+  "votesCount": "{n} صوت",
+  "@votesCount": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  }
 }

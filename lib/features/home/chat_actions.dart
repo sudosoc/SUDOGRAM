@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../app/providers.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/theme/glass.dart';
 import '../../domain/models.dart';
@@ -49,6 +50,14 @@ void showChatActions(BuildContext context, WidgetRef ref, ChatSummary chat) {
                 title: Text(pinned ? l.unpin : l.pin),
                 onTap: () {
                   c.togglePin(chat.id);
+                  Navigator.pop(sheet);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.archive_outlined),
+                title: Text(l.archiveChat),
+                onTap: () {
+                  ref.read(gatewayProvider).setArchived(chat.id, true);
                   Navigator.pop(sheet);
                 },
               ),

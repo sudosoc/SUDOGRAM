@@ -166,6 +166,19 @@ class MockGateway implements TelegramGateway {
   Future<ChatInfo?> chatInfo(int chatId) async => const ChatInfo();
 
   @override
+  Stream<List<ChatSummary>> watchArchived() => const Stream.empty();
+  @override
+  Future<void> setArchived(int chatId, bool archived) async {}
+  @override
+  Future<void> votePoll(int chatId, int messageId, List<int> options) async {}
+  @override
+  Future<List<DeviceSession>> sessions() async => const [];
+  @override
+  Future<void> terminateSession(int id) async {}
+  @override
+  Future<ChatSummary?> createGroup(String title, List<int> userIds) async => null;
+
+  @override
   Future<void> forwardMessages(int toChatId, int fromChatId, List<int> ids) async {}
   @override
   Stream<ChatStatus> watchChatStatus(int chatId) =>

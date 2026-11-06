@@ -395,4 +395,50 @@ void main() {
     expect(sent, ['addMessageReaction', 'removeMessageReaction']);
     expect(await g.chatInfo(999), isNull); // unknown chat
   });
+
+  test('polls, link previews, sessions and group creation map through', () async {
+    t.onRequest = (r) {
+      switch (r['@type']) {
+        case 'getActiveSessions':
+          return {'@type': 'sessions', 'sessions': [
+            {'id': '9', 'application_name': 'X', 'device_model': 'Pixel', 'is_current': true, 'last_active_date': 1700000000}
+          ]};
+      }
+      return {'@type': 'ok'};
+    };
+    final sent = <String>[];
+    final prev = t.onRequest!;
+    t.onRequest = (r) {
+      sent.add(r['@type'] as String);
+      return prev(r);
+    };
+    final s = await g.sessions();
+    expect(s.single.current, isTrue);
+    expect(s.single.id, 9);
+    await g.votePoll(1, 2, [0]);
+    await g.terminateSession(5);
+    await g.setArchived(1, true);
+    expect(sent, containsAll(['setPollAnswer', 'terminateSession', 'addChatToList']));
+
+    List<ChatMessage> got = const [];
+    final sub = g.watchMessages(5).listen((v) => got = v);
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    final base = tmsg(50)['message'] as Map<String, dynamic>;
+    t.push({'@type': 'updateNewMessage', 'message': {
+      ...base,
+      'content': {'@type': 'messagePoll', 'poll': {
+        'question': {'text': 'Q?'}, 'total_voter_count': 3,
+        'options': [
+          {'text': {'text': 'A'}, 'voter_count': 2, 'is_chosen': true},
+          {'text': {'text': 'B'}, 'voter_count': 1, 'is_chosen': false},
+        ],
+        'type': {'@type': 'pollTypeRegular'},
+      }},
+    }});
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    final poll = got.firstWhere((m) => m.id == 50).poll!;
+    expect(poll.question, 'Q?');
+    expect(poll.options.first.chosen, isTrue);
+    await sub.cancel();
+  });
 }

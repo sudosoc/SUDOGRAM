@@ -27,6 +27,48 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
         MaterialPageRoute<void>(builder: (_) => ChatScreen(chat: c)));
   }
 
+  Future<void> _newGroup() async {
+    final l = AppLocalizations.of(context);
+    final all = await _future;
+    if (!mounted) return;
+    final name = TextEditingController();
+    final picked = <int>{};
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => StatefulBuilder(
+        builder: (context, set) => AlertDialog(
+          title: Text(l.newGroup),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              TextField(
+                  controller: name,
+                  decoration: InputDecoration(hintText: l.groupName)),
+              Flexible(
+                child: ListView(shrinkWrap: true, children: [
+                  for (final c in all)
+                    CheckboxListTile(
+                      value: picked.contains(c.id),
+                      title: Text(c.title),
+                      onChanged: (v) => set(() =>
+                          v == true ? picked.add(c.id) : picked.remove(c.id)),
+                    ),
+                ]),
+              ),
+            ]),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(l.create)),
+          ],
+        ),
+      ),
+    );
+    if (ok != true || name.text.trim().isEmpty || picked.isEmpty) return;
+    await _open(ref.read(gatewayProvider).createGroup(name.text.trim(), picked.toList()));
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -56,6 +98,11 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
                 ),
               ]),
             ),
+          ),
+          ListTile(
+            leading: const CircleAvatar(child: Icon(Icons.group_add_outlined)),
+            title: Text(l.newGroup),
+            onTap: _newGroup,
           ),
           ListTile(
             leading: const CircleAvatar(child: Icon(Icons.bookmark_outline)),

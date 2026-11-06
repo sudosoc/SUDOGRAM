@@ -1135,6 +1135,78 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'تفاعل'**
   String get react;
+
+  /// No description provided for @archive.
+  ///
+  /// In ar, this message translates to:
+  /// **'الأرشيف'**
+  String get archive;
+
+  /// No description provided for @archiveChat.
+  ///
+  /// In ar, this message translates to:
+  /// **'أرشفة'**
+  String get archiveChat;
+
+  /// No description provided for @unarchiveChat.
+  ///
+  /// In ar, this message translates to:
+  /// **'إلغاء الأرشفة'**
+  String get unarchiveChat;
+
+  /// No description provided for @draft.
+  ///
+  /// In ar, this message translates to:
+  /// **'مسودة'**
+  String get draft;
+
+  /// No description provided for @devices.
+  ///
+  /// In ar, this message translates to:
+  /// **'الأجهزة'**
+  String get devices;
+
+  /// No description provided for @thisDevice.
+  ///
+  /// In ar, this message translates to:
+  /// **'الجهاز ده'**
+  String get thisDevice;
+
+  /// No description provided for @terminate.
+  ///
+  /// In ar, this message translates to:
+  /// **'تسجيل خروج'**
+  String get terminate;
+
+  /// No description provided for @newGroup.
+  ///
+  /// In ar, this message translates to:
+  /// **'مجموعة جديدة'**
+  String get newGroup;
+
+  /// No description provided for @groupName.
+  ///
+  /// In ar, this message translates to:
+  /// **'اسم المجموعة'**
+  String get groupName;
+
+  /// No description provided for @create.
+  ///
+  /// In ar, this message translates to:
+  /// **'إنشاء'**
+  String get create;
+
+  /// No description provided for @pollClosed.
+  ///
+  /// In ar, this message translates to:
+  /// **'النتائج النهائية'**
+  String get pollClosed;
+
+  /// No description provided for @votesCount.
+  ///
+  /// In ar, this message translates to:
+  /// **'{n} صوت'**
+  String votesCount(String n);
 }
 
 class _AppLocalizationsDelegate
