@@ -32,19 +32,15 @@ jobs:
           key: tdjson-arm64-${{ env.TDLIB_REF }}-v1
       - if: steps.cache.outputs.cache-hit != 'true'
         run: |
-          sudo apt-get update && sudo apt-get install -y gperf php-cli cmake make
+          sudo apt-get update && sudo apt-get install -y gperf php-cli cmake make unzip
           git clone --depth 1 https://github.com/tdlib/td.git
           cd td/example/android
-          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" "ndk;27.2.12479018" "cmake;3.22.1" || true
-          export ANDROID_NDK_ROOT="$ANDROID_SDK_ROOT/ndk/27.2.12479018"
-          ./check-environment.sh
-          ./fetch-sdk.sh
-          ./build-openssl.sh "$ANDROID_SDK_ROOT" "$ANDROID_NDK_ROOT" openssl 21
-          ./build-tdlib.sh "$ANDROID_SDK_ROOT" "$ANDROID_NDK_ROOT" openssl 21 Java
-          find . -name libtdjni.so -o -name libtdjson.so
-          # TODO: confirm the exact output path / that libtdjson.so (JSON
-          # interface) is produced by this script; adjust and verify on first run.
-          cp "$(find . -name libtdjson.so | grep arm64 | head -1)" "$GITHUB_WORKSPACE/libtdjson.so"
+          # TDLib's own scripts: fetch SDK/NDK, build OpenSSL, build TDLib (JSON interface, arm64 only).
+          ./fetch-sdk.sh SDK 27.2.12479018
+          ./build-openssl.sh SDK 27.2.12479018 third-party/openssl
+          ./build-tdlib.sh SDK 27.2.12479018 third-party/openssl c++_static JSON 24 "arm64-v8a"
+          cp tdlib/libs/arm64-v8a/libtdjson.so "$GITHUB_WORKSPACE/libtdjson.so"
+          file "$GITHUB_WORKSPACE/libtdjson.so"
       - uses: actions/upload-artifact@v4
         with:
           name: libtdjson-arm64
