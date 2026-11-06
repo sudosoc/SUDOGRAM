@@ -102,6 +102,8 @@ class _Recorder implements TelegramGateway {
   @override
   Future<void> sendGif(int chatId, StickerItem gif) async {}
   @override
+  Future<void> resend(int chatId, int messageId) async {}
+  @override
   bool get isDemo => true;
   @override
   Stream<AuthState> get authState => const Stream.empty();

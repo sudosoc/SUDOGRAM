@@ -269,6 +269,9 @@ class GhostGateway implements TelegramGateway {
       _inner.sendGif(chatId, gif);
 
   @override
+  Future<void> resend(int chatId, int messageId) => _inner.resend(chatId, messageId);
+
+  @override
   Future<void> forwardMessages(int toChatId, int fromChatId, List<int> ids) =>
       _inner.forwardMessages(toChatId, fromChatId, ids);
   @override

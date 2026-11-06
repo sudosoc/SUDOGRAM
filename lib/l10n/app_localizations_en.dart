@@ -830,4 +830,24 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get send2 => 'Send';
+
+  @override
+  String get select => 'Select';
+
+  @override
+  String selectedCount(String n) {
+    return '$n selected';
+  }
+
+  @override
+  String get share => 'Share';
+
+  @override
+  String get resend => 'Resend';
+
+  @override
+  String get sendingFailed => 'Failed to send';
+
+  @override
+  String get jumpToLatest => 'Latest';
 }

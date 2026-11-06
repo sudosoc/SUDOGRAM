@@ -169,11 +169,27 @@ class TdlibGateway implements TelegramGateway {
         );
       case 'updateDeleteMessages':
         _onDeleted(u);
+      case 'updateMessageSendFailed':
+        final m = Map<String, dynamic>.from(u['message'] as Map);
+        final chatId = asInt(m['chat_id']);
+        _removeMessage(chatId, asInt(u['old_message_id']));
+        _upsertMessage(chatId, _parseMessage(m).copyWith(sendState: 2));
       case 'updateMessageSendSucceeded':
         final m = Map<String, dynamic>.from(u['message'] as Map);
         final chatId = asInt(m['chat_id']);
         _removeMessage(chatId, asInt(u['old_message_id']));
         _upsertMessage(chatId, _parseMessage(m));
+    }
+  }
+
+  /// loadChats returns an error (404) once the whole list is loaded.
+  Future<void> _loadAllChats(Map<String, dynamic> list) async {
+    for (var i = 0; i < 30; i++) {
+      try {
+        await _td.request({'@type': 'loadChats', 'chat_list': list, 'limit': 100});
+      } on TdError {
+        return;
+      }
     }
   }
 
@@ -357,20 +373,8 @@ class TdlibGateway implements TelegramGateway {
       case 'authorizationStateReady':
         _auth.value = AuthState.ready;
         _rekey();
-        _td
-            .request({
-              '@type': 'loadChats',
-              'chat_list': {'@type': 'chatListMain'},
-              'limit': 200,
-            })
-            .then<void>((_) {}, onError: (Object _) {}); // 404 = all loaded
-        _td
-            .request({
-              '@type': 'loadChats',
-              'chat_list': {'@type': 'chatListArchive'},
-              'limit': 100,
-            })
-            .then<void>((_) {}, onError: (Object _) {});
+        _loadAllChats({'@type': 'chatListMain'});
+        _loadAllChats({'@type': 'chatListArchive'});
       case 'authorizationStateClosed':
         _auth.value = const AuthState(AuthStep.closed);
       default:
@@ -687,10 +691,13 @@ class TdlibGateway implements TelegramGateway {
         name = (a?['file_name'] ?? 'animation.mp4').toString();
       case 'messageSticker':
         final st = content['sticker'] as Map?;
-        final isTgs = (st?['format'] as Map?)?['@type'] == 'stickerFormatTgs';
-        if (isTgs) {
+        final fmt = (st?['format'] as Map?)?['@type'];
+        if (fmt == 'stickerFormatTgs') {
           file = st?['sticker'] as Map?;
           name = 'sticker.tgs';
+        } else if (fmt == 'stickerFormatWebm') {
+          file = st?['sticker'] as Map?;
+          name = 'sticker.webm';
         }
       case 'messagePhoto':
         final sizes = ((content['photo'] as Map?)?['sizes'] as List?) ?? const [];
@@ -771,7 +778,9 @@ class TdlibGateway implements TelegramGateway {
     final chatId = asInt(m['chat_id']);
     final id = asInt(m['id']);
     if (att != null) _fileOwner[att.fileId] = (chatId, id);
-    if (att != null && att.name.endsWith('.tgs')) _autoDownload(att);
+    if (att != null && (att.name.endsWith('.tgs') || att.name.endsWith('.webm'))) {
+      _autoDownload(att);
+    }
     final (thumb, emoji) = _preview(m['content'] as Map?);
     if (thumb != null) {
       _fileOwner[thumb.fileId] = (chatId, id);
@@ -802,6 +811,11 @@ class TdlibGateway implements TelegramGateway {
       thumb: thumb,
       emoji: emoji,
       read: outgoing && id <= (_chats[chatId]?.readOutbox ?? 0),
+      sendState: switch ((m['sending_state'] as Map?)?['@type']) {
+        'messageSendingStatePending' => 1,
+        'messageSendingStateFailed' => 2,
+        _ => 0,
+      },
       poll: _poll(m['content'] as Map?),
       link: _link(m['content'] as Map?),
       reactions: _reactions(m['interaction_info']).$1,
@@ -1852,6 +1866,15 @@ class TdlibGateway implements TelegramGateway {
         'height': 0,
         'caption': {'@type': 'formattedText', 'text': ''},
       },
+    });
+  }
+
+  @override
+  Future<void> resend(int chatId, int messageId) async {
+    await _td.request({
+      '@type': 'resendMessages',
+      'chat_id': chatId,
+      'message_ids': [messageId],
     });
   }
 

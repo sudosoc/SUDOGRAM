@@ -51,6 +51,8 @@ dependencies:
   open_filex: ^5.0.0
   camera: ^0.12.2
   audioplayers: ^6.1.0
+  video_player: ^2.9.2
+  share_plus: ^13.0.0
   geolocator: ^14.0.2
   lottie: ^3.3.1
   image_picker: ^1.1.2

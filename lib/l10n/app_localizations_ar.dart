@@ -830,4 +830,24 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get send2 => 'إرسال';
+
+  @override
+  String get select => 'تحديد';
+
+  @override
+  String selectedCount(String n) {
+    return '$n محدد';
+  }
+
+  @override
+  String get share => 'مشاركة';
+
+  @override
+  String get resend => 'إعادة الإرسال';
+
+  @override
+  String get sendingFailed => 'فشل الإرسال';
+
+  @override
+  String get jumpToLatest => 'الأحدث';
 }

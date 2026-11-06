@@ -1675,6 +1675,42 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'إرسال'**
   String get send2;
+
+  /// No description provided for @select.
+  ///
+  /// In ar, this message translates to:
+  /// **'تحديد'**
+  String get select;
+
+  /// No description provided for @selectedCount.
+  ///
+  /// In ar, this message translates to:
+  /// **'{n} محدد'**
+  String selectedCount(String n);
+
+  /// No description provided for @share.
+  ///
+  /// In ar, this message translates to:
+  /// **'مشاركة'**
+  String get share;
+
+  /// No description provided for @resend.
+  ///
+  /// In ar, this message translates to:
+  /// **'إعادة الإرسال'**
+  String get resend;
+
+  /// No description provided for @sendingFailed.
+  ///
+  /// In ar, this message translates to:
+  /// **'فشل الإرسال'**
+  String get sendingFailed;
+
+  /// No description provided for @jumpToLatest.
+  ///
+  /// In ar, this message translates to:
+  /// **'الأحدث'**
+  String get jumpToLatest;
 }
 
 class _AppLocalizationsDelegate

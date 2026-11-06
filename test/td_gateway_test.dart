@@ -568,4 +568,25 @@ void main() {
     expect((poll['type'] as Map)['allow_multiple_answers'], isTrue);
     expect((poll['options'] as List).length, 2);
   });
+
+  test('failed sends are flagged and can be resent', () async {
+    List<ChatMessage> got = const [];
+    final sub = g.watchMessages(5).listen((v) => got = v);
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    final base = Map<String, dynamic>.from(tmsg(60)['message'] as Map<String, dynamic>);
+    base['is_outgoing'] = true;
+    base['sending_state'] = {'@type': 'messageSendingStateFailed'};
+    t.push({'@type': 'updateMessageSendFailed', 'old_message_id': 59, 'message': base,
+        'error': {'code': 400, 'message': 'x'}});
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    expect(got.firstWhere((m) => m.id == 60).sendState, 2);
+    final sent = <String>[];
+    t.onRequest = (r) {
+      sent.add(r['@type'] as String);
+      return {'@type': 'ok'};
+    };
+    await g.resend(5, 60);
+    expect(sent, ['resendMessages']);
+    await sub.cancel();
+  });
 }

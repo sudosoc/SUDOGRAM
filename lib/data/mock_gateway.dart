@@ -251,6 +251,9 @@ class MockGateway implements TelegramGateway {
   Future<void> sendGif(int chatId, StickerItem gif) async {}
 
   @override
+  Future<void> resend(int chatId, int messageId) async {}
+
+  @override
   Future<void> forwardMessages(int toChatId, int fromChatId, List<int> ids) async {}
   @override
   Stream<ChatStatus> watchChatStatus(int chatId) =>

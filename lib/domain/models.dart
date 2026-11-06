@@ -137,6 +137,7 @@ class ChatMessage {
     this.myReactions = const {},
     this.poll,
     this.link,
+    this.sendState = 0,
   });
 
   final int id;
@@ -177,6 +178,9 @@ class ChatMessage {
   final PollData? poll;
   final LinkPreview? link;
 
+  /// 0 = delivered, 1 = sending, 2 = failed.
+  final int sendState;
+
   ChatMessage copyWith({
     int? id,
     String? text,
@@ -190,6 +194,7 @@ class ChatMessage {
     Map<String, int>? reactions,
     Set<String>? myReactions,
     PollData? poll,
+    int? sendState,
   }) {
     return ChatMessage(
       id: id ?? this.id,
@@ -212,6 +217,7 @@ class ChatMessage {
       myReactions: myReactions ?? this.myReactions,
       poll: poll ?? this.poll,
       link: link,
+      sendState: sendState ?? this.sendState,
     );
   }
 }

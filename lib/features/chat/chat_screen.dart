@@ -23,6 +23,8 @@ import '../splitter/smart_splitter.dart';
 import '../../core/drafts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'avatar.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:video_player/video_player.dart';
 import 'package:geolocator/geolocator.dart';
 import 'wallpapers.dart';
 import 'sticker_picker.dart';
@@ -51,6 +53,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   ChatMessage? _editing;
   bool _loadingOlder = false;
   bool _searching = false;
+  final Set<int> _selected = {};
+  bool _showJump = false;
   List<MentionCandidate> _mentions = const [];
   List<ChatMessage>? _hits;
   ChatMessage? _pinned;
@@ -84,7 +88,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   void _onScroll() {
-    if (_loadingOlder || !_scroll.hasClients) return;
+    if (!_scroll.hasClients) return;
+    final far = _scroll.position.pixels > 600;
+    if (far != _showJump) setState(() => _showJump = far);
+    if (_loadingOlder) return;
     if (_scroll.position.pixels >= _scroll.position.maxScrollExtent - 300) {
       _loadingOlder = true;
       _gateway.loadOlder(widget.chat.id).whenComplete(() {
@@ -468,6 +475,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   _c.text = m.text;
                 });
               }),
+            item(Icons.check_circle_outline, l.select,
+                () => setState(() => _selected.add(m.id))),
+            if (m.sendState == 2)
+              item(Icons.refresh, l.resend,
+                  () => _safe(() => _gateway.resend(widget.chat.id, m.id))),
+            if (m.text.isNotEmpty || (m.file?.downloaded ?? false))
+              item(Icons.ios_share, l.share, () => _share([m])),
             if (!m.deletedByPeer && widget.chat.type != ChatType.secret)
               item(Icons.shortcut, l.forward, () => _pickForward(m, chats)),
             if (m.edited)
@@ -487,6 +501,92 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               item(Icons.delete_outline, l.delete, () => _confirmDelete(m),
                   c: GlassTokens.ringDanger),
           ]),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _share(List<ChatMessage> ms) async {
+    final files = [
+      for (final m in ms)
+        if (m.file?.downloaded == true && m.file!.localPath != null)
+          XFile(m.file!.localPath!)
+    ];
+    final text = ms.map((m) => m.text).where((t) => t.isNotEmpty).join('\n');
+    await SharePlus.instance.share(ShareParams(
+        text: text.isEmpty ? null : text, files: files.isEmpty ? null : files));
+  }
+
+  List<ChatMessage> _selectedMessages() {
+    final all = ref.read(messagesProvider(widget.chat.id)).value ?? const <ChatMessage>[];
+    return [for (final m in all) if (_selected.contains(m.id)) m]
+      ..sort((a, b) => a.id.compareTo(b.id));
+  }
+
+  Future<void> _deleteSelected() async {
+    final l = AppLocalizations.of(context);
+    final ids = _selected.toList();
+    final mine = _selectedMessages().every((m) => m.outgoing);
+    final choice = await showDialog<int>(
+      context: context,
+      builder: (_) => SimpleDialog(
+        title: Text(l.deleteTitle),
+        children: [
+          SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, 1),
+              child: Text(l.deleteForMe)),
+          if (mine || widget.chat.type == ChatType.private)
+            SimpleDialogOption(
+                onPressed: () => Navigator.pop(context, 2),
+                child: Text(l.deleteForAll)),
+        ],
+      ),
+    );
+    if (choice == null) return;
+    setState(_selected.clear);
+    await _safe(() => _gateway.deleteMessages(widget.chat.id, ids, forAll: choice == 2));
+  }
+
+  void _forwardSelected() {
+    final ms = _selectedMessages();
+    final chats = ref.read(chatsProvider).value ?? const <ChatSummary>[];
+    final l = AppLocalizations.of(context);
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Padding(
+        padding: const EdgeInsets.all(12),
+        child: GlassSurface(
+          blur: true,
+          radius: 24,
+          padding: const EdgeInsets.all(8),
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height * 0.6,
+            child: Column(children: [
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: Text(l.forwardTo,
+                    style: Theme.of(context).textTheme.titleMedium),
+              ),
+              Expanded(
+                child: ListView(children: [
+                  for (final c in chats)
+                    if (c.canSend)
+                      ListTile(
+                        leading: AvatarCircle(title: c.title, photo: c.avatar, size: 40),
+                        title: Text(c.title),
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          _gateway.forwardMessages(
+                              c.id, widget.chat.id, [for (final m in ms) m.id]);
+                          setState(_selected.clear);
+                        },
+                      ),
+                ]),
+              ),
+            ]),
+          ),
         ),
       ),
     );
@@ -559,6 +659,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   void _openMedia(ChatMessage m) {
     final f = m.file ?? m.thumb;
     if (f == null) return;
+    if (f.name.endsWith('.tgs') || f.name.endsWith('.webm')) return; // animated
     if (!f.downloaded || f.localPath == null) {
       _gateway.downloadFile(f.fileId);
       return;
@@ -677,6 +778,46 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         child: SafeArea(
         child: Column(
           children: [
+            if (_selected.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+                child: GlassSurface(
+                  blur: true,
+                  radius: 22,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                  child: Row(children: [
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => setState(_selected.clear),
+                    ),
+                    Expanded(child: Text(l.selectedCount('${_selected.length}'))),
+                    IconButton(
+                      icon: const Icon(Icons.copy),
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(
+                            text: _selectedMessages().map((m) => m.text).join('\n')));
+                        setState(_selected.clear);
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.ios_share),
+                      onPressed: () => _share(_selectedMessages()),
+                    ),
+                    if (widget.chat.type != ChatType.secret)
+                      IconButton(
+                        icon: const Icon(Icons.shortcut),
+                        onPressed: _forwardSelected,
+                      ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline,
+                          color: GlassTokens.ringDanger),
+                      onPressed: _deleteSelected,
+                    ),
+                  ]),
+                ),
+              )
+            else
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
               child: GlassSurface(
@@ -796,7 +937,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         fontSize: 12, color: GlassTokens.ghost)),
               ),
             Expanded(
-              child: msgs.when(
+              child: Stack(children: [
+                Positioned.fill(child: msgs.when(
                 loading: () => Center(child: Text(l.connecting)),
                 error: (e, _) => Center(child: Text(l.errorGeneric)),
                 data: (list0) {
@@ -839,12 +981,32 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           onVote: (ids) =>
                               _gateway.votePoll(widget.chat.id, m.id, ids),
                           onLongPress: () => _actions(m),
+                          selected: _selected.contains(m.id),
+                          selecting: _selected.isNotEmpty,
+                          onTapSelect: () => setState(() {
+                            _selected.contains(m.id)
+                                ? _selected.remove(m.id)
+                                : _selected.add(m.id);
+                          }),
                         ),
                       ]);
                     },
                   );
                 },
-              ),
+              )),
+                if (_showJump)
+                  PositionedDirectional(
+                    end: 12,
+                    bottom: 12,
+                    child: FloatingActionButton.small(
+                      tooltip: l.jumpToLatest,
+                      onPressed: () => _scroll.animateTo(0,
+                          duration: const Duration(milliseconds: 250),
+                          curve: Curves.easeOut),
+                      child: const Icon(Icons.keyboard_arrow_down),
+                    ),
+                  ),
+              ]),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 4, 12, 10),
@@ -996,6 +1158,9 @@ class _Bubble extends StatelessWidget {
     required this.onCancel,
     required this.onOpen,
     required this.onVote,
+    required this.onTapSelect,
+    this.selected = false,
+    this.selecting = false,
     this.forwardLabel,
     this.replied,
     this.showSender = false,
@@ -1010,6 +1175,9 @@ class _Bubble extends StatelessWidget {
   final VoidCallback onOpen;
   final void Function(List<int>) onVote;
   final VoidCallback onLongPress;
+  final VoidCallback onTapSelect;
+  final bool selected;
+  final bool selecting;
 
   static String _hm(DateTime t) =>
       '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
@@ -1033,7 +1201,8 @@ class _Bubble extends StatelessWidget {
           ? AlignmentDirectional.centerEnd
           : AlignmentDirectional.centerStart,
       child: GestureDetector(
-        onLongPress: onLongPress,
+        onTap: selecting ? onTapSelect : null,
+        onLongPress: selecting ? onTapSelect : onLongPress,
         child: Container(
           margin: const EdgeInsets.symmetric(vertical: 3),
           constraints: BoxConstraints(
@@ -1049,7 +1218,10 @@ class _Bubble extends StatelessWidget {
                       ? accent.withValues(alpha: 0.35)
                       : Colors.white.withValues(alpha: GlassTokens.fill),
                   border: Border.all(
-                    color: m.deletedByPeer
+                    width: selected ? 2.5 : 1,
+                    color: selected
+                        ? accent
+                        : m.deletedByPeer
                         ? GlassTokens.ringDanger.withValues(alpha: 0.7)
                         : Colors.white.withValues(alpha: GlassTokens.border),
                   ),
@@ -1093,6 +1265,12 @@ class _Bubble extends StatelessWidget {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(sticker ? 0 : 12),
                     child: (sticker &&
+                            m.file != null &&
+                            m.file!.name.endsWith('.webm') &&
+                            m.file!.downloaded &&
+                            m.file!.localPath != null)
+                        ? _WebmSticker(path: m.file!.localPath!)
+                        : (sticker &&
                             m.file != null &&
                             m.file!.name.endsWith('.tgs') &&
                             m.file!.downloaded &&
@@ -1210,11 +1388,16 @@ class _Bubble extends StatelessWidget {
                           fontSize: 11, color: GlassTokens.textTertiary)),
                   if (m.outgoing) ...[
                     const SizedBox(width: 3),
-                    Icon(m.read ? Icons.done_all : Icons.done,
+                    Icon(
+                        m.sendState == 2
+                            ? Icons.error_outline
+                            : m.sendState == 1
+                                ? Icons.schedule
+                                : (m.read ? Icons.done_all : Icons.done),
                         size: 14,
-                        color: m.read
-                            ? accent
-                            : GlassTokens.textTertiary),
+                        color: m.sendState == 2
+                            ? GlassTokens.ringDanger
+                            : (m.read ? accent : GlassTokens.textTertiary)),
                   ],
                 ]),
               ),
@@ -1226,6 +1409,42 @@ class _Bubble extends StatelessWidget {
   }
 }
 
+
+/// Looping, muted WebM sticker.
+class _WebmSticker extends StatefulWidget {
+  const _WebmSticker({required this.path});
+  final String path;
+
+  @override
+  State<_WebmSticker> createState() => _WebmStickerState();
+}
+
+class _WebmStickerState extends State<_WebmSticker> {
+  late final VideoPlayerController _c = VideoPlayerController.file(File(widget.path))
+    ..setLooping(true)
+    ..setVolume(0)
+    ..initialize().then((_) {
+      if (mounted) {
+        setState(() {});
+        _c.play();
+      }
+    });
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: 150,
+        height: 150,
+        child: _c.value.isInitialized
+            ? AspectRatio(aspectRatio: _c.value.aspectRatio, child: VideoPlayer(_c))
+            : const SizedBox.shrink(),
+      );
+}
 
 /// Message text with tappable links and highlighted @mentions.
 class _LinkText extends StatefulWidget {

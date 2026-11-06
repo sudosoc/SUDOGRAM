@@ -173,5 +173,8 @@ abstract class TelegramGateway {
   Future<List<StickerItem>> savedGifs();
   Future<void> sendGif(int chatId, StickerItem gif);
 
+  /// Retries a message that failed to send.
+  Future<void> resend(int chatId, int messageId);
+
   Future<void> dispose();
 }

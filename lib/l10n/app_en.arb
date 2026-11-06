@@ -339,5 +339,18 @@
   "contactLabel": "Contact",
   "gif": "GIF",
   "locationDenied": "Location permission denied",
-  "send2": "Send"
+  "send2": "Send",
+  "select": "Select",
+  "selectedCount": "{n} selected",
+  "@selectedCount": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "share": "Share",
+  "resend": "Resend",
+  "sendingFailed": "Failed to send",
+  "jumpToLatest": "Latest"
 }

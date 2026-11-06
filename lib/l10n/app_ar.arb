@@ -339,5 +339,18 @@
   "contactLabel": "جهة اتصال",
   "gif": "GIF",
   "locationDenied": "إذن الموقع مرفوض",
-  "send2": "إرسال"
+  "send2": "إرسال",
+  "select": "تحديد",
+  "selectedCount": "{n} محدد",
+  "@selectedCount": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "share": "مشاركة",
+  "resend": "إعادة الإرسال",
+  "sendingFailed": "فشل الإرسال",
+  "jumpToLatest": "الأحدث"
 }
