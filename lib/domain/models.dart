@@ -110,3 +110,22 @@ class AuthState {
   static const initializing = AuthState(AuthStep.initializing);
   static const ready = AuthState(AuthStep.ready);
 }
+
+/// A change to a contact's profile (name, username, phone) seen via TDLib.
+class ContactChange {
+  const ContactChange({
+    required this.userId,
+    required this.displayName,
+    required this.field,
+    required this.oldValue,
+    required this.newValue,
+    required this.at,
+  });
+
+  final int userId;
+  final String displayName;
+  final String field; // name | username | phone
+  final String? oldValue;
+  final String? newValue;
+  final DateTime at;
+}

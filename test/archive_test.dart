@@ -15,6 +15,27 @@ ChatMessage msg(int id, String text, {bool out = false}) => ChatMessage(
 
 void main() {
   encryptionTest();
+  test('time machine shows old text and not-yet-deleted state', () async {
+    final a = ArchiveDb.inMemory();
+    final t0 = DateTime.now();
+    a.upsert(msg(1, 'original'));
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    final mid = DateTime.now();
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    a.upsert(msg(1, 'changed'));
+    a.markDeleted(1, 1);
+    // msg() time is 2026-01-01, so query a moment after that.
+    final at = DateTime(2026, 6, 1);
+    expect(t0.isBefore(mid), isTrue);
+    final now = a.chatAt(1, at.add(const Duration(days: 4000)));
+    expect(now.single.text, 'changed');
+    expect(now.single.deletedByPeer, isTrue);
+    a.logContactChange(5, 'Ali', 'username', 'a', 'b');
+    expect(a.contactLog().single.newValue, 'b');
+    a.logIntruder('wrong passcode');
+    expect(a.intruders().single.$2, 'wrong passcode');
+  });
+
   test('normalization folds Arabic variants and digits', () {
     expect(normalizeForSearch('أَحْمَد'), normalizeForSearch('احمد'));
     expect(normalizeForSearch('مدرسة'), normalizeForSearch('مدرسه'));

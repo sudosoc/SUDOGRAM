@@ -463,6 +463,138 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'من غير إيصال قراءة أو كتابة أو ظهور أونلاين'**
   String get ghostHint;
+
+  /// No description provided for @vault.
+  ///
+  /// In ar, this message translates to:
+  /// **'الخزنة'**
+  String get vault;
+
+  /// No description provided for @vaultSetupTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'إعداد الخزنة'**
+  String get vaultSetupTitle;
+
+  /// No description provided for @vaultRealPass.
+  ///
+  /// In ar, this message translates to:
+  /// **'الباسكود بتاعك'**
+  String get vaultRealPass;
+
+  /// No description provided for @vaultDecoyPass.
+  ///
+  /// In ar, this message translates to:
+  /// **'باسكود وهمي (بيفتح خزنة عادية)'**
+  String get vaultDecoyPass;
+
+  /// No description provided for @vaultEnter.
+  ///
+  /// In ar, this message translates to:
+  /// **'الباسكود'**
+  String get vaultEnter;
+
+  /// No description provided for @vaultWrong.
+  ///
+  /// In ar, this message translates to:
+  /// **'باسكود غلط'**
+  String get vaultWrong;
+
+  /// No description provided for @vaultSave.
+  ///
+  /// In ar, this message translates to:
+  /// **'حفظ'**
+  String get vaultSave;
+
+  /// No description provided for @vaultAddTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'العنوان'**
+  String get vaultAddTitle;
+
+  /// No description provided for @vaultAddBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'المحتوى'**
+  String get vaultAddBody;
+
+  /// No description provided for @vaultAdd.
+  ///
+  /// In ar, this message translates to:
+  /// **'إضافة'**
+  String get vaultAdd;
+
+  /// No description provided for @vaultEmpty.
+  ///
+  /// In ar, this message translates to:
+  /// **'مفيش حاجة هنا لسه'**
+  String get vaultEmpty;
+
+  /// No description provided for @vaultSamePass.
+  ///
+  /// In ar, this message translates to:
+  /// **'لازم الباسكودين يكونوا مختلفين'**
+  String get vaultSamePass;
+
+  /// No description provided for @intruderLog.
+  ///
+  /// In ar, this message translates to:
+  /// **'محاولات فاشلة'**
+  String get intruderLog;
+
+  /// No description provided for @timeMachine.
+  ///
+  /// In ar, this message translates to:
+  /// **'آلة الزمن'**
+  String get timeMachine;
+
+  /// No description provided for @pickChat.
+  ///
+  /// In ar, this message translates to:
+  /// **'الشات'**
+  String get pickChat;
+
+  /// No description provided for @pickDate.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختار تاريخ'**
+  String get pickDate;
+
+  /// No description provided for @contactLog.
+  ///
+  /// In ar, this message translates to:
+  /// **'تغييرات جهات الاتصال'**
+  String get contactLog;
+
+  /// No description provided for @contactLogEmpty.
+  ///
+  /// In ar, this message translates to:
+  /// **'لسه ماشوفتش تغييرات'**
+  String get contactLogEmpty;
+
+  /// No description provided for @fieldName.
+  ///
+  /// In ar, this message translates to:
+  /// **'الاسم'**
+  String get fieldName;
+
+  /// No description provided for @fieldUsername.
+  ///
+  /// In ar, this message translates to:
+  /// **'اليوزر'**
+  String get fieldUsername;
+
+  /// No description provided for @fieldPhone.
+  ///
+  /// In ar, this message translates to:
+  /// **'الرقم'**
+  String get fieldPhone;
+
+  /// No description provided for @tools.
+  ///
+  /// In ar, this message translates to:
+  /// **'أدوات'**
+  String get tools;
 }
 
 class _AppLocalizationsDelegate

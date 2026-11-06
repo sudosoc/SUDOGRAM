@@ -83,5 +83,8 @@ class GhostGateway implements TelegramGateway {
   }
 
   @override
+  Stream<ContactChange> contactChanges() => _inner.contactChanges();
+
+  @override
   Future<void> dispose() => _inner.dispose();
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import '../../domain/models.dart';
 import '../../domain/telegram_gateway.dart';
 import 'archive_db.dart';
@@ -15,8 +17,17 @@ class ArchivingGateway implements TelegramGateway {
   bool get isDemo => _inner.isDemo;
   @override
   Stream<AuthState> get authState => _inner.authState;
+  StreamSubscription<ContactChange>? _contactSub;
+
   @override
-  Future<void> start() => _inner.start();
+  Future<void> start() async {
+    await _inner.start();
+    _contactSub = _inner.contactChanges().listen((c) => archive
+        .logContactChange(c.userId, c.displayName, c.field, c.oldValue, c.newValue));
+  }
+
+  @override
+  Stream<ContactChange> contactChanges() => _inner.contactChanges();
   @override
   Future<void> submitPhone(String p) => _inner.submitPhone(p);
   @override
@@ -40,7 +51,10 @@ class ArchivingGateway implements TelegramGateway {
   @override
   Future<void> setOnline(bool o) => _inner.setOnline(o);
   @override
-  Future<void> dispose() => _inner.dispose();
+  Future<void> dispose() async {
+    await _contactSub?.cancel();
+    await _inner.dispose();
+  }
 
   @override
   Stream<List<ChatMessage>> watchMessages(int chatId) =>

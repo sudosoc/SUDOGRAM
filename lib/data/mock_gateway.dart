@@ -107,5 +107,8 @@ class MockGateway implements TelegramGateway {
   Future<void> setOnline(bool online) async {}
 
   @override
+  Stream<ContactChange> contactChanges() => const Stream.empty();
+
+  @override
   Future<void> dispose() async {}
 }

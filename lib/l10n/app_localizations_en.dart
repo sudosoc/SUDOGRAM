@@ -202,4 +202,70 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get ghostHint => 'No read receipts, typing or online status';
+
+  @override
+  String get vault => 'Vault';
+
+  @override
+  String get vaultSetupTitle => 'Set up the vault';
+
+  @override
+  String get vaultRealPass => 'Your passcode';
+
+  @override
+  String get vaultDecoyPass => 'Decoy passcode (opens a harmless vault)';
+
+  @override
+  String get vaultEnter => 'Passcode';
+
+  @override
+  String get vaultWrong => 'Wrong passcode';
+
+  @override
+  String get vaultSave => 'Save';
+
+  @override
+  String get vaultAddTitle => 'Title';
+
+  @override
+  String get vaultAddBody => 'Content';
+
+  @override
+  String get vaultAdd => 'Add';
+
+  @override
+  String get vaultEmpty => 'Nothing here yet';
+
+  @override
+  String get vaultSamePass => 'The two passcodes must be different';
+
+  @override
+  String get intruderLog => 'Failed attempts';
+
+  @override
+  String get timeMachine => 'Time Machine';
+
+  @override
+  String get pickChat => 'Chat';
+
+  @override
+  String get pickDate => 'Pick a date';
+
+  @override
+  String get contactLog => 'Contact changes';
+
+  @override
+  String get contactLogEmpty => 'No changes seen yet';
+
+  @override
+  String get fieldName => 'Name';
+
+  @override
+  String get fieldUsername => 'Username';
+
+  @override
+  String get fieldPhone => 'Phone';
+
+  @override
+  String get tools => 'Tools';
 }

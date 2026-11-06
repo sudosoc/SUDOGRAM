@@ -60,8 +60,10 @@ class ArchiveDb {
       CREATE VIRTUAL TABLE IF NOT EXISTS fts USING fts5(
         norm, chat_id UNINDEXED, msg_id UNINDEXED, tokenize='unicode61'
       );
+      CREATE TABLE IF NOT EXISTS intruder_log(at INTEGER NOT NULL, what TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS contact_log(
         user_id INTEGER NOT NULL,
+        name TEXT NOT NULL DEFAULT '',
         field TEXT NOT NULL,
         old_value TEXT,
         new_value TEXT,
@@ -169,11 +171,62 @@ class ArchiveDb {
     ];
   }
 
-  void logContactChange(int userId, String field, String? from, String? to) =>
+  void logContactChange(int userId, String name, String field, String? from,
+          String? to) =>
       _db.execute(
-          'INSERT INTO contact_log(user_id,field,old_value,new_value,at) '
-          'VALUES(?,?,?,?,?)',
-          [userId, field, from, to, _now()]);
+          'INSERT INTO contact_log(user_id,name,field,old_value,new_value,at) '
+          'VALUES(?,?,?,?,?,?)',
+          [userId, name, field, from, to, _now()]);
+
+  List<ContactChange> contactLog({int limit = 200}) => [
+        for (final r in _db.select(
+            'SELECT * FROM contact_log ORDER BY at DESC LIMIT ?', [limit]))
+          ContactChange(
+            userId: r['user_id'] as int,
+            displayName: r['name'] as String,
+            field: r['field'] as String,
+            oldValue: r['old_value'] as String?,
+            newValue: r['new_value'] as String?,
+            at: DateTime.fromMillisecondsSinceEpoch(r['at'] as int),
+          ),
+      ];
+
+  /// Time Machine: the chat as it was at [moment], including messages that
+  /// were deleted afterwards. Text is the version that existed then when an
+  /// edit happened later.
+  List<ChatMessage> chatAt(int chatId, DateTime moment, {int limit = 200}) {
+    final ms = moment.millisecondsSinceEpoch;
+    final rows = _db.select(
+        'SELECT * FROM messages WHERE chat_id=? AND time<=? '
+        'ORDER BY time DESC LIMIT ?',
+        [chatId, ms, limit]);
+    return [
+      for (final r in rows)
+        () {
+          var m = _row(r);
+          // First edit after [moment] holds the text as of [moment].
+          final later = _db.select(
+              'SELECT old_text FROM edits WHERE chat_id=? AND msg_id=? AND at>? '
+              'ORDER BY at LIMIT 1',
+              [chatId, m.id, ms]);
+          if (later.isNotEmpty) {
+            m = m.copyWith(text: later.first['old_text'] as String);
+          }
+          // Not yet deleted at [moment]?
+          final delAt = r['deleted_at'] as int?;
+          if (delAt != null && delAt > ms) m = m.copyWith(deletedByPeer: false);
+          return m;
+        }(),
+    ];
+  }
+
+  void logIntruder(String what) => _db.execute(
+      'INSERT INTO intruder_log(at,what) VALUES(?,?)', [_now(), what]);
+
+  List<(DateTime, String)> intruders() => [
+        for (final r in _db.select('SELECT * FROM intruder_log ORDER BY at DESC'))
+          (DateTime.fromMillisecondsSinceEpoch(r['at'] as int), r['what'] as String),
+      ];
 
   void close() => _db.close();
 }

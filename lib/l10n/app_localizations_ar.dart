@@ -203,4 +203,70 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get ghostHint => 'من غير إيصال قراءة أو كتابة أو ظهور أونلاين';
+
+  @override
+  String get vault => 'الخزنة';
+
+  @override
+  String get vaultSetupTitle => 'إعداد الخزنة';
+
+  @override
+  String get vaultRealPass => 'الباسكود بتاعك';
+
+  @override
+  String get vaultDecoyPass => 'باسكود وهمي (بيفتح خزنة عادية)';
+
+  @override
+  String get vaultEnter => 'الباسكود';
+
+  @override
+  String get vaultWrong => 'باسكود غلط';
+
+  @override
+  String get vaultSave => 'حفظ';
+
+  @override
+  String get vaultAddTitle => 'العنوان';
+
+  @override
+  String get vaultAddBody => 'المحتوى';
+
+  @override
+  String get vaultAdd => 'إضافة';
+
+  @override
+  String get vaultEmpty => 'مفيش حاجة هنا لسه';
+
+  @override
+  String get vaultSamePass => 'لازم الباسكودين يكونوا مختلفين';
+
+  @override
+  String get intruderLog => 'محاولات فاشلة';
+
+  @override
+  String get timeMachine => 'آلة الزمن';
+
+  @override
+  String get pickChat => 'الشات';
+
+  @override
+  String get pickDate => 'اختار تاريخ';
+
+  @override
+  String get contactLog => 'تغييرات جهات الاتصال';
+
+  @override
+  String get contactLogEmpty => 'لسه ماشوفتش تغييرات';
+
+  @override
+  String get fieldName => 'الاسم';
+
+  @override
+  String get fieldUsername => 'اليوزر';
+
+  @override
+  String get fieldPhone => 'الرقم';
+
+  @override
+  String get tools => 'أدوات';
 }

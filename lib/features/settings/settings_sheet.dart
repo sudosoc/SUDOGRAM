@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/theme/glass.dart';
 import '../../l10n/app_localizations.dart';
+import '../tools/tools_screens.dart';
 
 void showSettingsSheet(BuildContext context) {
   showModalBottomSheet<void>(
@@ -48,6 +49,21 @@ class _SettingsSheet extends ConsumerWidget {
               value: s.performanceMode,
               onChanged: c.setPerformanceMode,
             ),
+            for (final (label, icon, builder) in <(String, IconData, WidgetBuilder)>[
+              (l.vault, Icons.lock_outline, (_) => const VaultScreen()),
+              (l.timeMachine, Icons.history, (_) => const TimeMachineScreen()),
+              (l.contactLog, Icons.person_search_outlined,
+                  (_) => const ContactLogScreen()),
+            ])
+              ListTile(
+                leading: Icon(icon),
+                title: Text(label),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  Navigator.of(context)
+                      .push(MaterialPageRoute<void>(builder: builder));
+                },
+              ),
             ListTile(
               title: Text(l.language),
               trailing: SegmentedButton<String?>(

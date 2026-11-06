@@ -61,6 +61,8 @@ class TdlibGateway implements TelegramGateway {
   final _messages = <int, LiveValue<List<ChatMessage>>>{};
   Timer? _chatDebounce;
   int? _textLimit;
+  final _users = <int, Map<String, String>>{};
+  final _contactChanges = StreamController<ContactChange>.broadcast();
 
   @override
   bool get isDemo => false;
@@ -82,6 +84,8 @@ class TdlibGateway implements TelegramGateway {
     switch (u['@type']) {
       case 'updateAuthorizationState':
         _onAuthState(Map<String, dynamic>.from(u['authorization_state'] as Map));
+      case 'updateUser':
+        _onUser(Map<String, dynamic>.from(u['user'] as Map));
       case 'updateNewChat':
         _applyChat(Map<String, dynamic>.from(u['chat'] as Map));
       case 'updateChatLastMessage':
@@ -122,6 +126,42 @@ class TdlibGateway implements TelegramGateway {
         _upsertMessage(chatId, _parseMessage(m));
     }
   }
+
+  // ----------------------------------------------------------- contacts
+
+  void _onUser(Map<String, dynamic> u) {
+    final id = asInt(u['id']);
+    final names = [u['first_name'], u['last_name']]
+        .map((e) => (e ?? '').toString())
+        .where((e) => e.isNotEmpty)
+        .join(' ');
+    final usernames = (u['usernames'] as Map?)?['active_usernames'] as List?;
+    final now = <String, String>{
+      'name': names,
+      'username': (usernames == null || usernames.isEmpty)
+          ? ''
+          : usernames.first.toString(),
+      'phone': (u['phone_number'] ?? '').toString(),
+    };
+    final before = _users[id];
+    _users[id] = now;
+    if (before == null) return; // first sight: nothing to compare
+    for (final f in now.keys) {
+      if (before[f] != now[f]) {
+        _contactChanges.add(ContactChange(
+          userId: id,
+          displayName: now['name']!.isNotEmpty ? now['name']! : before['name']!,
+          field: f,
+          oldValue: before[f],
+          newValue: now[f],
+          at: DateTime.now(),
+        ));
+      }
+    }
+  }
+
+  @override
+  Stream<ContactChange> contactChanges() => _contactChanges.stream;
 
   // --------------------------------------------------------------- auth
 
@@ -480,6 +520,7 @@ class TdlibGateway implements TelegramGateway {
       await live.close();
     }
     await _chatList.close();
+    await _contactChanges.close();
     await _auth.close();
   }
 }

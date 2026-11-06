@@ -177,4 +177,29 @@ void main() {
     expect(
         t.sent.any((r) => r['@type'].toString().contains('Sponsored')), isFalse);
   });
+
+  test('contact profile changes are reported', () async {
+    final seen = <ContactChange>[];
+    g.contactChanges().listen(seen.add);
+    Map<String, dynamic> user(String first, String name) => {
+          '@type': 'updateUser',
+          'user': {
+            'id': '9',
+            'first_name': first,
+            'last_name': '',
+            'phone_number': '20100',
+            'usernames': {
+              'active_usernames': [name]
+            },
+          }
+        };
+    t.push(user('Ali', 'ali1'));
+    expect(seen, isEmpty);
+    t.push(user('Ali', 'ali2'));
+    t.push(user('Ali K', 'ali2'));
+    await Future<void>.delayed(Duration.zero);
+    expect(seen.map((c) => c.field), ['username', 'name']);
+    expect(seen.first.oldValue, 'ali1');
+    expect(seen.first.newValue, 'ali2');
+  });
 }

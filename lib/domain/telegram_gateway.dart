@@ -41,5 +41,8 @@ abstract class TelegramGateway {
   /// Sets our online status.
   Future<void> setOnline(bool online);
 
+  /// Profile changes of contacts (name, username, phone) as they happen.
+  Stream<ContactChange> contactChanges();
+
   Future<void> dispose();
 }

@@ -10,6 +10,7 @@ import '../data/archive/archive_db.dart';
 import '../data/archive/archiving_gateway.dart';
 import '../data/key_store.dart';
 import '../data/mock_gateway.dart';
+import '../data/vault/vault_store.dart';
 import '../data/tdlib/td_gateway.dart';
 import '../data/tdlib/td_native.dart';
 import '../domain/ghost_gateway.dart';
@@ -46,7 +47,13 @@ Future<void> initAppDirs() async {
   _tdKey = await _keys.read('td_db_key');
   final archiveKey = await _keys.getOrCreate('archive_key');
   _archive = ArchiveDb.open('${_dir.path}/archive.db', key: archiveKey);
+  _vault = VaultService(
+      '${_dir.path}/vault', await _keys.getOrCreate('vault_salt'));
 }
+
+late VaultService _vault;
+
+final vaultServiceProvider = Provider<VaultService>((ref) => _vault);
 
 final archiveProvider = Provider<ArchiveDb>((ref) => _archive);
 
