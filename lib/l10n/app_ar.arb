@@ -1,0 +1,67 @@
+{
+  "@@locale": "ar",
+  "appTitle": "SUDOGRAM",
+  "chats": "الشاتات",
+  "search": "بحث",
+  "searchHint": "ابحث في الشاتات",
+  "ghostMode": "وضع الشبح",
+  "demoMode": "وضع تجريبي",
+  "folderAll": "الكل",
+  "folderPersonal": "شخصي",
+  "folderWork": "شغل",
+  "folderGroups": "جروبات",
+  "tabChats": "الشاتات",
+  "tabVault": "الخزنة",
+  "tabTimeMachine": "الآلة الزمنية",
+  "tabMore": "المزيد",
+  "typeMessage": "اكتب رسالة…",
+  "send": "إرسال",
+  "attach": "إرفاق",
+  "back": "رجوع",
+  "silentRead": "قراءة صامتة مفعّلة",
+  "ghostOnForChat": "شبح لهذا الشات",
+  "ghostOffForChat": "إيقاف الشبح لهذا الشات",
+  "hideChat": "إخفاء الشات",
+  "unhideChat": "إظهار الشات",
+  "vaultUnlocked": "الخزنة مفتوحة",
+  "vaultLocked": "الخزنة مقفولة",
+  "vaultAuthReason": "تحقق من هويتك لفتح الشاتات المخفية",
+  "vaultUnavailable": "البصمة أو قفل الشاشة غير متاحين على الجهاز",
+  "noChats": "لا توجد شاتات",
+  "noMessages": "لا توجد رسائل بعد",
+  "connecting": "جاري الاتصال…",
+  "errorGeneric": "حدث خطأ، حاول مرة أخرى",
+  "loginPhoneTitle": "تسجيل الدخول",
+  "loginPhoneHint": "رقم الهاتف مع كود الدولة",
+  "loginCodeTitle": "كود التحقق",
+  "loginCodeHint": "الكود اللي وصلك على تليجرام",
+  "loginPasswordTitle": "كلمة سر التحقق بخطوتين",
+  "loginPasswordHint": "كلمة السر",
+  "next": "التالي",
+  "kindPhoto": "صورة",
+  "kindVideo": "فيديو",
+  "kindVoice": "رسالة صوتية",
+  "kindDocument": "ملف",
+  "kindSticker": "ملصق",
+  "kindOther": "رسالة",
+  "splitPreview": "{count, plural, =1{رسالة واحدة} =2{رسالتين} few{{count} رسائل} other{{count} رسالة}}",
+  "@splitPreview": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "splitNotice": "الرسالة طويلة وهتتقسم إلى {count}",
+  "@splitNotice": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "performanceMode": "وضع الأداء",
+  "language": "اللغة",
+  "deletedByPeer": "اتمسحت من المُرسل",
+  "edited": "معدّلة"
+}

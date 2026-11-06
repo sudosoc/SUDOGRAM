@@ -1,0 +1,78 @@
+name: Android
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+
+  tdlib:
+    # Builds libtdjson.so for arm64 using TDLib's own Android scripts.
+    # Cached by TDLib commit; the first run takes a long time.
+    runs-on: ubuntu-latest
+    env:
+      TDLIB_REF: master
+    steps:
+      - uses: actions/cache@v4
+        id: cache
+        with:
+          path: libtdjson.so
+          key: tdjson-arm64-${{ env.TDLIB_REF }}-v1
+      - if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 https://github.com/tdlib/td.git
+          cd td/example/android
+          sdkmanager "ndk;27.2.12479018" "cmake;3.22.1" || true
+          export ANDROID_NDK_ROOT="$ANDROID_SDK_ROOT/ndk/27.2.12479018"
+          ./check-environment.sh
+          ./fetch-sdk.sh
+          ./build-openssl.sh "$ANDROID_SDK_ROOT" "$ANDROID_NDK_ROOT" openssl 21
+          ./build-tdlib.sh "$ANDROID_SDK_ROOT" "$ANDROID_NDK_ROOT" openssl 21 Java
+          find . -name libtdjni.so -o -name libtdjson.so
+          # TODO: confirm the exact output path / that libtdjson.so (JSON
+          # interface) is produced by this script; adjust and verify on first run.
+          cp "$(find . -name libtdjson.so | grep arm64 | head -1)" "$GITHUB_WORKSPACE/libtdjson.so"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: libtdjson-arm64
+          path: libtdjson.so
+
+  apk:
+    needs: [test, tdlib]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: libtdjson-arm64
+          path: android/app/src/main/jniLibs/arm64-v8a
+      - run: flutter pub get
+      - name: Build APK (debug-signed, private use)
+        run: |
+          flutter build apk --release --target-platform android-arm64 \
+            --dart-define=TG_API_ID=${{ secrets.TG_API_ID }} \
+            --dart-define=TG_API_HASH=${{ secrets.TG_API_HASH }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sudogram-apk
+          path: build/app/outputs/flutter-apk/app-release.apk

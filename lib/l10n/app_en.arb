@@ -1,0 +1,67 @@
+{
+  "@@locale": "en",
+  "appTitle": "SUDOGRAM",
+  "chats": "Chats",
+  "search": "Search",
+  "searchHint": "Search chats",
+  "ghostMode": "Ghost Mode",
+  "demoMode": "Demo mode",
+  "folderAll": "All",
+  "folderPersonal": "Personal",
+  "folderWork": "Work",
+  "folderGroups": "Groups",
+  "tabChats": "Chats",
+  "tabVault": "Vault",
+  "tabTimeMachine": "Time Machine",
+  "tabMore": "More",
+  "typeMessage": "Type a message…",
+  "send": "Send",
+  "attach": "Attach",
+  "back": "Back",
+  "silentRead": "Silent read is on",
+  "ghostOnForChat": "Ghost for this chat",
+  "ghostOffForChat": "Turn off ghost for this chat",
+  "hideChat": "Hide chat",
+  "unhideChat": "Unhide chat",
+  "vaultUnlocked": "Vault unlocked",
+  "vaultLocked": "Vault locked",
+  "vaultAuthReason": "Verify your identity to open hidden chats",
+  "vaultUnavailable": "Biometrics or screen lock are not available on this device",
+  "noChats": "No chats",
+  "noMessages": "No messages yet",
+  "connecting": "Connecting…",
+  "errorGeneric": "Something went wrong, try again",
+  "loginPhoneTitle": "Sign in",
+  "loginPhoneHint": "Phone number with country code",
+  "loginCodeTitle": "Verification code",
+  "loginCodeHint": "The code sent to your Telegram",
+  "loginPasswordTitle": "Two-step verification password",
+  "loginPasswordHint": "Password",
+  "next": "Next",
+  "kindPhoto": "Photo",
+  "kindVideo": "Video",
+  "kindVoice": "Voice message",
+  "kindDocument": "File",
+  "kindSticker": "Sticker",
+  "kindOther": "Message",
+  "splitPreview": "{count, plural, =1{1 message} other{{count} messages}}",
+  "@splitPreview": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "splitNotice": "Long message, will be split into {count}",
+  "@splitNotice": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "performanceMode": "Performance mode",
+  "language": "Language",
+  "deletedByPeer": "Deleted by sender",
+  "edited": "edited"
+}
