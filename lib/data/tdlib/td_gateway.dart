@@ -246,7 +246,10 @@ class TdlibGateway implements TelegramGateway {
       'chat_id': chatId,
       'input_message_content': {
         '@type': 'inputMessageDocument',
-        'document': {'@type': 'inputFileLocal', 'path': path},
+        'document': {
+          '@type': 'inputDocument',
+          'document': {'@type': 'inputFileLocal', 'path': path},
+        },
         'caption': {'@type': 'formattedText', 'text': caption},
       },
     });
@@ -261,12 +264,19 @@ class TdlibGateway implements TelegramGateway {
     if (_videoExt.contains(ext)) {
       return {
         '@type': 'inputMessageVideo',
-        'video': file,
-        'supports_streaming': true,
+        'video': {
+          '@type': 'inputVideo',
+          'video': file,
+          'supports_streaming': true,
+        },
         'caption': cap,
       };
     }
-    return {'@type': 'inputMessagePhoto', 'photo': file, 'caption': cap};
+    return {
+      '@type': 'inputMessagePhoto',
+      'photo': {'@type': 'inputPhoto', 'photo': file},
+      'caption': cap,
+    };
   }
 
   @override
@@ -829,12 +839,11 @@ class TdlibGateway implements TelegramGateway {
     if (content?['@type'] != 'messagePoll') return null;
     final p = content!['poll'] as Map?;
     if (p == null) return null;
-    final type = p['type'] as Map?;
     return PollData(
       question: _txt(p['question']),
       total: asInt(p['total_voter_count']),
       closed: p['is_closed'] == true,
-      multiple: type?['allow_multiple_answers'] == true,
+      multiple: p['allows_multiple_answers'] == true,
       options: [
         for (final o in (p['options'] as List? ?? const []).whereType<Map>())
           PollOption(_txt(o['text']), asInt(o['voter_count']), o['is_chosen'] == true)
@@ -1521,9 +1530,12 @@ class TdlibGateway implements TelegramGateway {
       'chat_id': chatId,
       'input_message_content': {
         '@type': 'inputMessageVoiceNote',
-        'voice_note': {'@type': 'inputFileLocal', 'path': path},
-        'duration': seconds,
-        'waveform': '',
+        'voice_note': {
+          '@type': 'inputVoiceNote',
+          'voice_note': {'@type': 'inputFileLocal', 'path': path},
+          'duration': seconds,
+          'waveform': '',
+        },
         'caption': {'@type': 'formattedText', 'text': ''},
       },
     });
@@ -1531,10 +1543,15 @@ class TdlibGateway implements TelegramGateway {
 
   @override
   Future<ChatSummary?> joinByLink(String link) async {
-    final c = await _td.request(
+    final r = await _td.request(
         {'@type': 'joinChatByInviteLink', 'invite_link': link.trim()});
-    _applyChat(Map<String, dynamic>.from(c));
-    return _summary(_chat(asInt(c['id'])));
+    final id = asInt(r['chat_id']);
+    if (id == 0) return null; // request sent / needs approval
+    if (!_chats.containsKey(id)) {
+      final c = await _td.request({'@type': 'getChat', 'chat_id': id});
+      _applyChat(Map<String, dynamic>.from(c));
+    }
+    return _summary(_chat(id));
   }
 
   @override
@@ -1686,9 +1703,10 @@ class TdlibGateway implements TelegramGateway {
       'chat_id': chatId,
       'input_message_content': {
         '@type': 'inputMessageSticker',
-        'sticker': {'@type': 'inputFileId', 'id': sticker.fileId},
-        'width': 0,
-        'height': 0,
+        'sticker': {
+          '@type': 'inputSticker',
+          'sticker': {'@type': 'inputFileId', 'id': sticker.fileId},
+        },
         'emoji': sticker.emoji,
       },
     });
@@ -1784,10 +1802,15 @@ class TdlibGateway implements TelegramGateway {
         'question': {'@type': 'formattedText', 'text': question},
         'options': [
           for (final o in options)
-            {'@type': 'inputPollOption', 'text': {'@type': 'formattedText', 'text': o}}
+            {
+              '@type': 'inputPollOption',
+              'text': {'@type': 'formattedText', 'text': o},
+            }
         ],
         'is_anonymous': anonymous,
-        'type': {'@type': 'pollTypeRegular', 'allow_multiple_answers': multiple},
+        'allows_multiple_answers': multiple,
+        'allows_revoting': true,
+        'type': {'@type': 'inputPollTypeRegular', 'allow_adding_options': false},
         'open_period': 0,
         'close_date': 0,
         'is_closed': false,
@@ -1860,10 +1883,10 @@ class TdlibGateway implements TelegramGateway {
       'chat_id': chatId,
       'input_message_content': {
         '@type': 'inputMessageAnimation',
-        'animation': {'@type': 'inputFileId', 'id': gif.fileId},
-        'duration': 0,
-        'width': 0,
-        'height': 0,
+        'animation': {
+          '@type': 'inputAnimation',
+          'animation': {'@type': 'inputFileId', 'id': gif.fileId},
+        },
         'caption': {'@type': 'formattedText', 'text': ''},
       },
     });

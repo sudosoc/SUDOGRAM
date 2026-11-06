@@ -206,10 +206,13 @@ void main() {
   test('media: single item is a message, many become albums of 10', () async {
     await g.sendMedia(1, ['/a/x.jpg']);
     expect(t.sent.last['@type'], 'sendMessage');
+    expect(t.sent.last['input_message_content']['photo']['photo']['@type'], 'inputFileLocal');
     expect(t.sent.last['input_message_content']['@type'], 'inputMessagePhoto');
     await g.sendMedia(1, ['/a/v.MP4']);
     expect(t.sent.last['input_message_content']['@type'], 'inputMessageVideo');
-    expect(t.sent.last['input_message_content']['supports_streaming'], isTrue);
+    expect(t.sent.last['input_message_content']['video']['supports_streaming'], isTrue);
+    // TDLib wraps the file: inputPhoto{photo: InputFile}, inputVideo{video: InputFile}
+    expect(t.sent.last['input_message_content']['video']['video']['@type'], 'inputFileLocal');
 
     t.sent.clear();
     await g.sendMedia(1, [for (var i = 0; i < 12; i++) i.isEven ? '/a/$i.jpg' : '/a/$i.mov'],
@@ -505,6 +508,8 @@ void main() {
       sent.add(r);
       switch (r['@type']) {
         case 'joinChatByInviteLink':
+          return {'@type': 'chatJoinResultSuccess', 'chat_id': 77};
+        case 'getChat':
           return {'@type': 'chat', 'id': 77, 'title': 'Joined', 'type': {'@type': 'chatTypeBasicGroup', 'basic_group_id': 3}};
         case 'getBlockedMessageSenders':
           return {'@type': 'messageSenders', 'senders': [{'@type': 'messageSenderUser', 'user_id': 8}]};
@@ -565,7 +570,8 @@ void main() {
     expect(sent.map((r) => r['@type']), containsAll(['pinChatMessage', 'unpinChatMessage']));
     expect(gifs.single.gif, isTrue);
     final poll = sent[0]['input_message_content'] as Map;
-    expect((poll['type'] as Map)['allow_multiple_answers'], isTrue);
+    expect(poll['allows_multiple_answers'], isTrue);
+    expect((poll['type'] as Map)['@type'], 'inputPollTypeRegular');
     expect((poll['options'] as List).length, 2);
   });
 
