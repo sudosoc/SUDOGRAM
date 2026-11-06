@@ -237,6 +237,20 @@ class MockGateway implements TelegramGateway {
   Future<void> removeMember(int chatId, int userId) async {}
 
   @override
+  Future<void> pinMessage(int chatId, int messageId, {required bool pin}) async {}
+  @override
+  Future<void> sendPoll(int chatId, String question, List<String> options,
+      {bool multiple = false, bool anonymous = true}) async {}
+  @override
+  Future<void> sendLocation(int chatId, double lat, double lon) async {}
+  @override
+  Future<void> sendContact(int chatId, int userId) async {}
+  @override
+  Future<List<StickerItem>> savedGifs() async => const [];
+  @override
+  Future<void> sendGif(int chatId, StickerItem gif) async {}
+
+  @override
   Future<void> forwardMessages(int toChatId, int fromChatId, List<int> ids) async {}
   @override
   Stream<ChatStatus> watchChatStatus(int chatId) =>

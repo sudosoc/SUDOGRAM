@@ -42,14 +42,19 @@ class _Picker extends StatefulWidget {
 }
 
 class _PickerState extends State<_Picker> {
-  late final Future<List<StickerSetInfo>> _sets = widget.gw.stickerSets();
+  late final Future<List<StickerSetInfo>> _sets = widget.gw
+      .stickerSets()
+      .then((l) => [const StickerSetInfo(-1, 'GIF'), ...l]);
   int _sel = 0;
   Future<List<StickerItem>>? _items;
   List<StickerSetInfo> _list = const [];
 
+  Future<List<StickerItem>> _itemsFor(StickerSetInfo s) =>
+      s.id == -1 ? widget.gw.savedGifs() : widget.gw.stickerSetItems(s.id);
+
   void _load(int i) {
     _sel = i;
-    _items = widget.gw.stickerSetItems(_list[i].id);
+    _items = _itemsFor(_list[i]);
   }
 
   @override
@@ -63,7 +68,7 @@ class _PickerState extends State<_Picker> {
         }
         _list = snap.data ?? const [];
         if (_list.isEmpty) return Center(child: Text(l.noResults));
-        _items ??= widget.gw.stickerSetItems(_list.first.id);
+        _items ??= _itemsFor(_list.first);
         return Column(children: [
           SizedBox(
             height: 40,

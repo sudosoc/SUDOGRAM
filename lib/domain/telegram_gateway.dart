@@ -163,5 +163,15 @@ abstract class TelegramGateway {
   Future<void> addMember(int chatId, int userId);
   Future<void> removeMember(int chatId, int userId);
 
+  Future<void> pinMessage(int chatId, int messageId, {required bool pin});
+  Future<void> sendPoll(int chatId, String question, List<String> options,
+      {bool multiple = false, bool anonymous = true});
+  Future<void> sendLocation(int chatId, double lat, double lon);
+  Future<void> sendContact(int chatId, int userId);
+
+  /// The user's saved GIFs (animations).
+  Future<List<StickerItem>> savedGifs();
+  Future<void> sendGif(int chatId, StickerItem gif);
+
   Future<void> dispose();
 }

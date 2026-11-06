@@ -539,4 +539,33 @@ void main() {
     expect((sticker['input_message_content'] as Map)['@type'], 'inputMessageSticker');
     expect(await g.setCloudPassword(oldPassword: 'a', newPassword: 'b'), isTrue);
   });
+
+  test('poll, location, contact, gif and pin requests are well-formed', () async {
+    final sent = <Map<String, dynamic>>[];
+    t.onRequest = (r) {
+      sent.add(r);
+      if (r['@type'] == 'getSavedAnimations') {
+        return {'@type': 'animations', 'animations': [
+          {'animation': {'id': 40}, 'thumbnail': {'file': {'id': 41}}}
+        ]};
+      }
+      return {'@type': 'ok'};
+    };
+    await g.sendPoll(5, 'Q', ['a', 'b'], multiple: true);
+    await g.sendLocation(5, 30.1, 31.2);
+    await g.sendContact(5, 9);
+    final gifs = await g.savedGifs();
+    await g.sendGif(5, gifs.single);
+    await g.pinMessage(5, 3, pin: true);
+    await g.pinMessage(5, 3, pin: false);
+    String kind(int i) => (sent[i]['input_message_content'] as Map)['@type'] as String;
+    expect(kind(0), 'inputMessagePoll');
+    expect(kind(1), 'inputMessageLocation');
+    expect(kind(2), 'inputMessageContact');
+    expect(sent.map((r) => r['@type']), containsAll(['pinChatMessage', 'unpinChatMessage']));
+    expect(gifs.single.gif, isTrue);
+    final poll = sent[0]['input_message_content'] as Map;
+    expect((poll['type'] as Map)['allow_multiple_answers'], isTrue);
+    expect((poll['options'] as List).length, 2);
+  });
 }

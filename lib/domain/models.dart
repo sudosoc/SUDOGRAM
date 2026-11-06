@@ -382,7 +382,8 @@ class StickerSetInfo {
 }
 
 class StickerItem {
-  const StickerItem(this.fileId, this.thumbFileId, this.emoji);
+  const StickerItem(this.fileId, this.thumbFileId, this.emoji, {this.gif = false});
+  final bool gif;
   final int fileId;
   final int thumbFileId;
   final String emoji;

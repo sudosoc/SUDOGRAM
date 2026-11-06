@@ -244,6 +244,31 @@ class GhostGateway implements TelegramGateway {
       _inner.removeMember(chatId, userId);
 
   @override
+  Future<void> pinMessage(int chatId, int messageId, {required bool pin}) =>
+      _inner.pinMessage(chatId, messageId, pin: pin);
+
+  @override
+  Future<void> sendPoll(int chatId, String question, List<String> options,
+          {bool multiple = false, bool anonymous = true}) =>
+      _inner.sendPoll(chatId, question, options,
+          multiple: multiple, anonymous: anonymous);
+
+  @override
+  Future<void> sendLocation(int chatId, double lat, double lon) =>
+      _inner.sendLocation(chatId, lat, lon);
+
+  @override
+  Future<void> sendContact(int chatId, int userId) =>
+      _inner.sendContact(chatId, userId);
+
+  @override
+  Future<List<StickerItem>> savedGifs() => _inner.savedGifs();
+
+  @override
+  Future<void> sendGif(int chatId, StickerItem gif) =>
+      _inner.sendGif(chatId, gif);
+
+  @override
   Future<void> forwardMessages(int toChatId, int fromChatId, List<int> ids) =>
       _inner.forwardMessages(toChatId, fromChatId, ids);
   @override

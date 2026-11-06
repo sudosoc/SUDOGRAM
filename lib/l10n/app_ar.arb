@@ -124,7 +124,7 @@
   "networkInspector": "مراقب الشبكة",
   "connState": "الاتصال",
   "netEmpty": "مفيش طلبات لسه",
-  "pin": "تثبيت",
+  "pin": "تثبيت الرسالة",
   "unpin": "إلغاء التثبيت",
   "addToFolder": "المجلدات",
   "newFolder": "مجلد جديد",
@@ -323,5 +323,21 @@
   "removeMember": "إزالة",
   "wallpaper": "خلفية الشات",
   "telegramResults": "نتائج تليجرام",
-  "done": "تم"
+  "done": "تم",
+  "createPoll": "استطلاع",
+  "pollQuestion": "السؤال",
+  "pollOption": "الخيار {n}",
+  "@pollOption": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "pollMultiple": "السماح بأكتر من إجابة",
+  "location": "الموقع",
+  "contactLabel": "جهة اتصال",
+  "gif": "GIF",
+  "locationDenied": "إذن الموقع مرفوض",
+  "send2": "إرسال"
 }

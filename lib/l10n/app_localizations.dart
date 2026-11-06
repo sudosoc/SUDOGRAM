@@ -677,7 +677,7 @@ abstract class AppLocalizations {
   /// No description provided for @pin.
   ///
   /// In ar, this message translates to:
-  /// **'تثبيت'**
+  /// **'تثبيت الرسالة'**
   String get pin;
 
   /// No description provided for @unpin.
@@ -1621,6 +1621,60 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'تم'**
   String get done;
+
+  /// No description provided for @createPoll.
+  ///
+  /// In ar, this message translates to:
+  /// **'استطلاع'**
+  String get createPoll;
+
+  /// No description provided for @pollQuestion.
+  ///
+  /// In ar, this message translates to:
+  /// **'السؤال'**
+  String get pollQuestion;
+
+  /// No description provided for @pollOption.
+  ///
+  /// In ar, this message translates to:
+  /// **'الخيار {n}'**
+  String pollOption(String n);
+
+  /// No description provided for @pollMultiple.
+  ///
+  /// In ar, this message translates to:
+  /// **'السماح بأكتر من إجابة'**
+  String get pollMultiple;
+
+  /// No description provided for @location.
+  ///
+  /// In ar, this message translates to:
+  /// **'الموقع'**
+  String get location;
+
+  /// No description provided for @contactLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'جهة اتصال'**
+  String get contactLabel;
+
+  /// No description provided for @gif.
+  ///
+  /// In ar, this message translates to:
+  /// **'GIF'**
+  String get gif;
+
+  /// No description provided for @locationDenied.
+  ///
+  /// In ar, this message translates to:
+  /// **'إذن الموقع مرفوض'**
+  String get locationDenied;
+
+  /// No description provided for @send2.
+  ///
+  /// In ar, this message translates to:
+  /// **'إرسال'**
+  String get send2;
 }
 
 class _AppLocalizationsDelegate

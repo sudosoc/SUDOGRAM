@@ -637,6 +637,16 @@ class TdlibGateway implements TelegramGateway {
         return (kind: MessageKind.document, text: caption());
       case 'messageSticker':
         return (kind: MessageKind.sticker, text: '');
+      case 'messageLocation':
+        final loc = content['location'] as Map?;
+        return (
+          kind: MessageKind.other,
+          text: '📍 https://maps.google.com/?q=${loc?['latitude']},${loc?['longitude']}',
+        );
+      case 'messageContact':
+        final c = content['contact'] as Map?;
+        final name = '${c?['first_name'] ?? ''} ${c?['last_name'] ?? ''}'.trim();
+        return (kind: MessageKind.other, text: '👤 $name +${c?['phone_number'] ?? ''}');
       case 'messagePoll':
         return (
           kind: MessageKind.poll,
@@ -1735,6 +1745,113 @@ class TdlibGateway implements TelegramGateway {
       'chat_id': chatId,
       'member_id': {'@type': 'messageSenderUser', 'user_id': userId},
       'status': {'@type': 'chatMemberStatusLeft'},
+    });
+  }
+
+  @override
+  Future<void> pinMessage(int chatId, int messageId, {required bool pin}) async {
+    await _td.request({
+      '@type': pin ? 'pinChatMessage' : 'unpinChatMessage',
+      'chat_id': chatId,
+      'message_id': messageId,
+      if (pin) 'disable_notification': false,
+      if (pin) 'only_for_self': false,
+    });
+  }
+
+  @override
+  Future<void> sendPoll(int chatId, String question, List<String> options,
+      {bool multiple = false, bool anonymous = true}) async {
+    await _td.request({
+      '@type': 'sendMessage',
+      'chat_id': chatId,
+      'input_message_content': {
+        '@type': 'inputMessagePoll',
+        'question': {'@type': 'formattedText', 'text': question},
+        'options': [
+          for (final o in options)
+            {'@type': 'inputPollOption', 'text': {'@type': 'formattedText', 'text': o}}
+        ],
+        'is_anonymous': anonymous,
+        'type': {'@type': 'pollTypeRegular', 'allow_multiple_answers': multiple},
+        'open_period': 0,
+        'close_date': 0,
+        'is_closed': false,
+      },
+    });
+  }
+
+  @override
+  Future<void> sendLocation(int chatId, double lat, double lon) async {
+    await _td.request({
+      '@type': 'sendMessage',
+      'chat_id': chatId,
+      'input_message_content': {
+        '@type': 'inputMessageLocation',
+        'location': {
+          '@type': 'location',
+          'latitude': lat,
+          'longitude': lon,
+          'horizontal_accuracy': 0,
+        },
+        'live_period': 0,
+        'heading': 0,
+        'proximity_alert_radius': 0,
+      },
+    });
+  }
+
+  @override
+  Future<void> sendContact(int chatId, int userId) async {
+    final u = _users[userId] ?? const <String, String>{};
+    final parts = (u['name'] ?? '').split(' ');
+    await _td.request({
+      '@type': 'sendMessage',
+      'chat_id': chatId,
+      'input_message_content': {
+        '@type': 'inputMessageContact',
+        'contact': {
+          '@type': 'contact',
+          'phone_number': u['phone'] ?? '',
+          'first_name': parts.first,
+          'last_name': parts.skip(1).join(' '),
+          'user_id': userId,
+        },
+      },
+    });
+  }
+
+  @override
+  Future<List<StickerItem>> savedGifs() async {
+    try {
+      final r = await _td.request({'@type': 'getSavedAnimations'});
+      return [
+        for (final x in (r['animations'] as List? ?? const []).whereType<Map>())
+          StickerItem(
+            asInt((x['animation'] as Map?)?['id']),
+            asInt(((x['thumbnail'] as Map?)?['file'] as Map?)?['id']),
+            '',
+            gif: true,
+          )
+      ];
+    } on TdError {
+      return const [];
+    }
+  }
+
+  @override
+  Future<void> sendGif(int chatId, StickerItem gif) async {
+    await _td.request({
+      '@type': 'sendMessage',
+      'chat_id': chatId,
+      'input_message_content': {
+        '@type': 'inputMessageAnimation',
+        'animation': {'@type': 'inputFileId', 'id': gif.fileId},
+        'duration': 0,
+        'width': 0,
+        'height': 0,
+        'caption': {'@type': 'formattedText', 'text': ''},
+      },
     });
   }
 

@@ -314,7 +314,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get netEmpty => 'مفيش طلبات لسه';
 
   @override
-  String get pin => 'تثبيت';
+  String get pin => 'تثبيت الرسالة';
 
   @override
   String get unpin => 'إلغاء التثبيت';
@@ -801,4 +801,33 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get done => 'تم';
+
+  @override
+  String get createPoll => 'استطلاع';
+
+  @override
+  String get pollQuestion => 'السؤال';
+
+  @override
+  String pollOption(String n) {
+    return 'الخيار $n';
+  }
+
+  @override
+  String get pollMultiple => 'السماح بأكتر من إجابة';
+
+  @override
+  String get location => 'الموقع';
+
+  @override
+  String get contactLabel => 'جهة اتصال';
+
+  @override
+  String get gif => 'GIF';
+
+  @override
+  String get locationDenied => 'إذن الموقع مرفوض';
+
+  @override
+  String get send2 => 'إرسال';
 }

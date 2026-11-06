@@ -124,8 +124,8 @@
   "networkInspector": "Network Inspector",
   "connState": "Connection",
   "netEmpty": "No requests yet",
-  "pin": "Pin",
-  "unpin": "Unpin",
+  "pin": "Pin message",
+  "unpin": "Unpin message",
   "addToFolder": "Folders",
   "newFolder": "New folder",
   "folderName": "Folder name",
@@ -323,5 +323,21 @@
   "removeMember": "Remove",
   "wallpaper": "Chat background",
   "telegramResults": "Telegram results",
-  "done": "Done"
+  "done": "Done",
+  "createPoll": "Poll",
+  "pollQuestion": "Question",
+  "pollOption": "Option {n}",
+  "@pollOption": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
+  "pollMultiple": "Allow multiple answers",
+  "location": "Location",
+  "contactLabel": "Contact",
+  "gif": "GIF",
+  "locationDenied": "Location permission denied",
+  "send2": "Send"
 }

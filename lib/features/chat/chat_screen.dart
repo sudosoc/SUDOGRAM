@@ -9,6 +9,7 @@ import '../../l10n/app_localizations.dart';
 import '../home/home_screen.dart' show kindLabel;
 import 'dart:io';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
@@ -22,6 +23,7 @@ import '../splitter/smart_splitter.dart';
 import '../../core/drafts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'avatar.dart';
+import 'package:geolocator/geolocator.dart';
 import 'wallpapers.dart';
 import 'sticker_picker.dart';
 import 'package:lottie/lottie.dart';
@@ -194,6 +196,100 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     await _sendPaths([x.path]);
   }
 
+  Future<void> _newPoll() async {
+    final l = AppLocalizations.of(context);
+    final q = TextEditingController();
+    final opts = [TextEditingController(), TextEditingController()];
+    var multiple = false;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => StatefulBuilder(
+        builder: (context, set) => AlertDialog(
+          title: Text(l.createPoll),
+          content: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              TextField(
+                  controller: q,
+                  decoration: InputDecoration(hintText: l.pollQuestion)),
+              for (var i = 0; i < opts.length; i++)
+                TextField(
+                    controller: opts[i],
+                    decoration:
+                        InputDecoration(hintText: l.pollOption('${i + 1}'))),
+              if (opts.length < 10)
+                TextButton.icon(
+                  icon: const Icon(Icons.add),
+                  label: Text(l.pollOption('${opts.length + 1}')),
+                  onPressed: () => set(() => opts.add(TextEditingController())),
+                ),
+              SwitchListTile(
+                  title: Text(l.pollMultiple),
+                  value: multiple,
+                  onChanged: (v) => set(() => multiple = v)),
+            ]),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(l.send2)),
+          ],
+        ),
+      ),
+    );
+    final options = [
+      for (final o in opts)
+        if (o.text.trim().isNotEmpty) o.text.trim()
+    ];
+    if (ok != true || q.text.trim().isEmpty || options.length < 2) return;
+    await _safe(() =>
+        _gateway.sendPoll(widget.chat.id, q.text.trim(), options, multiple: multiple));
+  }
+
+  Future<void> _shareLocation() async {
+    final l = AppLocalizations.of(context);
+    var perm = await Geolocator.checkPermission();
+    if (perm == LocationPermission.denied) {
+      perm = await Geolocator.requestPermission();
+    }
+    if (perm == LocationPermission.denied ||
+        perm == LocationPermission.deniedForever) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(l.locationDenied)));
+      }
+      return;
+    }
+    final pos = await Geolocator.getCurrentPosition();
+    await _gateway.sendLocation(widget.chat.id, pos.latitude, pos.longitude);
+  }
+
+  Future<void> _shareContact() async {
+    final contacts = await _gateway.contacts();
+    if (!mounted) return;
+    final l = AppLocalizations.of(context);
+    final picked = await showDialog<ChatSummary>(
+      context: context,
+      builder: (_) => SimpleDialog(
+        title: Text(l.contactLabel),
+        children: [
+          SizedBox(
+            width: double.maxFinite,
+            height: 360,
+            child: ListView(children: [
+              for (final c in contacts)
+                ListTile(
+                    title: Text(c.title),
+                    onTap: () => Navigator.pop(context, c)),
+            ]),
+          ),
+        ],
+      ),
+    );
+    if (picked != null) {
+      await _safe(() => _gateway.sendContact(widget.chat.id, picked.id));
+    }
+  }
+
   void _attachSheet() {
     final l = AppLocalizations.of(context);
     Widget item(IconData i, String t, VoidCallback f) => ListTile(
@@ -220,6 +316,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             item(Icons.videocam_outlined, l.cameraVideo,
                 () => _pickCamera(video: true)),
             item(Icons.attach_file, l.fileLabel, () => _safe(_attach)),
+            item(Icons.poll_outlined, l.createPoll, _newPoll),
+            item(Icons.location_on_outlined, l.location, () => _safe(_shareLocation)),
+            item(Icons.contact_page_outlined, l.contactLabel, _shareContact),
           ]),
         ),
       ),
@@ -373,6 +472,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               item(Icons.shortcut, l.forward, () => _pickForward(m, chats)),
             if (m.edited)
               item(Icons.history, l.editHistory, () => _showEdits(context, m)),
+            if (!m.deletedByPeer &&
+                (widget.chat.type == ChatType.private || widget.chat.canSend))
+              item(
+                  _pinned?.id == m.id ? Icons.push_pin : Icons.push_pin_outlined,
+                  _pinned?.id == m.id ? l.unpin : l.pin, () async {
+                final unpin = _pinned?.id == m.id;
+                await _safe(() => _gateway.pinMessage(widget.chat.id, m.id,
+                    pin: !unpin));
+                final p = await _gateway.pinnedMessage(widget.chat.id);
+                if (mounted) setState(() => _pinned = p);
+              }),
             if (!m.deletedByPeer)
               item(Icons.delete_outline, l.delete, () => _confirmDelete(m),
                   c: GlassTokens.ringDanger),
@@ -850,7 +960,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         icon: const Icon(Icons.emoji_emotions_outlined),
                         onPressed: () => showStickerPicker(context, _gateway,
                             onPick: (st) => _safe(
-                                () => _gateway.sendSticker(widget.chat.id, st))),
+                                () => st.gif
+                                ? _gateway.sendGif(widget.chat.id, st)
+                                : _gateway.sendSticker(widget.chat.id, st))),
                       ),
                     if (_c.text.trim().isEmpty && _editing == null)
                       IconButton(
@@ -1011,7 +1123,7 @@ class _Bubble extends StatelessWidget {
                   ),
                 ),
               if (showText && !(sticker && m.text.isEmpty))
-                Text.rich(TextSpan(children: _spans(text, accent))),
+                _LinkText(text: text, color: accent),
               if (m.file != null && m.kind == MessageKind.voice)
                 VoicePlayer(
                     file: m.file!, onDownload: () => onDownload(m.file!.fileId))
@@ -1115,16 +1227,59 @@ class _Bubble extends StatelessWidget {
 }
 
 
-List<InlineSpan> _spans(String text, Color accent) {
-  final out = <InlineSpan>[];
-  var last = 0;
-  for (final m in RegExp(r'@\w{3,32}').allMatches(text)) {
-    if (m.start > last) out.add(TextSpan(text: text.substring(last, m.start)));
-    out.add(TextSpan(text: m.group(0), style: TextStyle(color: accent)));
-    last = m.end;
+/// Message text with tappable links and highlighted @mentions.
+class _LinkText extends StatefulWidget {
+  const _LinkText({required this.text, required this.color});
+  final String text;
+  final Color color;
+
+  @override
+  State<_LinkText> createState() => _LinkTextState();
+}
+
+class _LinkTextState extends State<_LinkText> {
+  final _recognizers = <TapGestureRecognizer>[];
+
+  void _clear() {
+    for (final r in _recognizers) {
+      r.dispose();
+    }
+    _recognizers.clear();
   }
-  if (last < text.length) out.add(TextSpan(text: text.substring(last)));
-  return out;
+
+  @override
+  void dispose() {
+    _clear();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    _clear();
+    final text = widget.text;
+    final out = <InlineSpan>[];
+    var last = 0;
+    final re = RegExp(r'(https?://[^\s]+)|(@\w{3,32})');
+    for (final m in re.allMatches(text)) {
+      if (m.start > last) out.add(TextSpan(text: text.substring(last, m.start)));
+      final url = m.group(1);
+      final style = TextStyle(
+          color: widget.color,
+          decoration: url != null ? TextDecoration.underline : null);
+      if (url != null) {
+        final r = TapGestureRecognizer()
+          ..onTap = () => launchUrl(Uri.parse(url),
+              mode: LaunchMode.externalApplication);
+        _recognizers.add(r);
+        out.add(TextSpan(text: url, style: style, recognizer: r));
+      } else {
+        out.add(TextSpan(text: m.group(0), style: style));
+      }
+      last = m.end;
+    }
+    if (last < text.length) out.add(TextSpan(text: text.substring(last)));
+    return Text.rich(TextSpan(children: out));
+  }
 }
 
 class _PollView extends StatelessWidget {

@@ -313,10 +313,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get netEmpty => 'No requests yet';
 
   @override
-  String get pin => 'Pin';
+  String get pin => 'Pin message';
 
   @override
-  String get unpin => 'Unpin';
+  String get unpin => 'Unpin message';
 
   @override
   String get addToFolder => 'Folders';
@@ -801,4 +801,33 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get done => 'Done';
+
+  @override
+  String get createPoll => 'Poll';
+
+  @override
+  String get pollQuestion => 'Question';
+
+  @override
+  String pollOption(String n) {
+    return 'Option $n';
+  }
+
+  @override
+  String get pollMultiple => 'Allow multiple answers';
+
+  @override
+  String get location => 'Location';
+
+  @override
+  String get contactLabel => 'Contact';
+
+  @override
+  String get gif => 'GIF';
+
+  @override
+  String get locationDenied => 'Location permission denied';
+
+  @override
+  String get send2 => 'Send';
 }
