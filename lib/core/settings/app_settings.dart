@@ -165,6 +165,13 @@ class AppSettings {
   bool get bgBlobs => x['bgBlobs'] as bool? ?? true;
 
   // ---- Personal tools
+  /// Attach-menu entries in order, hidden ones left out.
+  List<String> get attachItems => [
+    for (final e in (x['attachItems'] as List? ?? const [
+      'gallery', 'photo', 'video', 'file', 'location', 'live', 'contact', 'poll', 'scheduled',
+    ]))
+      '$e',
+  ];
   String get iconStyle => x['iconStyle'] as String? ?? 'default';
   String get quickReaction => x['quickReaction'] as String? ?? '👍';
   List<String> get quickReplies =>
@@ -475,6 +482,77 @@ class SettingsController extends Notifier<AppSettings> {
   void _set(AppSettings next) {
     state = next;
     next.save(ref.read(sharedPreferencesProvider));
+  }
+
+  static bool _secretKey(String k) =>
+      k.startsWith('hidden') ||
+      k.startsWith('lock') ||
+      k == 'accounts' ||
+      k == 'activeSlot';
+
+  /// Everything except passcodes, hidden-chat and account data.
+  Map<String, dynamic> exportBackup() => {
+    'format': 'sudogram-settings',
+    'version': 1,
+    'ghostGlobal': state.ghostGlobal,
+    'ghostOverrides': {
+      for (final e in state.ghostOverrides.entries) '${e.key}': e.value,
+    },
+    'performanceMode': state.performanceMode,
+    'notifications': state.notifications,
+    'wallpaper': state.wallpaper,
+    'accent': state.accent,
+    'locale': state.localeCode,
+    'pinned': state.pinned.toList(),
+    'aliases': {for (final e in state.aliases.entries) '${e.key}': e.value},
+    'folders': {for (final e in state.folders.entries) e.key: e.value.toList()},
+    'profiles': state.profiles,
+    'x': {
+      for (final e in state.x.entries)
+        if (!_secretKey(e.key)) e.key: e.value,
+    },
+  };
+
+  /// Applies a file made by [exportBackup]; throws FormatException if it is
+  /// not one. Security settings on this phone are left untouched.
+  void importBackup(Map<String, dynamic> j) {
+    if (j['format'] != 'sudogram-settings') {
+      throw const FormatException('Not a SUDOGRAM settings file');
+    }
+    final x = Map<String, dynamic>.of(state.x);
+    x.removeWhere((k, _) => !_secretKey(k));
+    for (final e in ((j['x'] as Map?) ?? const {}).entries) {
+      if (!_secretKey('${e.key}')) x['${e.key}'] = e.value;
+    }
+    _set(state.copyWith(
+      ghostGlobal: j['ghostGlobal'] as bool?,
+      ghostOverrides: {
+        for (final e in ((j['ghostOverrides'] as Map?) ?? const {}).entries)
+          int.parse('${e.key}'): e.value as bool,
+      },
+      performanceMode: j['performanceMode'] as bool?,
+      notifications: j['notifications'] as bool?,
+      wallpaper: (j['wallpaper'] as num?)?.toInt(),
+      accent: (j['accent'] as num?)?.toInt(),
+      localeCode: j['locale'] as String?,
+      clearLocale: j['locale'] == null,
+      pinned: {for (final e in (j['pinned'] as List? ?? const [])) (e as num).toInt()},
+      aliases: {
+        for (final e in ((j['aliases'] as Map?) ?? const {}).entries)
+          int.parse('${e.key}'): '${e.value}',
+      },
+      folders: {
+        for (final e in ((j['folders'] as Map?) ?? const {}).entries)
+          '${e.key}': {for (final i in e.value as List) (i as num).toInt()},
+      },
+      profiles: {
+        for (final e in ((j['profiles'] as Map?) ?? const {}).entries)
+          '${e.key}': {
+            for (final k in (e.value as Map).entries) '${k.key}': k.value as bool,
+          },
+      },
+      x: x,
+    ));
   }
 
   void setGhostGlobal(bool value) => _set(state.copyWith(ghostGlobal: value));

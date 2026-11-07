@@ -46,6 +46,32 @@ Future<bool> requireHiddenAuth(BuildContext context, WidgetRef ref) async {
   return ok ?? false;
 }
 
+/// True when the "Hidden chats settings" entries may be shown: only while
+/// the vault is open (or when nothing is protected yet).
+bool showHiddenSettingsEntry(WidgetRef ref) {
+  final s = ref.watch(settingsProvider);
+  return ref.watch(vaultUnlockProvider) || (!s.hasHiddenPin && !s.hiddenAuth);
+}
+
+/// Single door to the hidden-chats settings: always asks again, even when
+/// the vault is already open, and falls back to the phone lock when no
+/// passcode was set up yet.
+Future<void> openHiddenSettings(BuildContext context, WidgetRef ref) async {
+  final s = ref.read(settingsProvider);
+  final nav = Navigator.of(context);
+  final l = AppLocalizations.of(context);
+  final bool ok;
+  if (!s.hiddenAuth && !s.hasHiddenPin) {
+    ok = await ref.read(vaultUnlockProvider.notifier).deviceAuth(l.vaultAuthReason);
+  } else {
+    ok = await requireHiddenAuth(context, ref);
+  }
+  if (!ok) return;
+  await nav.push(
+    MaterialPageRoute<void>(builder: (_) => const HiddenSettingsScreen()),
+  );
+}
+
 /// Entry point used by every "open hidden chats" gesture.
 Future<void> openHiddenChats(BuildContext context, WidgetRef ref) async {
   final nav = Navigator.of(context);

@@ -9,6 +9,7 @@ import 'package:video_player/video_player.dart';
 
 import '../../app/providers.dart';
 import '../../core/i18n/tr.dart';
+import '../../core/media_save.dart';
 import '../../core/ui/notice.dart';
 import '../../domain/models.dart';
 import 'info_screen.dart' show InfoJump;
@@ -135,6 +136,36 @@ class _MediaViewerState extends ConsumerState<MediaViewerScreen> {
       appBar: AppBar(
         backgroundColor: Colors.black54,
         title: Text('${m.time.day}/${m.time.month}/${m.time.year}'),
+        actions: [
+          if (_path != null)
+            IconButton(
+              tooltip: context.t('Save to device', 'حفظ على الجهاز'),
+              icon: const SIcon(Icons.download),
+              onPressed: () async {
+                final f = m.file ?? m.thumb!;
+                final copy = m.copyWith(
+                  file: Attachment(
+                    fileId: f.fileId,
+                    name: f.name,
+                    size: f.size,
+                    localPath: _path,
+                    downloaded: true,
+                  ),
+                );
+                try {
+                  final ok = await saveToDevice(copy);
+                  if (context.mounted) {
+                    notice(context, ok ? context.t('Saved', 'تم الحفظ') : context.t('Could not save', 'تعذر الحفظ'),
+                        kind: ok ? NoticeKind.success : NoticeKind.error);
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    notice(context, friendlyError(e, ar: context.isAr), kind: NoticeKind.error);
+                  }
+                }
+              },
+            ),
+        ],
       ),
       body: body,
       bottomNavigationBar: SafeArea(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../home/hidden_gate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/ui/icon_styles.dart';
 
@@ -7,7 +8,6 @@ import '../../core/i18n/tr.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/theme/glass.dart';
 import '../../domain/models.dart';
-import '../home/hidden_screen.dart';
 import 'account_screens.dart';
 import 'applock_screen.dart';
 import 'devices_screen.dart';
@@ -135,13 +135,14 @@ class PrivacyScreen extends ConsumerWidget {
               'إخفاء القراءة والكتابة والاتصال.')),
           onTap: () => _go(context, const GhostScreen()),
         ),
-        ListTile(
-          leading: const SIcon(Icons.lock_person_outlined),
-          title: Text(context.t('Hidden chats', 'الشاتات المخفية')),
-          subtitle: Text(context.t('Open methods, sections, lock options.',
-              'طرق الفتح، الأقسام، خيارات القفل.')),
-          onTap: () => _go(context, const HiddenSettingsScreen()),
-        ),
+        if (showHiddenSettingsEntry(ref))
+          ListTile(
+            leading: const SIcon(Icons.lock_person_outlined),
+            title: Text(context.t('Hidden chats', 'الشاتات المخفية')),
+            subtitle: Text(context.t('Open methods, sections, lock options.',
+                'طرق الفتح، الأقسام، خيارات القفل.')),
+            onTap: () => openHiddenSettings(context, ref),
+          ),
       ]),
     ]);
   }

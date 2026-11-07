@@ -5,6 +5,7 @@ import '../../core/ui/icon_styles.dart';
 import '../../core/i18n/tr.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/theme/glass.dart';
+import '../../app/providers.dart';
 import '../chat/wallpapers.dart';
 import 'widgets.dart';
 
@@ -79,6 +80,24 @@ class WallpaperTextTab extends ConsumerWidget {
               max: 1.4,
               divisions: 12,
               fmt: (v) => '${(v * 100).round()}%',
+            ),
+            ListTile(
+              leading: const SIcon(Icons.download_for_offline_outlined),
+              title: Text(context.t('Media downloads', 'تنزيل الوسائط')),
+              subtitle: SHint(context.t('Auto-save photos / videos to the gallery, per chat rules.',
+                  'حفظ الصور والفيديو تلقائيًا في المعرض مع قواعد لكل شات.')),
+              trailing: const SIcon(Icons.chevron_right, size: 20),
+              onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => const MediaDownloadsScreen())),
+            ),
+            ListTile(
+              leading: const SIcon(Icons.attach_file),
+              title: Text(context.t('Attach menu', 'قايمة المرفقات')),
+              subtitle: SHint(context.t('Choose which options the paperclip shows.',
+                  'اختار الخيارات اللي تظهر في قايمة المرفقات.')),
+              trailing: const SIcon(Icons.chevron_right, size: 20),
+              onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => const AttachMenuScreen())),
             ),
             SwitchListTile(
               secondary: const SIcon(Icons.speed),
@@ -305,6 +324,183 @@ class _General extends ConsumerWidget {
             ),
           ],
         ),
+      ],
+    );
+  }
+}
+
+/// Choose which entries the attach (paperclip) menu shows, and their order.
+class AttachMenuScreen extends ConsumerWidget {
+  const AttachMenuScreen({super.key});
+
+  static const _all = <String, (IconData, String, String)>{
+    'gallery': (Icons.photo_library_outlined, 'Gallery', 'المعرض'),
+    'photo': (Icons.photo_camera_outlined, 'Camera photo', 'تصوير صورة'),
+    'video': (Icons.videocam_outlined, 'Camera video', 'تصوير فيديو'),
+    'file': (Icons.attach_file, 'File', 'ملف'),
+    'location': (Icons.location_on_outlined, 'Location', 'الموقع'),
+    'live': (Icons.share_location, 'Live location', 'الموقع المباشر'),
+    'contact': (Icons.contact_page_outlined, 'Contact', 'جهة اتصال'),
+    'poll': (Icons.poll_outlined, 'Poll', 'استطلاع'),
+    'scheduled': (Icons.schedule_send_outlined, 'Scheduled messages', 'الرسايل المجدولة'),
+  };
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final on = ref.watch(settingsProvider).attachItems;
+    final order = [...on, for (final k in _all.keys) if (!on.contains(k)) k];
+    void save(List<String> ids) =>
+        ref.read(settingsProvider.notifier).setX('attachItems', ids);
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        title: Text(context.t('Attach menu', 'قايمة المرفقات')),
+      ),
+      body: ReorderableListView(
+        padding: const EdgeInsets.only(bottom: 32),
+        header: SHint(context.t(
+            'Choose what the paperclip menu shows. Drag to reorder.',
+            'اختار إيه اللي يظهر في قايمة المرفقات. اسحب لإعادة الترتيب.')),
+        onReorderItem: (a, b) {
+          final l = [...order];
+          l.insert(b, l.removeAt(a));
+          save([for (final k in l) if (on.contains(k)) k]);
+        },
+        children: [
+          for (final k in order)
+            SwitchListTile(
+              key: ValueKey(k),
+              secondary: SIcon(_all[k]!.$1),
+              title: Text(context.t(_all[k]!.$2, _all[k]!.$3)),
+              value: on.contains(k),
+              onChanged: (v) => save([
+                for (final x in order)
+                  if (x == k ? v : on.contains(x)) x,
+              ]),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Save received photos / videos to the gallery — globally and per chat.
+class MediaDownloadsScreen extends ConsumerWidget {
+  const MediaDownloadsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = ref.watch(settingsProvider);
+    final c = ref.read(settingsProvider.notifier);
+    final modes = <String, String>{
+      for (final e in ((s.x['saveChatModes'] as Map?) ?? const {}).entries)
+        '${e.key}': '${e.value}',
+    };
+    final chats = ref.watch(chatsProvider).value ?? const [];
+    String nameOf(String id) {
+      for (final ch in chats) {
+        if ('${ch.id}' == id) return ch.title;
+      }
+      return id;
+    }
+
+    void setMode(String id, String? mode) {
+      final m = {...modes};
+      if (mode == null) {
+        m.remove(id);
+      } else {
+        m[id] = mode;
+      }
+      c.setX('saveChatModes', m);
+    }
+
+    return SPage(
+      title: context.t('Media downloads', 'تنزيل الوسائط'),
+      children: [
+        SGroup(title: context.t('Save to gallery automatically', 'حفظ تلقائي في المعرض'), children: [
+          SwitchListTile(
+            secondary: const SIcon(Icons.photo_outlined),
+            title: Text(context.t('Photos', 'الصور')),
+            subtitle: SHint(context.t('Received photos are copied to the gallery when they finish downloading.',
+                'الصور المستلمة بتتنسخ للمعرض أول ما تخلص تحميل.')),
+            value: s.x['saveGalleryPhotos'] == true,
+            onChanged: (v) => c.setX('saveGalleryPhotos', v),
+          ),
+          SwitchListTile(
+            secondary: const SIcon(Icons.videocam_outlined),
+            title: Text(context.t('Videos', 'الفيديوهات')),
+            value: s.x['saveGalleryVideos'] == true,
+            onChanged: (v) => c.setX('saveGalleryVideos', v),
+          ),
+        ]),
+        SGroup(
+          title: context.t('Per-chat exceptions', 'استثناءات لكل شات'),
+          children: [
+            SHint(context.t(
+                'A chat can always save or never save, whatever the switches above say.',
+                'أي شات تقدر تخليه يحفظ دايمًا أو ما يحفظش أبدًا، بغض النظر عن المفاتيح اللي فوق.')),
+            for (final e in modes.entries)
+              ListTile(
+                leading: SIcon(e.value == 'always' ? Icons.download_done : Icons.block),
+                title: Text(nameOf(e.key)),
+                subtitle: Text(e.value == 'always'
+                    ? context.t('Always save', 'احفظ دايمًا')
+                    : context.t('Never save', 'ما تحفظش أبدًا')),
+                trailing: PopupMenuButton<String>(
+                  onSelected: (v) => setMode(e.key, v == 'default' ? null : v),
+                  itemBuilder: (_) => [
+                    PopupMenuItem(value: 'always', child: Text(context.t('Always save', 'احفظ دايمًا'))),
+                    PopupMenuItem(value: 'never', child: Text(context.t('Never save', 'ما تحفظش أبدًا'))),
+                    PopupMenuItem(value: 'default', child: Text(context.t('Remove exception', 'شيل الاستثناء'))),
+                  ],
+                ),
+              ),
+            ListTile(
+              leading: const SIcon(Icons.add),
+              title: Text(context.t('Add a chat…', 'إضافة شات…')),
+              onTap: () async {
+                final picked = await showModalBottomSheet<(String, String)>(
+                  context: context,
+                  isScrollControlled: true,
+                  builder: (_) => SafeArea(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.7),
+                      child: ListView(shrinkWrap: true, children: [
+                        for (final ch in chats)
+                          ListTile(
+                            title: Text(ch.title),
+                            onTap: () => Navigator.pop(context, ('${ch.id}', ch.title)),
+                          ),
+                      ]),
+                    ),
+                  ),
+                );
+                if (picked == null || !context.mounted) return;
+                final mode = await showDialog<String>(
+                  context: context,
+                  builder: (_) => SimpleDialog(
+                    title: Text(picked.$2),
+                    children: [
+                      SimpleDialogOption(
+                        onPressed: () => Navigator.pop(context, 'always'),
+                        child: Text(context.t('Always save', 'احفظ دايمًا')),
+                      ),
+                      SimpleDialogOption(
+                        onPressed: () => Navigator.pop(context, 'never'),
+                        child: Text(context.t('Never save', 'ما تحفظش أبدًا')),
+                      ),
+                    ],
+                  ),
+                );
+                if (mode != null) setMode(picked.$1, mode);
+              },
+            ),
+          ],
+        ),
+        SHint(context.t(
+            'Tip: long-press any photo, video, file or voice note in a chat → "Save to device".',
+            'تلميحة: اضغط مطولًا على أي صورة أو فيديو أو ملف أو ريكورد في الشات ← "حفظ على الجهاز".')),
       ],
     );
   }

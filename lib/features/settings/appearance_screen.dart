@@ -417,6 +417,11 @@ class _IconsTab extends ConsumerWidget {
       'sharp': context.t('Sharp', 'حادة'),
       'glow': context.t('Glow', 'توهج'),
       'badge': context.t('Badge', 'دائرة'),
+      'duotone': context.t('Duotone', 'ثنائي اللون'),
+      'neon': context.t('Neon', 'نيون'),
+      'tile': context.t('Tile', 'مربع ملوّن'),
+      'bold': context.t('Bold', 'سميكة'),
+      'cupertino': context.t('iOS style', 'ستايل iOS'),
     };
     const sample = [
       Icons.chat_bubble,

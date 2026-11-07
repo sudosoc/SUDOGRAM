@@ -216,11 +216,7 @@ class _HiddenChatsScreenState extends ConsumerState<HiddenChatsScreen> {
           IconButton(
             tooltip: l.hiddenSettings,
             icon: const SIcon(Icons.settings_outlined),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => const HiddenSettingsScreen(),
-              ),
-            ),
+            onPressed: () => openHiddenSettings(context, ref),
           ),
         ],
       ),

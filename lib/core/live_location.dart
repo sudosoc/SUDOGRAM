@@ -8,13 +8,13 @@ import '../domain/telegram_gateway.dart';
 /// until the period ends (works while the app is running).
 class LiveLocation {
   LiveLocation._();
-  static final Map<int, StreamSubscription<Position>> _subs = {};
+  static final Map<int, Timer> _subs = {};
   static final Map<int, Timer> _ends = {};
 
   static bool isActive(int chatId) => _subs.containsKey(chatId);
 
   static Future<void> stop(int chatId) async {
-    await _subs.remove(chatId)?.cancel();
+    _subs.remove(chatId)?.cancel();
     _ends.remove(chatId)?.cancel();
   }
 
@@ -45,7 +45,7 @@ class LiveLocation {
     });
     // The sent message gets its final id a moment later.
     int? msgId;
-    for (var i = 0; i < 12 && msgId == null; i++) {
+    for (var i = 0; i < 25 && msgId == null; i++) {
       await Future<void>.delayed(const Duration(seconds: 1));
       final h = await g.tdRaw({
         '@type': 'getChatHistory',
@@ -69,20 +69,20 @@ class LiveLocation {
     }
     if (msgId == null) return;
     final id = msgId;
-    DateTime last = DateTime.now();
-    _subs[chatId] = Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(distanceFilter: 10),
-    ).listen((p) async {
-      if (DateTime.now().difference(last).inSeconds < 10) return;
-      last = DateTime.now();
+    // Telegram only shows movement when we keep editing the message, so
+    // push a fresh fix every 10 s (moving or not).
+    _subs[chatId] = Timer.periodic(const Duration(seconds: 10), (_) async {
       try {
+        final p = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+        ).timeout(const Duration(seconds: 8));
         await g.tdRaw({
           '@type': 'editMessageLiveLocation',
           'chat_id': chatId,
           'message_id': id,
           'location': loc(p),
           'live_period': 0,
-          'heading': 0,
+          'heading': p.heading.isNaN ? 0 : p.heading.round().clamp(0, 360),
           'proximity_alert_radius': 0,
         });
       } catch (_) {}

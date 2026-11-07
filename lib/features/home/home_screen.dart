@@ -13,7 +13,12 @@ import '../chat/contacts_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../core/device_perms.dart';
+import '../../core/media_save.dart';
+import '../../domain/media_events.dart';
+import '../../core/i18n/tr.dart';
+import '../settings/permissions_screen.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/theme/glass.dart';
 import '../../data/archive/archive_db.dart';
@@ -153,22 +158,53 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    MediaEvents.onDownloaded =
+        (m) => autoSaveIfWanted(ref.read(settingsProvider), m);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _askBackground();
       await _askDevicePerms();
     });
   }
 
-  /// First launch only: location (country, sharing) and contacts (sync).
+  /// Every launch: asks for whatever is still missing (one prompt each,
+  /// never for permissions Android has locked to "don't ask again").
   Future<void> _askDevicePerms() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (prefs.getBool('asked_device_perms') ?? false) return;
-    await prefs.setBool('asked_device_perms', true);
-    await ensureLocationPermission();
     if (!mounted) return;
-    try {
-      await syncPhoneContacts(ref.read(gatewayProvider));
-    } catch (_) {}
+    for (final p in [
+      Permission.notification,
+      Permission.location,
+      Permission.contacts,
+    ]) {
+      final st = await p.status;
+      if (st.isGranted || st.isLimited || st.isPermanentlyDenied) continue;
+      if (!mounted) return;
+      final it = PermissionsScreenState.items.firstWhere((e) => e.$1 == p);
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: Text(context.t(it.$3, it.$4)),
+          content: Text(context.t(it.$5, it.$6)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(context.t('Not now', 'مش دلوقتي')),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(context.t('Allow', 'سماح')),
+            ),
+          ],
+        ),
+      );
+      if (ok != true) continue;
+      await p.request();
+    }
+    if (!mounted) return;
+    if (await Permission.contacts.isGranted) {
+      try {
+        await syncPhoneContacts(ref.read(gatewayProvider));
+      } catch (_) {}
+    }
   }
 
   /// Once, explain why background activity is needed, then ask Android.

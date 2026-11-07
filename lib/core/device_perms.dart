@@ -1,6 +1,7 @@
 import 'dart:async';
 
-import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:flutter_contacts/flutter_contacts.dart' hide PermissionStatus;
+import 'package:permission_handler/permission_handler.dart' as ph;
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -40,8 +41,7 @@ Future<String?> detectIsoByLocation() async {
 
 Future<bool> ensureContactsPermission() async {
   try {
-    final s = await FlutterContacts.permissions.request(PermissionType.read);
-    return s == PermissionStatus.granted || s == PermissionStatus.limited;
+    return (await ph.Permission.contacts.request()).isGranted;
   } catch (_) {
     return false;
   }

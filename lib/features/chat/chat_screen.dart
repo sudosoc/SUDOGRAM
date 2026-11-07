@@ -40,10 +40,12 @@ import 'package:geolocator/geolocator.dart';
 
 import 'wallpapers.dart';
 
-import 'package:lottie/lottie.dart';
 
 import 'info_screen.dart';
 import 'voice_player.dart';
+import '../../core/media_save.dart';
+import 'tgs_view.dart';
+import 'location_card.dart';
 import 'file_card.dart';
 import 'contact_card.dart';
 import '../home/chat_actions.dart';
@@ -660,56 +662,65 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   void _attachSheet() {
     final l = AppLocalizations.of(context);
-    Widget item(IconData i, String t, VoidCallback f) => ListTile(
-      leading: SIcon(i),
-      title: Text(t),
-      onTap: () {
-        Navigator.of(context).pop();
-        f();
-      },
-    );
+    final all = <String, (IconData, String, VoidCallback)>{
+      'gallery': (Icons.photo_library_outlined, l.gallery, _pickGallery),
+      'photo': (Icons.photo_camera_outlined, l.cameraPhoto, () => _pickCamera(video: false)),
+      'video': (Icons.videocam_outlined, l.cameraVideo, () => _pickCamera(video: true)),
+      'file': (Icons.attach_file, l.fileLabel, () => _safe(_attach)),
+      'poll': (Icons.poll_outlined, l.createPoll, _newPoll),
+      'scheduled': (Icons.schedule_send_outlined, l.scheduledMessages, _showScheduled),
+      'location': (Icons.location_on_outlined, l.location, () => _safe(_shareLocation)),
+      'live': (Icons.share_location, context.t('Live location', 'الموقع المباشر'), _liveLocation),
+      'contact': (Icons.contact_page_outlined, l.contactLabel, _shareContact),
+    };
+    final ids = ref.read(settingsProvider).attachItems.where(all.containsKey).toList();
     showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (_) => Padding(
         padding: const EdgeInsets.all(12),
         child: GlassSurface(
           blur: true,
           radius: 24,
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              item(Icons.photo_library_outlined, l.gallery, _pickGallery),
-              item(
-                Icons.photo_camera_outlined,
-                l.cameraPhoto,
-                () => _pickCamera(video: false),
-              ),
-              item(
-                Icons.videocam_outlined,
-                l.cameraVideo,
-                () => _pickCamera(video: true),
-              ),
-              item(Icons.attach_file, l.fileLabel, () => _safe(_attach)),
-              item(Icons.poll_outlined, l.createPoll, _newPoll),
-              item(
-                Icons.schedule_send_outlined,
-                l.scheduledMessages,
-                _showScheduled,
-              ),
-              item(
-                Icons.location_on_outlined,
-                l.location,
-                () => _safe(_shareLocation),
-              ),
-              item(
-                Icons.share_location,
-                context.t('Live location', 'الموقع المباشر'),
-                _liveLocation,
-              ),
-              item(Icons.contact_page_outlined, l.contactLabel, _shareContact),
-            ],
+          padding: const EdgeInsets.all(12),
+          child: SingleChildScrollView(
+            child: Wrap(
+              alignment: WrapAlignment.start,
+              spacing: 4,
+              runSpacing: 12,
+              children: [
+                for (final id in ids)
+                  InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      all[id]!.$3();
+                    },
+                    child: SizedBox(
+                      width: (MediaQuery.of(context).size.width - 24 - 24 - 12) / 4,
+                      child: Column(mainAxisSize: MainAxisSize.min, children: [
+                        Container(
+                          width: 54,
+                          height: 54,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: GlassScope.of(context).accent.withValues(alpha: 0.22),
+                          ),
+                          child: SIcon(all[id]!.$1, size: 26),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(all[id]!.$2,
+                            textAlign: TextAlign.center,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 12)),
+                      ]),
+                    ),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -1051,6 +1062,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   l.resend,
                   () => _safe(() => _gateway.resend(widget.chat.id, m.id)),
                 ),
+              if (m.file != null)
+                item(Icons.download_for_offline_outlined,
+                    context.t('Save to device', 'حفظ على الجهاز'), () => _saveDevice(m)),
               if (m.text.isNotEmpty || (m.file?.downloaded ?? false))
                 item(Icons.ios_share, l.share, () => _share([m])),
               if (!m.deletedByPeer && widget.chat.type != ChatType.secret)
@@ -1133,6 +1147,39 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         ),
       ),
     );
+  }
+
+  /// Downloads first when needed, then saves to the gallery / a chosen folder.
+  Future<void> _saveDevice(ChatMessage m) async {
+    var cur = m;
+    final fid = m.file?.fileId;
+    if (fid == null) return;
+    try {
+      if (!(m.file?.downloaded ?? false)) {
+        notice(context, context.t('Downloading…', 'جاري التحميل…'));
+        await _gateway.downloadFile(fid);
+        for (var i = 0; i < 240; i++) {
+          await Future<void>.delayed(const Duration(milliseconds: 500));
+          final list = ref.read(messagesProvider(widget.chat.id)).value ?? const <ChatMessage>[];
+          cur = list.firstWhere((x) => x.id == m.id, orElse: () => cur);
+          if (cur.file?.downloaded ?? false) break;
+        }
+      }
+      final ok = await saveToDevice(cur);
+      if (mounted) {
+        notice(
+          context,
+          ok
+              ? (cur.kind == MessageKind.photo || cur.kind == MessageKind.video
+                  ? context.t('Saved to gallery', 'تم الحفظ في المعرض')
+                  : context.t('Saved', 'تم الحفظ'))
+              : context.t('Could not save', 'تعذر الحفظ'),
+          kind: ok ? NoticeKind.success : NoticeKind.error,
+        );
+      }
+    } catch (e) {
+      if (mounted) notice(context, friendlyError(e, ar: context.isAr), kind: NoticeKind.error);
+    }
   }
 
   // ---- stars (kept on this phone)
@@ -2667,8 +2714,10 @@ class _Bubble extends StatelessWidget {
         ? preview.localPath
         : null;
     final contact = contactOf(m);
-    final showText =
-        contact == null && (m.text.isNotEmpty || (m.file == null && !isVisual));
+    final locData = m.loc ?? (m.kind == MessageKind.other ? parseLocation(m.text) : null);
+    final showText = contact == null &&
+        locData == null &&
+        (m.text.isNotEmpty || (m.file == null && !isVisual));
     final text = m.text.isNotEmpty ? m.text : kindLabel(l, m.kind);
     final sticker = m.kind == MessageKind.sticker;
     return Align(
@@ -2758,20 +2807,7 @@ class _Bubble extends StatelessWidget {
                                 m.file!.name.endsWith('.tgs') &&
                                 m.file!.downloaded &&
                                 m.file!.localPath != null)
-                          ? SizedBox(
-                              width: 150,
-                              height: 150,
-                              child: Lottie.file(
-                                File(m.file!.localPath!),
-                                decoder: LottieComposition.decodeGZip,
-                                errorBuilder: (_, _, _) => Center(
-                                  child: Text(
-                                    m.emoji,
-                                    style: const TextStyle(fontSize: 56),
-                                  ),
-                                ),
-                              ),
-                            )
+                          ? TgsView(path: m.file!.localPath!, emoji: m.emoji)
                           : previewPath != null
                           ? Image.file(
                               File(previewPath),
@@ -2782,15 +2818,30 @@ class _Bubble extends StatelessWidget {
                             )
                           : SizedBox(
                               width: sticker ? 120 : 220,
-                              height: sticker ? 120 : 140,
-                              child: Center(
-                                child: sticker && m.emoji.isNotEmpty
-                                    ? Text(
-                                        m.emoji,
-                                        style: const TextStyle(fontSize: 56),
-                                      )
-                                    : Text(l.photoLoading),
-                              ),
+                              height: sticker ? 120 : 160,
+                              child: Stack(fit: StackFit.expand, children: [
+                                if (m.mini != null && !sticker)
+                                  Image.memory(m.mini!,
+                                      fit: BoxFit.cover,
+                                      gaplessPlayback: true,
+                                      filterQuality: FilterQuality.low),
+                                Center(
+                                  child: sticker && m.emoji.isNotEmpty
+                                      ? Text(
+                                          m.emoji,
+                                          style: const TextStyle(fontSize: 56),
+                                        )
+                                      : m.mini != null
+                                          ? Icon(
+                                              m.kind == MessageKind.video
+                                                  ? Icons.play_circle_fill
+                                                  : Icons.image_outlined,
+                                              size: 40,
+                                              color: Colors.white70,
+                                            )
+                                          : Text(l.photoLoading),
+                                ),
+                              ]),
                             ),
                     ),
                   ),
@@ -2808,6 +2859,7 @@ class _Bubble extends StatelessWidget {
                     onCancel: () => onCancel(m.file!.fileId),
                   ),
                 if (contact != null) ContactCardView(card: contact),
+                if (locData != null) LocationCard(m: m),
                 if (m.poll != null)
                   _PollView(poll: m.poll!, onVote: (ids) => onVote(ids)),
                 if (m.link != null)

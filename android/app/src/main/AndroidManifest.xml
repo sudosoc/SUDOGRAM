@@ -10,6 +10,7 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <uses-permission android:name="android.permission.READ_CONTACTS"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28"/>
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <application
@@ -45,295 +46,295 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias01" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l01" android:label="Calculator">
+        <activity-alias android:name=".Alias01" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l01" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias02" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l02" android:label="Notes">
+        <activity-alias android:name=".Alias02" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l02" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias03" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l03" android:label="Clock">
+        <activity-alias android:name=".Alias03" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l03" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias04" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l04" android:label="Calendar">
+        <activity-alias android:name=".Alias04" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l04" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias05" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l05" android:label="Weather">
+        <activity-alias android:name=".Alias05" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l05" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias06" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l06" android:label="Compass">
+        <activity-alias android:name=".Alias06" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l06" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias07" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l07" android:label="Flashlight">
+        <activity-alias android:name=".Alias07" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l07" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias08" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l08" android:label="Files">
+        <activity-alias android:name=".Alias08" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l08" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias09" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l09" android:label="Gallery">
+        <activity-alias android:name=".Alias09" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l09" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias10" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l10" android:label="Music">
+        <activity-alias android:name=".Alias10" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l10" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias11" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l11" android:label="Radio">
+        <activity-alias android:name=".Alias11" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l11" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias12" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l12" android:label="News">
+        <activity-alias android:name=".Alias12" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l12" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias13" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l13" android:label="Maps">
+        <activity-alias android:name=".Alias13" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l13" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias14" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l14" android:label="Battery">
+        <activity-alias android:name=".Alias14" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l14" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias15" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l15" android:label="Recorder">
+        <activity-alias android:name=".Alias15" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l15" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias16" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l16" android:label="QR Scanner">
+        <activity-alias android:name=".Alias16" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l16" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias17" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l17" android:label="Translate">
+        <activity-alias android:name=".Alias17" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l17" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias18" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l18" android:label="Dictionary">
+        <activity-alias android:name=".Alias18" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l18" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias19" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l19" android:label="Camera">
+        <activity-alias android:name=".Alias19" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l19" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias20" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l20" android:label="Phone">
+        <activity-alias android:name=".Alias20" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l20" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias21" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l21" android:label="Mail">
+        <activity-alias android:name=".Alias21" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l21" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias22" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l22" android:label="Shopping">
+        <activity-alias android:name=".Alias22" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l22" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias23" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l23" android:label="Wallet">
+        <activity-alias android:name=".Alias23" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l23" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias24" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l24" android:label="Games">
+        <activity-alias android:name=".Alias24" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l24" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias25" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l25" android:label="Stopwatch">
+        <activity-alias android:name=".Alias25" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l25" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias26" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l26" android:label="Alarm">
+        <activity-alias android:name=".Alias26" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l26" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias27" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l27" android:label="Podcasts">
+        <activity-alias android:name=".Alias27" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l27" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias28" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l28" android:label="Health">
+        <activity-alias android:name=".Alias28" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l28" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias29" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l29" android:label="Thermometer">
+        <activity-alias android:name=".Alias29" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l29" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias30" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l30" android:label="Dice">
+        <activity-alias android:name=".Alias30" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l30" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias31" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l31" android:label="Cloud">
+        <activity-alias android:name=".Alias31" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l31" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias32" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l32" android:label="Wi-Fi Tools">
+        <activity-alias android:name=".Alias32" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l32" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias33" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l33" android:label="Security">
+        <activity-alias android:name=".Alias33" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l33" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias34" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l34" android:label="Vault">
+        <activity-alias android:name=".Alias34" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l34" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias35" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l35" android:label="Stats">
+        <activity-alias android:name=".Alias35" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l35" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias36" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l36" android:label="Tasks">
+        <activity-alias android:name=".Alias36" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l36" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias37" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l37" android:label="VPN">
+        <activity-alias android:name=".Alias37" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l37" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias38" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l38" android:label="Ghost">
+        <activity-alias android:name=".Alias38" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l38" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias39" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l39" android:label="Paper Plane">
+        <activity-alias android:name=".Alias39" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l39" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias40" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l40" android:label="Dark Plane">
+        <activity-alias android:name=".Alias40" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l40" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias41" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l41" android:label="Menu">
+        <activity-alias android:name=".Alias41" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l41" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias42" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l42" android:label="Garden">
+        <activity-alias android:name=".Alias42" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l42" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias43" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l43" android:label="Booster">
+        <activity-alias android:name=".Alias43" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l43" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias44" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l44" android:label="Ghost Pink">
+        <activity-alias android:name=".Alias44" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l44" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias45" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l45" android:label="Ghost Green">
+        <activity-alias android:name=".Alias45" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l45" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias46" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l46" android:label="Gold Plane">
+        <activity-alias android:name=".Alias46" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l46" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias47" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l47" android:label="Ghost Violet">
+        <activity-alias android:name=".Alias47" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l47" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias48" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l48" android:label="Ghost Orange">
+        <activity-alias android:name=".Alias48" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l48" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
-        <activity-alias android:name=".Alias49" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l49" android:label="Red Plane">
+        <activity-alias android:name=".Alias49" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l49" android:label="SUDOGRAM">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>

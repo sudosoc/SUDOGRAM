@@ -8,12 +8,13 @@ import '../../core/theme/glass.dart';
 import '../../l10n/app_localizations.dart';
 import '../chat/avatar.dart';
 import '../home/hidden_gate.dart';
-import '../home/hidden_screen.dart';
 import '../rules/rules_screen.dart';
 import '../tools/tools_screens.dart';
 import '../../core/i18n/tr.dart';
 import 'account_screens.dart';
 import 'accounts_screen.dart';
+import 'backup_screen.dart';
+import 'permissions_screen.dart';
 import 'applock_screen.dart';
 import 'chats_settings.dart';
 import '../tools/premium_hub.dart';
@@ -157,17 +158,13 @@ class SettingsScreen extends ConsumerWidget {
               (_) => const GhostScreen(),
               sub: s.ghostGlobal ? l.ghostStatusOn : l.ghostStatusOff,
             ),
-            ListTile(
-              leading: const SIcon(Icons.lock_outline),
-              title: Text(l.hiddenSettings),
-              trailing: const SIcon(Icons.chevron_right, size: 20),
-              onTap: () async {
-                final ok = await requireHiddenAuth(context, ref);
-                if (ok && context.mounted) {
-                  _push(context, (_) => const HiddenSettingsScreen());
-                }
-              },
-            ),
+            if (showHiddenSettingsEntry(ref))
+              ListTile(
+                leading: const SIcon(Icons.lock_outline),
+                title: Text(l.hiddenSettings),
+                trailing: const SIcon(Icons.chevron_right, size: 20),
+                onTap: () => openHiddenSettings(context, ref),
+              ),
             nav(
               Icons.fingerprint,
               l.appLock,
@@ -187,6 +184,20 @@ class SettingsScreen extends ConsumerWidget {
                 'Themes, glass, home, chat list, header, bubbles, bottom bar',
                 'ثيمات، زجاج، هوم، قائمة، هيدر، فقاعات، شريط سفلي',
               ),
+            ),
+          ]),
+          group(context.t('Backup & permissions', 'النسخ الاحتياطي والصلاحيات'), [
+            nav(
+              Icons.settings_backup_restore,
+              context.t('Backup & restore settings', 'نسخ واستيراد الإعدادات'),
+              (_) => const BackupScreen(),
+              sub: context.t('Export / import every setting', 'تصدير واستيراد كل الإعدادات'),
+            ),
+            nav(
+              Icons.verified_user_outlined,
+              context.t('Permissions', 'الصلاحيات'),
+              (_) => const PermissionsScreen(),
+              sub: context.t('Location, contacts, notifications…', 'الموقع، جهات الاتصال، الإشعارات…'),
             ),
           ]),
           group(context.t('Chats & notifications', 'الشاتات والإشعارات'), [

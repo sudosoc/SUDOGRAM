@@ -1,6 +1,10 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
 import 'dart:async';
 
 import '../../core/live_value.dart';
+import '../../domain/media_events.dart';
 import '../../domain/models.dart';
 import '../../domain/telegram_gateway.dart';
 import 'td_transport.dart';
@@ -224,6 +228,10 @@ class TdlibGateway implements TelegramGateway {
       var out = m;
       if (m.file?.fileId == fid) {
         out = out.copyWith(file: _fileToAttachment(f, m.file!.name));
+        if (out.file!.downloaded && !m.file!.downloaded) {
+          final done = out;
+          scheduleMicrotask(() => MediaEvents.onDownloaded?.call(done));
+        }
       }
       if (m.thumb?.fileId == fid) {
         out = out.copyWith(thumb: _fileToAttachment(f, m.thumb!.name));
@@ -716,6 +724,7 @@ class TdlibGateway implements TelegramGateway {
       case 'messageDocument':
         return (kind: MessageKind.document, text: caption());
       case 'messageSticker':
+      case 'messageAnimatedEmoji':
         return (kind: MessageKind.sticker, text: '');
       case 'messageLocation':
         final loc = content['location'] as Map?;
@@ -772,7 +781,10 @@ class TdlibGateway implements TelegramGateway {
         file = a?['animation'] as Map?;
         name = (a?['file_name'] ?? 'animation.mp4').toString();
       case 'messageSticker':
-        final st = content['sticker'] as Map?;
+      case 'messageAnimatedEmoji':
+        final st = content['@type'] == 'messageSticker'
+            ? content['sticker'] as Map?
+            : (content['animated_emoji'] as Map?)?['sticker'] as Map?;
         final fmt = (st?['format'] as Map?)?['@type'];
         if (fmt == 'stickerFormatTgs') {
           file = st?['sticker'] as Map?;
@@ -804,7 +816,11 @@ class TdlibGateway implements TelegramGateway {
       name: name,
       size: size,
       localPath: path.isEmpty ? null : path,
-      downloaded: local['is_downloading_completed'] == true,
+      downloaded:
+          local['is_downloading_completed'] == true ||
+          (path.isNotEmpty &&
+              ((file['remote'] as Map?)?['id'] ?? '').toString().isEmpty &&
+              File(path).existsSync()),
       downloading: local['is_downloading_active'] == true,
       downloadedBytes: asInt(local['downloaded_size']),
     );
@@ -835,12 +851,23 @@ class TdlibGateway implements TelegramGateway {
         final sizes =
             ((content['photo'] as Map?)?['sizes'] as List?) ?? const [];
         if (sizes.isEmpty) return (null, '');
-        final pick = sizes.cast<Map>().firstWhere(
-          (e) => e['type'] == 'm',
-          orElse: () => sizes[sizes.length > 1 ? 1 : 0] as Map,
+        final all = sizes.cast<Map>();
+        // a size that is already on the phone (e.g. a photo we just sent)
+        // wins; otherwise the medium one.
+        final local = all.where(
+          (e) =>
+              ((e['photo'] as Map?)?['local'] as Map?)?['is_downloading_completed'] == true,
         );
+        final pick = local.isNotEmpty
+            ? local.last
+            : all.firstWhere(
+                (e) => e['type'] == 'm',
+                orElse: () => sizes[sizes.length > 1 ? 1 : 0] as Map,
+              );
         final f = pick['photo'] as Map?;
         return (f == null ? null : _fileToAttachment(f, 'thumb.jpg'), '');
+      case 'messageAnimatedEmoji':
+        return (null, (content['emoji'] ?? '').toString());
       case 'messageSticker':
         final st = content['sticker'] as Map?;
         if (st == null) return (null, '');
@@ -907,11 +934,37 @@ class TdlibGateway implements TelegramGateway {
         'messageSendingStateFailed' => 2,
         _ => 0,
       },
+      mini: _mini(m['content'] as Map?),
+      loc: _loc(m['content'] as Map?),
       poll: _poll(m['content'] as Map?),
       link: _link(m['content'] as Map?),
       contact: _contact(m['content'] as Map?),
       reactions: _reactions(m['interaction_info']).$1,
       myReactions: _reactions(m['interaction_info']).$2,
+    );
+  }
+
+  Uint8List? _mini(Map? content) {
+    final m = (((content?['photo'] ?? content?['video'] ?? content?['animation'])
+        as Map?)?['minithumbnail']) as Map?;
+    final d = m?['data'];
+    if (d is! String || d.isEmpty) return null;
+    try {
+      return base64Decode(d);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  LocationData? _loc(Map? content) {
+    if (content?['@type'] != 'messageLocation') return null;
+    final l = content!['location'] as Map?;
+    if (l == null) return null;
+    return LocationData(
+      (l['latitude'] as num).toDouble(),
+      (l['longitude'] as num).toDouble(),
+      livePeriod: asInt(content['live_period']),
+      expiresIn: asInt(content['expires_in']),
     );
   }
 
@@ -1054,11 +1107,23 @@ class TdlibGateway implements TelegramGateway {
   }
 
   void _onMessageContent(Map<String, dynamic> u) {
-    final content = _content(u['new_content'] as Map?);
+    final nc = u['new_content'] as Map?;
+    final content = _content(nc);
+    final att = _attachment(nc);
+    if (att != null && (att.name.endsWith('.tgs') || att.name.endsWith('.webm'))) {
+      _fileOwner[att.fileId] = (asInt(u['chat_id']), asInt(u['message_id']));
+      _autoDownload(att);
+    }
+    final loc = _loc(nc);
     _patchMessage(
       asInt(u['chat_id']),
       asInt(u['message_id']),
-      (m) => m.copyWith(text: content.text, kind: content.kind),
+      (m) => m.copyWith(
+        text: content.text,
+        kind: content.kind,
+        file: att,
+        loc: loc,
+      ),
     );
   }
 

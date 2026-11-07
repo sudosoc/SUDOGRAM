@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 /// Risk level shown as a colored ring around a chat avatar.
 /// `none` means no assessment exists (the ring is not drawn).
 enum RiskLevel { none, safe, caution, danger }
@@ -117,6 +119,16 @@ class Attachment {
   );
 }
 
+/// A shared location; [livePeriod] > 0 means a live location.
+class LocationData {
+  const LocationData(this.lat, this.lon, {this.livePeriod = 0, this.expiresIn = 0});
+  final double lat;
+  final double lon;
+  final int livePeriod;
+  final int expiresIn;
+  bool get live => livePeriod > 0;
+}
+
 class ChatMessage {
   const ChatMessage({
     required this.id,
@@ -141,6 +153,8 @@ class ChatMessage {
     this.link,
     this.contact,
     this.sendState = 0,
+    this.mini,
+    this.loc,
   });
 
   final int id;
@@ -187,6 +201,10 @@ class ChatMessage {
   /// 0 = delivered, 1 = sending, 2 = failed.
   final int sendState;
 
+  /// Tiny blurred JPEG shown while the real picture is not available yet.
+  final Uint8List? mini;
+  final LocationData? loc;
+
   ChatMessage copyWith({
     int? id,
     String? text,
@@ -201,6 +219,8 @@ class ChatMessage {
     Set<String>? myReactions,
     PollData? poll,
     int? sendState,
+    LocationData? loc,
+    String? emoji,
   }) {
     return ChatMessage(
       id: id ?? this.id,
@@ -217,7 +237,7 @@ class ChatMessage {
       senderName: senderName ?? this.senderName,
       replyToId: replyToId,
       thumb: thumb ?? this.thumb,
-      emoji: emoji,
+      emoji: emoji ?? this.emoji,
       read: read ?? this.read,
       reactions: reactions ?? this.reactions,
       myReactions: myReactions ?? this.myReactions,
@@ -225,6 +245,8 @@ class ChatMessage {
       link: link,
       contact: contact,
       sendState: sendState ?? this.sendState,
+      mini: mini,
+      loc: loc ?? this.loc,
     );
   }
 }
