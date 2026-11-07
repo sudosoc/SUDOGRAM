@@ -352,6 +352,30 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity-alias>
+        <activity-alias android:name=".Alias52" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l52" android:label="SUDOGRAM">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
+        <activity-alias android:name=".Alias53" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l53" android:label="SUDOGRAM">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
+        <activity-alias android:name=".Alias54" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l54" android:label="SUDOGRAM">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
+        <activity-alias android:name=".Alias55" android:targetActivity=".MainActivity" android:enabled="false" android:exported="true" android:icon="@drawable/ic_l55" android:label="SUDOGRAM">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity-alias>
         <!-- LAUNCHER-ALIASES-END -->
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->

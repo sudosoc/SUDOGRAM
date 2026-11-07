@@ -1,3 +1,4 @@
+import '../../core/time_fmt.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/ui/icon_styles.dart';
@@ -83,7 +84,7 @@ class GhostScreen extends ConsumerWidget {
                 Text(
                   s.ghostPaused
                       ? l.ghostPausedUntil(
-                          '${s.ghostPausedUntil!.hour.toString().padLeft(2, '0')}:${s.ghostPausedUntil!.minute.toString().padLeft(2, '0')}',
+                          fmtTime12(s.ghostPausedUntil!, ar: context.isAr),
                         )
                       : l.ghostPauseHint,
                   style: const TextStyle(color: GlassTokens.textSecondary),

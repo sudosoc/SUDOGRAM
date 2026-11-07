@@ -63,6 +63,10 @@ class AppSettings {
   bool ghostFor(int chatId) => ghostOverrides[chatId] ?? ghostGlobal;
 
   // ---- Ghost details -------------------------------------------------
+  // ---- voice changer: remembered per chat (off by default in every chat)
+  String fxFor(int chatId) => ((x['voiceFxChat'] as Map?)?['$chatId'] as String?) ?? 'none';
+  String fxLastFor(int chatId) => ((x['voiceFxLast'] as Map?)?['$chatId'] as String?) ?? 'deep';
+
   // ---- chat appearance (independent from the theme)
   String get wallId => x['wallId'] as String? ?? '';
   double get wallDim => (x['wallDim'] as num?)?.toDouble() ?? 0.25;
@@ -186,9 +190,9 @@ class AppSettings {
   /// Attach-menu entries in order, hidden ones left out.
   List<String> get attachItems => [
     for (final e in (x['attachItems'] as List? ?? const [
-      'gallery', 'photo', 'video', 'file', 'location', 'live', 'contact', 'poll', 'scheduled',
+      'gallery', 'photo', 'video', 'file', 'location', 'contact', 'poll', 'scheduled',
     ]))
-      '$e',
+      if (e != 'live') '$e',
   ];
   String get iconStyle => x['iconStyle'] as String? ?? 'default';
   String get quickReaction => x['quickReaction'] as String? ?? '👍';

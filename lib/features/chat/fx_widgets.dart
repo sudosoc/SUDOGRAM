@@ -11,6 +11,18 @@ import '../../core/theme/glass.dart';
 import '../../core/ui/icon_styles.dart';
 import '../../core/voice_fx.dart';
 
+/// Voice-changer choice is remembered per chat (and is off by default).
+void setChatFx(WidgetRef ref, int chatId, String id, {bool last = false}) {
+  final key = last ? 'voiceFxLast' : 'voiceFxChat';
+  final cur = Map<String, dynamic>.of(((ref.read(settingsProvider).x[key]) as Map?)?.cast<String, dynamic>() ?? const {});
+  if (id == 'none' && !last) {
+    cur.remove('$chatId');
+  } else {
+    cur['$chatId'] = id;
+  }
+  ref.read(settingsProvider.notifier).setX(key, cur);
+}
+
 /// Soft expanding ring used behind the mic while recording.
 class PulseRing extends StatefulWidget {
   const PulseRing({super.key, required this.color, required this.size, required this.child, this.active = true});
@@ -168,7 +180,8 @@ class _FxGlowState extends State<FxGlow> with SingleTickerProviderStateMixin {
 
 /// Long-press sheet: pick an effect and preview it (Arabic then English).
 class VoiceFxSheet extends ConsumerStatefulWidget {
-  const VoiceFxSheet({super.key});
+  const VoiceFxSheet({super.key, required this.chatId});
+  final int chatId;
   @override
   ConsumerState<VoiceFxSheet> createState() => _VoiceFxSheetState();
 }
@@ -237,8 +250,8 @@ class _VoiceFxSheetState extends ConsumerState<VoiceFxSheet> {
   Widget build(BuildContext context) {
     final accent = GlassScope.of(context).accent;
     final s = ref.watch(settingsProvider);
-    final cur = voiceFxFrom(s.voiceFx);
-    final sel = _sel ?? (cur == VoiceFx.none ? VoiceFx.deep : cur);
+    final cur = voiceFxFrom(s.fxFor(widget.chatId));
+    final sel = _sel ?? (cur == VoiceFx.none ? voiceFxFrom(s.fxLastFor(widget.chatId)) : cur);
     return Padding(
       padding: const EdgeInsets.all(12),
       child: GlassSurface(
@@ -254,9 +267,8 @@ class _VoiceFxSheetState extends ConsumerState<VoiceFxSheet> {
             Switch(
               value: cur != VoiceFx.none,
               onChanged: (on) {
-                final n = ref.read(settingsProvider.notifier);
-                n.setX('voiceFx', on ? sel.id : 'none');
-                if (on) n.setX('voiceFxLast', sel.id);
+                setChatFx(ref, widget.chatId, on ? sel.id : 'none');
+                if (on) setChatFx(ref, widget.chatId, sel.id, last: true);
               },
             ),
           ]),
@@ -277,9 +289,8 @@ class _VoiceFxSheetState extends ConsumerState<VoiceFxSheet> {
                       selected: sel == f,
                       onSelected: (_) {
                         setState(() => _sel = f);
-                        final n = ref.read(settingsProvider.notifier);
-                        n.setX('voiceFxLast', f.id);
-                        if (cur != VoiceFx.none) n.setX('voiceFx', f.id);
+                        setChatFx(ref, widget.chatId, f.id, last: true);
+                        if (cur != VoiceFx.none) setChatFx(ref, widget.chatId, f.id);
                         _preview(f);
                       },
                     ),
@@ -302,9 +313,8 @@ class _VoiceFxSheetState extends ConsumerState<VoiceFxSheet> {
             const SizedBox(width: 8),
             FilledButton.tonal(
               onPressed: () {
-                final n = ref.read(settingsProvider.notifier);
-                n.setX('voiceFx', sel.id);
-                n.setX('voiceFxLast', sel.id);
+                setChatFx(ref, widget.chatId, sel.id);
+                setChatFx(ref, widget.chatId, sel.id, last: true);
                 Navigator.of(context).pop();
               },
               child: Text(context.t('Use', 'استخدم')),
@@ -321,3 +331,132 @@ class _VoiceFxSheetState extends ConsumerState<VoiceFxSheet> {
   }
 }
 
+
+
+/// Pulsing + progress overlay for a message that is still uploading.
+class UploadPulse extends StatefulWidget {
+  const UploadPulse({super.key, required this.active, required this.progress, required this.child, this.label});
+  final bool active;
+  final double progress; // 0..1, 0 = unknown
+  final String? label;
+  final Widget child;
+  @override
+  State<UploadPulse> createState() => _UploadPulseState();
+}
+
+class _UploadPulseState extends State<UploadPulse> with SingleTickerProviderStateMixin {
+  late final AnimationController _c =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 1000))
+        ..repeat(reverse: true);
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.active) return widget.child;
+    final accent = GlassScope.of(context).accent;
+    return Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      AnimatedBuilder(
+        animation: _c,
+        builder: (_, child) => Opacity(opacity: .6 + .4 * _c.value, child: child),
+        child: widget.child,
+      ),
+      const SizedBox(height: 6),
+      ClipRRect(
+        borderRadius: BorderRadius.circular(4),
+        child: LinearProgressIndicator(
+          minHeight: 4,
+          value: widget.progress > 0.01 ? widget.progress : null,
+          color: accent,
+          backgroundColor: Colors.white12,
+        ),
+      ),
+      if (widget.label != null)
+        Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Text(widget.label!, style: const TextStyle(fontSize: 11, color: GlassTokens.textSecondary)),
+        ),
+    ]);
+  }
+}
+
+/// Heart/emoji burst plus a soft red pulse along the bottom of the screen.
+void showReactionBurst(BuildContext context, String emoji) {
+  final overlay = Overlay.of(context, rootOverlay: true);
+  late OverlayEntry entry;
+  entry = OverlayEntry(builder: (_) => _Burst(emoji: emoji, onDone: () => entry.remove()));
+  overlay.insert(entry);
+}
+
+class _Burst extends StatefulWidget {
+  const _Burst({required this.emoji, required this.onDone});
+  final String emoji;
+  final VoidCallback onDone;
+  @override
+  State<_Burst> createState() => _BurstState();
+}
+
+class _BurstState extends State<_Burst> with SingleTickerProviderStateMixin {
+  late final AnimationController _c =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 1500))
+        ..forward().whenComplete(widget.onDone);
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final red = widget.emoji.contains('❤') || widget.emoji.contains('😍') || widget.emoji.contains('🔥');
+    return IgnorePointer(
+      child: AnimatedBuilder(
+        animation: _c,
+        builder: (_, _) {
+          final t = _c.value;
+          // two soft beats of the bottom glow
+          final beat = math.max(0.0, math.sin(t * math.pi * 2 * 1.5 - .3)) * (1 - t);
+          final pop = t < .25 ? Curves.easeOutBack.transform(t / .25) : 1.0;
+          final fade = t < .6 ? 1.0 : (1 - (t - .6) / .4);
+          return Stack(children: [
+            if (red)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: 260,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [
+                        const Color(0xFFFF1744).withValues(alpha: .38 * beat),
+                        const Color(0xFFFF1744).withValues(alpha: 0),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            Center(
+              child: Opacity(
+                opacity: fade.clamp(0.0, 1.0),
+                child: Transform.translate(
+                  offset: Offset(0, -80 * t),
+                  child: Transform.scale(
+                    scale: 0.4 + 1.5 * pop,
+                    child: Text(widget.emoji,
+                        style: const TextStyle(fontSize: 96, decoration: TextDecoration.none)),
+                  ),
+                ),
+              ),
+            ),
+          ]);
+        },
+      ),
+    );
+  }
+}

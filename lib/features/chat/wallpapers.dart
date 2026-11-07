@@ -98,15 +98,6 @@ const wallCats = <String, List<String>>{
   'mine': ['My photos', 'صوري'],
 };
 
-/// Number of real (free-licence) photos shipped per category (ids like love_p1).
-const wallPhotoCounts = <String, int>{
-  'love': 11,
-  'mystery': 12,
-  'cars': 14,
-  'moto': 11,
-  'hacker': 12,
-};
-
 final wallCatalog = <WallItem>[
   for (final e in const {
     'love': 6,
@@ -116,8 +107,6 @@ final wallCatalog = <WallItem>[
     'hacker': 6,
   }.entries)
     for (var i = 1; i <= e.value; i++) WallItem('${e.key}_$i', e.key),
-  for (final e in wallPhotoCounts.entries)
-    for (var i = 1; i <= e.value; i++) WallItem('${e.key}_p$i', e.key),
   for (var i = 1; i < wallpapers.length; i++) WallItem('g$i', 'gradient'),
 ];
 

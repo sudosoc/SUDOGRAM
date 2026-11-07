@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import '../../core/ui/icon_styles.dart';
 
 import '../../app/providers.dart';
 import '../../core/i18n/tr.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/theme/glass.dart';
-import '../../core/device_perms.dart';
-import '../../core/live_location.dart';
 import '../../core/ui/notice.dart';
 import '../../domain/models.dart';
 import '../../l10n/app_localizations.dart';
@@ -46,7 +45,7 @@ import 'package:geolocator/geolocator.dart';
 
 import 'wallpapers.dart';
 import 'fx_widgets.dart';
-
+import '../../core/time_fmt.dart';
 
 import 'info_screen.dart';
 import 'voice_player.dart';
@@ -416,8 +415,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       await f();
     } catch (e) {
       if (!mounted) return;
-      notice(context, friendlyError(e, ar: context.isAr),
-          kind: NoticeKind.error);
+      notice(
+        context,
+        friendlyError(e, ar: context.isAr),
+        kind: NoticeKind.error,
+      );
     }
   }
 
@@ -425,8 +427,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   void _toBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scroll.hasClients) {
-        _scroll.animateTo(0,
-            duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
+        _scroll.animateTo(
+          0,
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOut,
+        );
       }
     });
     if (_highlight != null && mounted) setState(() => _highlight = null);
@@ -452,7 +457,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       });
       final c = (r['content'] as Map?) ?? const {};
       final t = (c['@type'] ?? '').toString();
-      final text = ((c['text'] as Map?)?['text'] ?? (c['caption'] as Map?)?['text'] ?? '').toString();
+      final text =
+          ((c['text'] as Map?)?['text'] ??
+                  (c['caption'] as Map?)?['text'] ??
+                  '')
+              .toString();
       final kind = switch (t) {
         'messagePhoto' => MessageKind.photo,
         'messageVideo' => MessageKind.video,
@@ -494,9 +503,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     var path = x.path;
     try {
       // Keep our own copy: the picker's cache file can vanish mid-upload.
-      final dir = Directory('${(await getApplicationSupportDirectory()).path}/outbox');
+      final dir = Directory(
+        '${(await getApplicationSupportDirectory()).path}/outbox',
+      );
       await dir.create(recursive: true);
-      final ext = path.contains('.') ? path.split('.').last : (video ? 'mp4' : 'jpg');
+      final ext = path.contains('.')
+          ? path.split('.').last
+          : (video ? 'mp4' : 'jpg');
       final copy = '${dir.path}/${DateTime.now().millisecondsSinceEpoch}.$ext';
       await File(path).copy(copy);
       path = copy;
@@ -508,20 +521,25 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final secs = await showModalBottomSheet<int>(
       context: context,
       builder: (_) => SafeArea(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          ListTile(title: Text(context.t('Mute notifications', 'كتم الإشعارات'))),
-          for (final (v, label) in [
-            (3600, context.t('For 1 hour', 'لمدة ساعة')),
-            (28800, context.t('For 8 hours', 'لمدة 8 ساعات')),
-            (172800, context.t('For 2 days', 'لمدة يومين')),
-            (2147483647, context.t('Forever', 'للأبد')),
-          ])
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
             ListTile(
-              leading: const SIcon(Icons.notifications_off_outlined),
-              title: Text(label),
-              onTap: () => Navigator.pop(context, v),
+              title: Text(context.t('Mute notifications', 'كتم الإشعارات')),
             ),
-        ]),
+            for (final (v, label) in [
+              (3600, context.t('For 1 hour', 'لمدة ساعة')),
+              (28800, context.t('For 8 hours', 'لمدة 8 ساعات')),
+              (172800, context.t('For 2 days', 'لمدة يومين')),
+              (2147483647, context.t('Forever', 'للأبد')),
+            ])
+              ListTile(
+                leading: const SIcon(Icons.notifications_off_outlined),
+                title: Text(label),
+                onTap: () => Navigator.pop(context, v),
+              ),
+          ],
+        ),
       ),
     );
     if (secs == null) return;
@@ -543,7 +561,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         },
       });
       if (mounted) {
-        notice(context, context.t('Muted', 'تم الكتم'), kind: NoticeKind.success);
+        notice(
+          context,
+          context.t('Muted', 'تم الكتم'),
+          kind: NoticeKind.success,
+        );
       }
     });
   }
@@ -557,7 +579,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           '@type': 'inputMessageText',
           'text': {'@type': 'formattedText', 'text': text},
         },
-        'options': {'@type': 'messageSendOptions', 'disable_notification': true},
+        'options': {
+          '@type': 'messageSendOptions',
+          'disable_notification': true,
+        },
       });
       _c.clear();
       DraftStore.set(widget.chat.id, '');
@@ -572,18 +597,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final how = await showModalBottomSheet<String>(
       context: context,
       builder: (_) => SafeArea(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          ListTile(
-            leading: const SIcon(Icons.notifications_off_outlined),
-            title: Text(context.t('Send without sound', 'إرسال بدون صوت')),
-            onTap: () => Navigator.pop(context, 'silent'),
-          ),
-          ListTile(
-            leading: const SIcon(Icons.schedule_send_outlined),
-            title: Text(context.t('Schedule…', 'جدولة…')),
-            onTap: () => Navigator.pop(context, 'schedule'),
-          ),
-        ]),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const SIcon(Icons.notifications_off_outlined),
+              title: Text(context.t('Send without sound', 'إرسال بدون صوت')),
+              onTap: () => Navigator.pop(context, 'silent'),
+            ),
+            ListTile(
+              leading: const SIcon(Icons.schedule_send_outlined),
+              title: Text(context.t('Schedule…', 'جدولة…')),
+              onTap: () => Navigator.pop(context, 'schedule'),
+            ),
+          ],
+        ),
       ),
     );
     if (how == null || !mounted) return;
@@ -640,7 +668,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         ),
                         subtitle: Text(
                           l.scheduledFor(
-                            '${m.time.day}/${m.time.month} ${m.time.hour.toString().padLeft(2, '0')}:${m.time.minute.toString().padLeft(2, '0')}',
+                            '${m.time.day}/${m.time.month} ${fmtTime12(m.time, ar: context.isAr)}',
                           ),
                         ),
                         trailing: IconButton(
@@ -740,52 +768,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     await _gateway.sendLocation(widget.chat.id, pos.latitude, pos.longitude);
   }
 
-  Future<void> _liveLocation() async {
-    if (!await ensureLocationPermission()) {
-      if (mounted) {
-        notice(context, AppLocalizations.of(context).locationDenied,
-            kind: NoticeKind.error);
-      }
-      return;
-    }
-    if (!mounted) return;
-    final mins = await showModalBottomSheet<int>(
-      context: context,
-      builder: (_) => SafeArea(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          ListTile(
-              title: Text(context.t('Share live location for…', 'مشاركة الموقع المباشر لمدة…'))),
-          for (final (m, label) in [
-            (15, context.t('15 minutes', '15 دقيقة')),
-            (60, context.t('1 hour', 'ساعة')),
-            (480, context.t('8 hours', '8 ساعات')),
-          ])
-            ListTile(
-              leading: const SIcon(Icons.share_location),
-              title: Text(label),
-              onTap: () => Navigator.pop(context, m),
-            ),
-          if (LiveLocation.isActive(widget.chat.id))
-            ListTile(
-              leading: const SIcon(Icons.location_off, color: GlassTokens.ringDanger),
-              title: Text(context.t('Stop sharing', 'إيقاف المشاركة')),
-              onTap: () => Navigator.pop(context, 0),
-            ),
-        ]),
-      ),
-    );
-    if (mins == null) return;
-    if (mins == 0) {
-      await LiveLocation.stop(widget.chat.id);
-      return;
-    }
-    await _safe(() => LiveLocation.start(_gateway, widget.chat.id, mins));
-    if (mounted) {
-      notice(context, context.t('Live location started', 'بدأت مشاركة الموقع المباشر'),
-          kind: NoticeKind.success);
-    }
-  }
-
   Future<void> _shareContact() async {
     final contacts = await _gateway.contacts();
     if (!mounted) return;
@@ -820,16 +802,35 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final l = AppLocalizations.of(context);
     final all = <String, (IconData, String, VoidCallback)>{
       'gallery': (Icons.photo_library_outlined, l.gallery, _pickGallery),
-      'photo': (Icons.photo_camera_outlined, l.cameraPhoto, () => _pickCamera(video: false)),
-      'video': (Icons.videocam_outlined, l.cameraVideo, () => _pickCamera(video: true)),
+      'photo': (
+        Icons.photo_camera_outlined,
+        l.cameraPhoto,
+        () => _pickCamera(video: false),
+      ),
+      'video': (
+        Icons.videocam_outlined,
+        l.cameraVideo,
+        () => _pickCamera(video: true),
+      ),
       'file': (Icons.attach_file, l.fileLabel, () => _safe(_attach)),
       'poll': (Icons.poll_outlined, l.createPoll, _newPoll),
-      'scheduled': (Icons.schedule_send_outlined, l.scheduledMessages, _showScheduled),
-      'location': (Icons.location_on_outlined, l.location, () => _safe(_shareLocation)),
-      'live': (Icons.share_location, context.t('Live location', 'الموقع المباشر'), _liveLocation),
+      'scheduled': (
+        Icons.schedule_send_outlined,
+        l.scheduledMessages,
+        _showScheduled,
+      ),
+      'location': (
+        Icons.location_on_outlined,
+        l.location,
+        () => _safe(_shareLocation),
+      ),
       'contact': (Icons.contact_page_outlined, l.contactLabel, _shareContact),
     };
-    final ids = ref.read(settingsProvider).attachItems.where(all.containsKey).toList();
+    final ids = ref
+        .read(settingsProvider)
+        .attachItems
+        .where(all.containsKey)
+        .toList();
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -855,24 +856,32 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       all[id]!.$3();
                     },
                     child: SizedBox(
-                      width: (MediaQuery.of(context).size.width - 24 - 24 - 12) / 4,
-                      child: Column(mainAxisSize: MainAxisSize.min, children: [
-                        Container(
-                          width: 54,
-                          height: 54,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: GlassScope.of(context).accent.withValues(alpha: 0.22),
+                      width:
+                          (MediaQuery.of(context).size.width - 24 - 24 - 12) /
+                          4,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 54,
+                            height: 54,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: GlassScope.of(context).accent
+                                  .withValues(alpha: 0.22),
+                            ),
+                            child: SIcon(all[id]!.$1, size: 26),
                           ),
-                          child: SIcon(all[id]!.$1, size: 26),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(all[id]!.$2,
+                          const SizedBox(height: 6),
+                          Text(
+                            all[id]!.$2,
                             textAlign: TextAlign.center,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 12)),
-                      ]),
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
               ],
@@ -942,7 +951,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _recCancel = false;
     if (_recording) {
       if (held < const Duration(milliseconds: 400) && !c) {
-        notice(context, AppLocalizations.of(context).holdToRecord, kind: NoticeKind.info);
+        notice(
+          context,
+          AppLocalizations.of(context).holdToRecord,
+          kind: NoticeKind.info,
+        );
         await _stopRecording(send: false);
         return;
       }
@@ -968,13 +981,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       }
       _tmpDir ??= (await getTemporaryDirectory()).path;
       final tmp = Directory(_tmpDir!);
-      _recFx = voiceFxFrom(ref.read(settingsProvider).voiceFx);
+      _recFx = voiceFxFrom(ref.read(settingsProvider).fxFor(widget.chat.id));
       final fxOn = _recFx != VoiceFx.none;
       _recPath =
           '${tmp.path}/voice_${DateTime.now().millisecondsSinceEpoch}.${fxOn ? 'wav' : 'ogg'}';
       await _recorder.start(
         fxOn
-            ? const RecordConfig(encoder: AudioEncoder.wav, sampleRate: 48000, numChannels: 1)
+            ? const RecordConfig(
+                encoder: AudioEncoder.wav,
+                sampleRate: 48000,
+                numChannels: 1,
+              )
             : const RecordConfig(
                 encoder: AudioEncoder.opus,
                 bitRate: 32000,
@@ -990,7 +1007,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       if (mounted) setState(() => _recording = true);
     } catch (e) {
       if (mounted) setState(() => _recording = false);
-      messenger.showSnackBar(SnackBar(content: Text(friendlyError(e, ar: l.localeName == 'ar'))));
+      messenger.showSnackBar(
+        SnackBar(content: Text(friendlyError(e, ar: l.localeName == 'ar'))),
+      );
     }
   }
 
@@ -1019,26 +1038,48 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       return;
     }
     if (_recFx != VoiceFx.none && path.endsWith('.wav')) {
-      if (mounted) setState(() { _fxBusy = true; _fxSending = false; });
+      if (mounted) {
+        setState(() {
+          _fxBusy = true;
+          _fxSending = false;
+        });
+      }
       try {
         final r = await applyVoiceFx(path, _recFx);
         if (mounted) setState(() => _fxSending = true);
         _toBottom();
         if (r.fallbackWav) {
           if (mounted) {
-            notice(context,
-                context.t('Opus encoding unavailable here — sent the changed voice as an audio file',
-                    'تشفير الصوت مش متاح هنا — اتبعت الصوت المتغير كملف صوتي'),
-                kind: NoticeKind.info);
+            notice(
+              context,
+              context.t(
+                'Opus encoding unavailable here — sent the changed voice as an audio file',
+                'تشفير الصوت مش متاح هنا — اتبعت الصوت المتغير كملف صوتي',
+              ),
+              kind: NoticeKind.info,
+            );
           }
           await _safe(() => _gateway.sendMedia(widget.chat.id, [r.path]));
         } else {
-          await _safe(() => _gateway.sendVoice(widget.chat.id, r.path, r.seconds));
+          await _safe(
+            () => _gateway.sendVoice(widget.chat.id, r.path, r.seconds),
+          );
         }
       } catch (e) {
-        if (mounted) notice(context, friendlyError(e, ar: context.isAr), kind: NoticeKind.error);
+        if (mounted) {
+          notice(
+            context,
+            friendlyError(e, ar: context.isAr),
+            kind: NoticeKind.error,
+          );
+        }
       } finally {
-        if (mounted) setState(() { _fxBusy = false; _fxSending = false; });
+        if (mounted) {
+          setState(() {
+            _fxBusy = false;
+            _fxSending = false;
+          });
+        }
       }
       return;
     }
@@ -1051,25 +1092,34 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => const VoiceFxSheet(),
+      builder: (_) => VoiceFxSheet(chatId: widget.chat.id),
     );
   }
 
   void _fxToggle() {
-    final n = ref.read(settingsProvider.notifier);
     final st = ref.read(settingsProvider);
-    final cur = voiceFxFrom(st.voiceFx);
+    final id = widget.chat.id;
+    final cur = voiceFxFrom(st.fxFor(id));
     HapticFeedback.selectionClick();
     if (cur != VoiceFx.none) {
-      n.setX('voiceFx', 'none');
-      notice(context, context.t('Voice changer off', 'مغيّر الصوت اتقفل'), kind: NoticeKind.info);
+      setChatFx(ref, id, 'none');
+      notice(
+        context,
+        context.t('Voice changer off', 'مغيّر الصوت اتقفل'),
+        kind: NoticeKind.info,
+      );
     } else {
-      var last = voiceFxFrom(st.x['voiceFxLast'] as String?);
+      var last = voiceFxFrom(st.fxLastFor(id));
       if (last == VoiceFx.none) last = VoiceFx.deep;
-      n.setX('voiceFx', last.id);
-      notice(context,
-          context.t('Voice changer on: ${last.label(false)}', 'مغيّر الصوت اشتغل: ${last.label(true)}'),
-          kind: NoticeKind.success);
+      setChatFx(ref, id, last.id);
+      notice(
+        context,
+        context.t(
+          'Voice changer on: ${last.label(false)}',
+          'مغيّر الصوت اشتغل: ${last.label(true)}',
+        ),
+        kind: NoticeKind.success,
+      );
     }
   }
 
@@ -1092,18 +1142,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
     if (text.length > _limit && ref.read(settingsProvider).longAsFile) {
       try {
-        final dir = Directory('${(await getApplicationSupportDirectory()).path}/outbox');
+        final dir = Directory(
+          '${(await getApplicationSupportDirectory()).path}/outbox',
+        );
         await dir.create(recursive: true);
         final n = DateTime.now();
         String two(int v) => v.toString().padLeft(2, '0');
-        final f = File('${dir.path}/message_${n.year}${two(n.month)}${two(n.day)}_${two(n.hour)}${two(n.minute)}.txt');
+        final f = File(
+          '${dir.path}/message_${n.year}${two(n.month)}${two(n.day)}_${two(n.hour)}${two(n.minute)}.txt',
+        );
         await f.writeAsString(text);
         final first = text.trim().split('\n').first;
-        await _gateway.sendMedia(
-          widget.chat.id,
-          [f.path],
-          caption: first.length > 100 ? '${first.substring(0, 100)}…' : first,
-        );
+        await _gateway.sendMedia(widget.chat.id, [
+          f.path,
+        ], caption: first.length > 100 ? '${first.substring(0, 100)}…' : first);
         return;
       } catch (_) {
         // fall through to normal splitting
@@ -1149,11 +1201,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   /// Adds / removes a reaction; the reason is shown if the server refuses.
   Future<void> _react(ChatMessage m, String e) async {
     // Only react with what the server says this message accepts.
-    if (!(await _gateway.availableReactions(widget.chat.id, m.id))
-        .contains(e)) {
+    if (!(await _gateway.availableReactions(
+      widget.chat.id,
+      m.id,
+    )).contains(e)) {
       if (mounted) {
-        notice(context, friendlyError('reaction not available', ar: context.isAr),
-            kind: NoticeKind.error);
+        notice(
+          context,
+          friendlyError('reaction not available', ar: context.isAr),
+          kind: NoticeKind.error,
+        );
       }
       return;
     }
@@ -1163,6 +1220,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             .where((x) => x.id == m.id)
             .firstOrNull;
     final have = (live ?? m).myReactions.contains(e);
+    if (!have && mounted) {
+      HapticFeedback.mediumImpact();
+      showReactionBurst(context, e);
+    }
     await _safe(
       () => _gateway.toggleReaction(widget.chat.id, m.id, e, on: !have),
     );
@@ -1252,171 +1313,201 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           radius: 24,
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: SingleChildScrollView(
-           child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (!m.deletedByPeer)
-                SizedBox(
-                  height: 52,
-                  child: FutureBuilder<List<String>>(
-                    future: _gateway.availableReactions(widget.chat.id, m.id),
-                    builder: (_, snap) {
-                      final list = snap.data ?? const <String>[];
-                      if (list.isEmpty) return const SizedBox.shrink();
-                      return ListView(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        children: [
-                          for (final e in list)
-                            GestureDetector(
-                              onTap: () {
-                                Navigator.of(context).pop();
-                                _react(m, e);
-                              },
-                              child: Container(
-                                margin: const EdgeInsets.symmetric(
-                                  horizontal: 3,
-                                ),
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: m.myReactions.contains(e)
-                                      ? Colors.white24
-                                      : null,
-                                ),
-                                child: Text(
-                                  e,
-                                  style: const TextStyle(fontSize: 26),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (!m.deletedByPeer)
+                  SizedBox(
+                    height: 52,
+                    child: FutureBuilder<List<String>>(
+                      future: _gateway.availableReactions(widget.chat.id, m.id),
+                      builder: (_, snap) {
+                        final list = snap.data ?? const <String>[];
+                        if (list.isEmpty) return const SizedBox.shrink();
+                        return ListView(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          children: [
+                            for (final e in list)
+                              GestureDetector(
+                                onTap: () {
+                                  Navigator.of(context).pop();
+                                  _react(m, e);
+                                },
+                                child: Container(
+                                  margin: const EdgeInsets.symmetric(
+                                    horizontal: 3,
+                                  ),
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: m.myReactions.contains(e)
+                                        ? Colors.white24
+                                        : null,
+                                  ),
+                                  child: Text(
+                                    e,
+                                    style: const TextStyle(fontSize: 26),
+                                  ),
                                 ),
                               ),
-                            ),
-                        ],
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                if (widget.chat.canSend && !m.deletedByPeer)
+                  item(
+                    Icons.reply,
+                    l.reply,
+                    () => setState(() {
+                      _replyTo = m;
+                      _editing = null;
+                    }),
+                  ),
+                if (m.text.isNotEmpty)
+                  item(Icons.copy, l.copy, () {
+                    Clipboard.setData(ClipboardData(text: m.text));
+                    ScaffoldMessenger.of(context)
+                        .showSnackBar(SnackBar(content: Text(l.copied)));
+                  }),
+                if (m.text.trim().isNotEmpty)
+                  item(
+                    Icons.translate,
+                    context.t('Translate', 'ترجمة'),
+                    () => showTranslateSheet(context, m.text),
+                  ),
+                if (m.outgoing &&
+                    m.kind == MessageKind.text &&
+                    !m.deletedByPeer)
+                  item(Icons.edit_outlined, l.edit, () {
+                    setState(() {
+                      _editing = m;
+                      _replyTo = null;
+                      _c.text = m.text;
+                    });
+                  }),
+                item(
+                  Icons.check_circle_outline,
+                  l.select,
+                  () => setState(() => _selected.add(m.id)),
+                ),
+                if (m.sendState == 2)
+                  item(
+                    Icons.refresh,
+                    l.resend,
+                    () => _safe(() => _gateway.resend(widget.chat.id, m.id)),
+                  ),
+                if (m.file != null)
+                  item(
+                    Icons.download_for_offline_outlined,
+                    context.t('Save to device', 'حفظ على الجهاز'),
+                    () => _saveDevice(m),
+                  ),
+                if (m.text.isNotEmpty || (m.file?.downloaded ?? false))
+                  item(Icons.ios_share, l.share, () => _share([m])),
+                if (!m.deletedByPeer && widget.chat.type != ChatType.secret)
+                  item(Icons.shortcut, l.forward, () => _pickForward(m, chats)),
+                if (!m.deletedByPeer && widget.chat.type != ChatType.secret)
+                  item(
+                    Icons.forward_to_inbox_outlined,
+                    context.t(
+                      'Forward without author',
+                      'إعادة توجيه بدون اسم المرسل',
+                    ),
+                    () => _pickForward(m, chats, copy: true),
+                  ),
+                if (m.edited)
+                  item(
+                    Icons.history,
+                    l.editHistory,
+                    () => _showEdits(context, m),
+                  ),
+                if (!m.deletedByPeer &&
+                    (widget.chat.type == ChatType.private ||
+                        widget.chat.canSend))
+                  item(
+                    _pins.any((p) => p.id == m.id)
+                        ? Icons.push_pin
+                        : Icons.push_pin_outlined,
+                    _pins.any((p) => p.id == m.id) ? l.unpin : l.pin,
+                    () async {
+                      final unpin = _pins.any((p) => p.id == m.id);
+                      await _safe(
+                        () => _gateway.pinMessage(
+                          widget.chat.id,
+                          m.id,
+                          pin: !unpin,
+                        ),
                       );
+                      await _loadPins();
                     },
                   ),
-                ),
-              if (widget.chat.canSend && !m.deletedByPeer)
+                if (!m.deletedByPeer)
+                  item(
+                    Icons.bookmark_add_outlined,
+                    l.saveToSaved,
+                    () => _saveToSaved([m]),
+                  ),
                 item(
-                  Icons.reply,
-                  l.reply,
-                  () => setState(() {
-                    _replyTo = m;
-                    _editing = null;
-                  }),
+                  _isStarred(m.id) ? Icons.star : Icons.star_border,
+                  _isStarred(m.id)
+                      ? context.t('Remove star', 'إزالة النجمة')
+                      : context.t('Star message', 'تمييز بنجمة'),
+                  () => _toggleStar(m),
                 ),
-              if (m.text.isNotEmpty)
-                item(Icons.copy, l.copy, () {
-                  Clipboard.setData(ClipboardData(text: m.text));
-                  ScaffoldMessenger.of(context)
-                      .showSnackBar(SnackBar(content: Text(l.copied)));
-                }),
-              if (m.text.trim().isNotEmpty)
-                item(Icons.translate, context.t('Translate', 'ترجمة'),
-                    () => showTranslateSheet(context, m.text)),
-              if (m.outgoing && m.kind == MessageKind.text && !m.deletedByPeer)
-                item(Icons.edit_outlined, l.edit, () {
-                  setState(() {
-                    _editing = m;
-                    _replyTo = null;
-                    _c.text = m.text;
-                  });
-                }),
-              item(
-                Icons.check_circle_outline,
-                l.select,
-                () => setState(() => _selected.add(m.id)),
-              ),
-              if (m.sendState == 2)
+                if (m.text.isNotEmpty)
+                  item(
+                    Icons.format_quote,
+                    context.t('Copy as quote', 'نسخ كاقتباس'),
+                    () {
+                      Clipboard.setData(
+                        ClipboardData(
+                          text: m.text
+                              .split('\n')
+                              .map((x) => '> $x')
+                              .join('\n'),
+                        ),
+                      );
+                      notice(context, l.copied, kind: NoticeKind.success);
+                    },
+                  ),
                 item(
-                  Icons.refresh,
-                  l.resend,
-                  () => _safe(() => _gateway.resend(widget.chat.id, m.id)),
+                  Icons.link,
+                  context.t('Copy message link', 'نسخ رابط الرسالة'),
+                  () => _copyLink(m),
                 ),
-              if (m.file != null)
-                item(Icons.download_for_offline_outlined,
-                    context.t('Save to device', 'حفظ على الجهاز'), () => _saveDevice(m)),
-              if (m.text.isNotEmpty || (m.file?.downloaded ?? false))
-                item(Icons.ios_share, l.share, () => _share([m])),
-              if (!m.deletedByPeer && widget.chat.type != ChatType.secret)
-                item(Icons.shortcut, l.forward, () => _pickForward(m, chats)),
-              if (!m.deletedByPeer && widget.chat.type != ChatType.secret)
-                item(Icons.forward_to_inbox_outlined,
-                    context.t('Forward without author', 'إعادة توجيه بدون اسم المرسل'),
-                    () => _pickForward(m, chats, copy: true)),
-              if (m.edited)
                 item(
-                  Icons.history,
-                  l.editHistory,
-                  () => _showEdits(context, m),
+                  Icons.info_outline,
+                  context.t('Message info', 'تفاصيل الرسالة'),
+                  () => _msgInfo(m),
                 ),
-              if (!m.deletedByPeer &&
-                  (widget.chat.type == ChatType.private || widget.chat.canSend))
-                item(
-                  _pins.any((p) => p.id == m.id)
-                      ? Icons.push_pin
-                      : Icons.push_pin_outlined,
-                  _pins.any((p) => p.id == m.id) ? l.unpin : l.pin,
-                  () async {
-                    final unpin = _pins.any((p) => p.id == m.id);
-                    await _safe(
-                      () => _gateway.pinMessage(
-                        widget.chat.id,
-                        m.id,
-                        pin: !unpin,
-                      ),
+                if (!m.outgoing &&
+                    ref.read(settingsProvider).blocksRead(widget.chat.id))
+                  item(Icons.done_all, l.markReadHere, () {
+                    final all =
+                        ref.read(messagesProvider(widget.chat.id)).value ??
+                        const <ChatMessage>[];
+                    final ids = [
+                      for (final x in all)
+                        if (!x.outgoing && x.id <= m.id) x.id,
+                    ];
+                    _gateway.markReadManual(
+                      widget.chat.id,
+                      ids.take(100).toList(),
                     );
-                    await _loadPins();
-                  },
-                ),
-              if (!m.deletedByPeer)
-                item(
-                  Icons.bookmark_add_outlined,
-                  l.saveToSaved,
-                  () => _saveToSaved([m]),
-                ),
-              item(
-                _isStarred(m.id) ? Icons.star : Icons.star_border,
-                _isStarred(m.id)
-                    ? context.t('Remove star', 'إزالة النجمة')
-                    : context.t('Star message', 'تمييز بنجمة'),
-                () => _toggleStar(m),
-              ),
-              if (m.text.isNotEmpty)
-                item(Icons.format_quote, context.t('Copy as quote', 'نسخ كاقتباس'), () {
-                  Clipboard.setData(ClipboardData(
-                      text: m.text.split('\n').map((x) => '> $x').join('\n')));
-                  notice(context, l.copied, kind: NoticeKind.success);
-                }),
-              item(Icons.link, context.t('Copy message link', 'نسخ رابط الرسالة'),
-                  () => _copyLink(m)),
-              item(Icons.info_outline, context.t('Message info', 'تفاصيل الرسالة'),
-                  () => _msgInfo(m)),
-              if (!m.outgoing &&
-                  ref.read(settingsProvider).blocksRead(widget.chat.id))
-                item(Icons.done_all, l.markReadHere, () {
-                  final all =
-                      ref.read(messagesProvider(widget.chat.id)).value ??
-                      const <ChatMessage>[];
-                  final ids = [
-                    for (final x in all)
-                      if (!x.outgoing && x.id <= m.id) x.id,
-                  ];
-                  _gateway.markReadManual(
-                    widget.chat.id,
-                    ids.take(100).toList(),
-                  );
-                  ScaffoldMessenger.of(context)
-                      .showSnackBar(SnackBar(content: Text(l.markedReadMsg)));
-                }),
-              if (!m.deletedByPeer)
-                item(
-                  Icons.delete_outline,
-                  l.delete,
-                  () => _confirmDelete(m),
-                  c: GlassTokens.ringDanger,
-                ),
-            ],
-           ),
+                    ScaffoldMessenger.of(context)
+                        .showSnackBar(SnackBar(content: Text(l.markedReadMsg)));
+                  }),
+                if (!m.deletedByPeer)
+                  item(
+                    Icons.delete_outline,
+                    l.delete,
+                    () => _confirmDelete(m),
+                    c: GlassTokens.ringDanger,
+                  ),
+              ],
+            ),
           ),
         ),
       ),
@@ -1434,7 +1525,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         await _gateway.downloadFile(fid);
         for (var i = 0; i < 240; i++) {
           await Future<void>.delayed(const Duration(milliseconds: 500));
-          final list = ref.read(messagesProvider(widget.chat.id)).value ?? const <ChatMessage>[];
+          final list =
+              ref.read(messagesProvider(widget.chat.id)).value ??
+              const <ChatMessage>[];
           cur = list.firstWhere((x) => x.id == m.id, orElse: () => cur);
           if (cur.file?.downloaded ?? false) break;
         }
@@ -1445,14 +1538,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           context,
           ok
               ? (cur.kind == MessageKind.photo || cur.kind == MessageKind.video
-                  ? context.t('Saved to gallery', 'تم الحفظ في المعرض')
-                  : context.t('Saved', 'تم الحفظ'))
+                    ? context.t('Saved to gallery', 'تم الحفظ في المعرض')
+                    : context.t('Saved', 'تم الحفظ'))
               : context.t('Could not save', 'تعذر الحفظ'),
           kind: ok ? NoticeKind.success : NoticeKind.error,
         );
       }
     } catch (e) {
-      if (mounted) notice(context, friendlyError(e, ar: context.isAr), kind: NoticeKind.error);
+      if (mounted) {
+        notice(
+          context,
+          friendlyError(e, ar: context.isAr),
+          kind: NoticeKind.error,
+        );
+      }
     }
   }
 
@@ -1472,40 +1571,64 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       rows.removeWhere((r) => r.startsWith(key));
       notice(context, context.t('Star removed', 'تمت إزالة النجمة'));
     } else {
-      final t = m.text.isEmpty ? kindLabel(AppLocalizations.of(context), m.kind) : m.text;
-      rows.add('$key${t.replaceAll('\n', ' ').substring(0, t.replaceAll('\n', ' ').length.clamp(0, 80))}');
-      notice(context, context.t('Message starred', 'تم تمييز الرسالة'),
-          kind: NoticeKind.premium);
+      final t = m.text.isEmpty
+          ? kindLabel(AppLocalizations.of(context), m.kind)
+          : m.text;
+      rows.add(
+        '$key${t.replaceAll('\n', ' ').substring(0, t.replaceAll('\n', ' ').length.clamp(0, 80))}',
+      );
+      notice(
+        context,
+        context.t('Message starred', 'تم تمييز الرسالة'),
+        kind: NoticeKind.premium,
+      );
     }
     ref.read(settingsProvider.notifier).setX('stars', rows);
   }
 
   void _showStars() {
-    final mine = _starRows.where((r) => r.startsWith('${widget.chat.id}:')).toList();
+    final mine = _starRows
+        .where((r) => r.startsWith('${widget.chat.id}:'))
+        .toList();
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       builder: (_) => SafeArea(
         child: ConstrainedBox(
-          constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.7),
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.7,
+          ),
           child: mine.isEmpty
               ? Padding(
                   padding: const EdgeInsets.all(32),
-                  child: Text(context.t('No starred messages in this chat',
-                      'مفيش رسايل مميزة بنجمة في الشات ده')),
-                )
-              : ListView(shrinkWrap: true, children: [
-                  for (final r in mine)
-                    ListTile(
-                      leading: const SIcon(Icons.star, color: Color(0xFFFFC53D)),
-                      title: Text(r.split(':').skip(2).join(':'),
-                          maxLines: 2, overflow: TextOverflow.ellipsis),
-                      onTap: () {
-                        Navigator.pop(context);
-                        _jumpTo(int.parse(r.split(':')[1]));
-                      },
+                  child: Text(
+                    context.t(
+                      'No starred messages in this chat',
+                      'مفيش رسايل مميزة بنجمة في الشات ده',
                     ),
-                ]),
+                  ),
+                )
+              : ListView(
+                  shrinkWrap: true,
+                  children: [
+                    for (final r in mine)
+                      ListTile(
+                        leading: const SIcon(
+                          Icons.star,
+                          color: Color(0xFFFFC53D),
+                        ),
+                        title: Text(
+                          r.split(':').skip(2).join(':'),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        onTap: () {
+                          Navigator.pop(context);
+                          _jumpTo(int.parse(r.split(':')[1]));
+                        },
+                      ),
+                  ],
+                ),
         ),
       ),
     );
@@ -1523,15 +1646,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       });
       await Clipboard.setData(ClipboardData(text: '${r['link']}'));
       if (mounted) {
-        notice(context, context.t('Link copied', 'تم نسخ الرابط'), kind: NoticeKind.success);
+        notice(
+          context,
+          context.t('Link copied', 'تم نسخ الرابط'),
+          kind: NoticeKind.success,
+        );
       }
     } catch (e) {
       if (mounted) {
         notice(
-            context,
-            context.t('Links only work for groups and channels with a username',
-                'الروابط بتشتغل بس مع الجروبات والقنوات اللي ليها يوزر'),
-            kind: NoticeKind.error);
+          context,
+          context.t(
+            'Links only work for groups and channels with a username',
+            'الروابط بتشتغل بس مع الجروبات والقنوات اللي ليها يوزر',
+          ),
+          kind: NoticeKind.error,
+        );
       }
     }
   }
@@ -1540,22 +1670,33 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final t = m.time;
     String two(int v) => v.toString().padLeft(2, '0');
     final rows = <(String, String)>[
-      (context.t('Sent', 'اتبعتت'),
-          '${t.year}-${two(t.month)}-${two(t.day)} ${two(t.hour)}:${two(t.minute)}:${two(t.second)}'),
+      (
+        context.t('Sent', 'اتبعتت'),
+        '${t.year}-${two(t.month)}-${two(t.day)} ${two(t.hour)}:${two(t.minute)}:${two(t.second)}',
+      ),
       (context.t('Message ID', 'رقم الرسالة'), '${m.id}'),
-      (context.t('Direction', 'الاتجاه'),
-          m.outgoing ? context.t('Outgoing', 'صادرة') : context.t('Incoming', 'واردة')),
+      (
+        context.t('Direction', 'الاتجاه'),
+        m.outgoing
+            ? context.t('Outgoing', 'صادرة')
+            : context.t('Incoming', 'واردة'),
+      ),
       if (m.edited) (context.t('Edited', 'معدّلة'), context.t('Yes', 'نعم')),
-      if (m.file != null) (context.t('File size', 'حجم الملف'), '${m.file!.size} B'),
-      if (m.text.isNotEmpty) (context.t('Characters', 'عدد الحروف'), '${m.text.length}'),
+      if (m.file != null)
+        (context.t('File size', 'حجم الملف'), '${m.file!.size} B'),
+      if (m.text.isNotEmpty)
+        (context.t('Characters', 'عدد الحروف'), '${m.text.length}'),
     ];
     showModalBottomSheet<void>(
       context: context,
       builder: (_) => SafeArea(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          for (final (k, v) in rows)
-            ListTile(dense: true, title: Text(k), trailing: Text(v)),
-        ]),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final (k, v) in rows)
+              ListTile(dense: true, title: Text(k), trailing: Text(v)),
+          ],
+        ),
       ),
     );
   }
@@ -1582,17 +1723,26 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final secs = await showModalBottomSheet<int>(
       context: context,
       builder: (_) => SafeArea(
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          ListTile(
-              title: Text(context.t('Auto-delete messages', 'حذف الرسايل تلقائيًا'))),
-          for (final (v, label) in [
-            (0, context.t('Off', 'مقفول')),
-            (86400, context.t('After 1 day', 'بعد يوم')),
-            (604800, context.t('After 1 week', 'بعد أسبوع')),
-            (2678400, context.t('After 1 month', 'بعد شهر')),
-          ])
-            ListTile(title: Text(label), onTap: () => Navigator.pop(context, v)),
-        ]),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: Text(
+                context.t('Auto-delete messages', 'حذف الرسايل تلقائيًا'),
+              ),
+            ),
+            for (final (v, label) in [
+              (0, context.t('Off', 'مقفول')),
+              (86400, context.t('After 1 day', 'بعد يوم')),
+              (604800, context.t('After 1 week', 'بعد أسبوع')),
+              (2678400, context.t('After 1 month', 'بعد شهر')),
+            ])
+              ListTile(
+                title: Text(label),
+                onTap: () => Navigator.pop(context, v),
+              ),
+          ],
+        ),
       ),
     );
     if (secs == null) return;
@@ -1603,7 +1753,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         'message_auto_delete_time': secs,
       });
       if (mounted) {
-        notice(context, context.t('Timer updated', 'تم تحديث المؤقت'), kind: NoticeKind.success);
+        notice(
+          context,
+          context.t('Timer updated', 'تم تحديث المؤقت'),
+          kind: NoticeKind.success,
+        );
       }
     });
   }
@@ -1613,17 +1767,24 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       context: context,
       builder: (_) => AlertDialog(
         title: Text(context.t('Delete all my messages?', 'حذف كل رسايلي؟')),
-        content: Text(context.t(
+        content: Text(
+          context.t(
             'Every message you sent in this chat will be deleted for everyone where possible.',
-            'كل الرسايل اللي بعتّها في الشات ده هتتحذف للجميع لو متاح.')),
+            'كل الرسايل اللي بعتّها في الشات ده هتتحذف للجميع لو متاح.',
+          ),
+        ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text(context.t('Cancel', 'إلغاء'))),
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(context.t('Cancel', 'إلغاء')),
+          ),
           TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: Text(context.t('Delete', 'حذف'),
-                  style: const TextStyle(color: GlassTokens.ringDanger))),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(
+              context.t('Delete', 'حذف'),
+              style: const TextStyle(color: GlassTokens.ringDanger),
+            ),
+          ),
         ],
       ),
     );
@@ -1655,8 +1816,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         total += ids.length;
       }
       if (mounted) {
-        notice(context, context.t('Deleted $total messages', 'تم حذف $total رسالة'),
-            kind: NoticeKind.success);
+        notice(
+          context,
+          context.t('Deleted $total messages', 'تم حذف $total رسالة'),
+          kind: NoticeKind.success,
+        );
       }
     });
   }
@@ -1770,7 +1934,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
-  void _pickForward(ChatMessage m, List<ChatSummary> chats, {bool copy = false}) {
+  void _pickForward(
+    ChatMessage m,
+    List<ChatSummary> chats, {
+    bool copy = false,
+  }) {
     final l = AppLocalizations.of(context);
     showModalBottomSheet<void>(
       context: context,
@@ -1808,14 +1976,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                             onTap: () {
                               Navigator.of(context).pop();
                               if (copy) {
-                                _safe(() => _gateway.tdRaw({
-                                      '@type': 'forwardMessages',
-                                      'chat_id': c.id,
-                                      'from_chat_id': widget.chat.id,
-                                      'message_ids': [m.id],
-                                      'send_copy': true,
-                                      'remove_caption': false,
-                                    }));
+                                _safe(
+                                  () => _gateway.tdRaw({
+                                    '@type': 'forwardMessages',
+                                    'chat_id': c.id,
+                                    'from_chat_id': widget.chat.id,
+                                    'message_ids': [m.id],
+                                    'send_copy': true,
+                                    'remove_caption': false,
+                                  }),
+                                );
                               } else {
                                 _gateway.forwardMessages(c.id, widget.chat.id, [
                                   m.id,
@@ -1910,140 +2080,166 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final s = ref.watch(settingsProvider);
     final isPrivate = chat.type == ChatType.private;
     final hidden = s.hiddenChats.contains(chat.id);
-    MenuEntry item(
-      String v,
-      IconData i,
-      String t, {
-      bool danger = false,
-    }) => MenuEntry(v, i, t, danger: danger);
+    MenuEntry item(String v, IconData i, String t, {bool danger = false}) =>
+        MenuEntry(v, i, t, danger: danger);
     Future<void> select(String v) async {
-        final sc = ref.read(settingsProvider.notifier);
-        switch (v) {
-          case 'info':
-            _openInfo();
-          case 'search':
-            setState(() {
-              _searching = true;
-              _hits = null;
-            });
-          case 'mute':
-            if (chat.muted) {
-              _gateway.setMuted(chat.id, false);
-            } else {
-              _muteFor(chat.id);
-            }
-          case 'scheduled':
-            _showScheduled();
-          case 'media':
-            _openInfo();
-          case 'pin':
-            sc.togglePin(chat.id);
-          case 'hide':
-            sc.setHidden(chat.id, !hidden);
-          case 'archive':
-            _gateway.setArchived(chat.id, true);
-            if (mounted) Navigator.of(context).pop();
-          case 'unread':
-            _gateway.markUnread(chat.id, true);
-            if (mounted) Navigator.of(context).pop();
-          case 'read':
-            _gateway.markChatRead(chat.id);
-          case 'options':
-            showChatActions(context, ref, chat);
-          case 'ghost':
-            _ghostSheet();
-          case 'wallpaper':
-            pickChatWallpaper(context, ref, chat.id);
-          case 'top':
-            if (_scroll.hasClients) {
-              _scroll.animateTo(_scroll.position.maxScrollExtent,
-                  duration: const Duration(milliseconds: 400),
-                  curve: Curves.easeOut);
-            }
-          case 'bottom':
-            if (_scroll.hasClients) {
-              _scroll.animateTo(0,
-                  duration: const Duration(milliseconds: 400),
-                  curve: Curves.easeOut);
-            }
-          case 'stars':
-            _showStars();
-          case 'jumpdate':
-            _jumpToDate();
-          case 'autodel':
-            _autoDelete();
-          case 'delmine':
-            _deleteMine();
-          case 'copyid':
-            await Clipboard.setData(ClipboardData(text: '${chat.id}'));
-          case 'clear':
-            runChatDanger(context, ref, chat, ChatDanger.clear);
-          case 'block':
-            runChatDanger(context, ref, chat, ChatDanger.block);
-          case 'leave':
-            final nav = Navigator.of(context);
-            final ok = await runChatDanger(
-              context,
-              ref,
-              chat,
-              ChatDanger.leave,
+      final sc = ref.read(settingsProvider.notifier);
+      switch (v) {
+        case 'info':
+          _openInfo();
+        case 'search':
+          setState(() {
+            _searching = true;
+            _hits = null;
+          });
+        case 'mute':
+          if (chat.muted) {
+            _gateway.setMuted(chat.id, false);
+          } else {
+            _muteFor(chat.id);
+          }
+        case 'scheduled':
+          _showScheduled();
+        case 'media':
+          _openInfo();
+        case 'pin':
+          sc.togglePin(chat.id);
+        case 'hide':
+          sc.setHidden(chat.id, !hidden);
+        case 'archive':
+          _gateway.setArchived(chat.id, true);
+          if (mounted) Navigator.of(context).pop();
+        case 'unread':
+          _gateway.markUnread(chat.id, true);
+          if (mounted) Navigator.of(context).pop();
+        case 'read':
+          _gateway.markChatRead(chat.id);
+        case 'options':
+          showChatActions(context, ref, chat);
+        case 'ghost':
+          _ghostSheet();
+        case 'wallpaper':
+          pickChatWallpaper(context, ref, chat.id);
+        case 'top':
+          if (_scroll.hasClients) {
+            _scroll.animateTo(
+              _scroll.position.maxScrollExtent,
+              duration: const Duration(milliseconds: 400),
+              curve: Curves.easeOut,
             );
-            if (ok) nav.pop();
-        }
+          }
+        case 'bottom':
+          if (_scroll.hasClients) {
+            _scroll.animateTo(
+              0,
+              duration: const Duration(milliseconds: 400),
+              curve: Curves.easeOut,
+            );
+          }
+        case 'stars':
+          _showStars();
+        case 'jumpdate':
+          _jumpToDate();
+        case 'autodel':
+          _autoDelete();
+        case 'delmine':
+          _deleteMine();
+        case 'copyid':
+          await Clipboard.setData(ClipboardData(text: '${chat.id}'));
+        case 'clear':
+          runChatDanger(context, ref, chat, ChatDanger.clear);
+        case 'block':
+          runChatDanger(context, ref, chat, ChatDanger.block);
+        case 'leave':
+          final nav = Navigator.of(context);
+          final ok = await runChatDanger(context, ref, chat, ChatDanger.leave);
+          if (ok) nav.pop();
+      }
     }
 
     final entries = <MenuEntry>[
-        item('info', Icons.account_circle_outlined, l.menuProfile),
-        item('wallpaper', Icons.wallpaper_outlined, context.t('Chat background', 'خلفية الشات')),
-        item('search', Icons.search, l.searchInChat),
-        item('media', Icons.perm_media_outlined, l.menuMedia),
-        item(
-          'mute',
-          chat.muted
-              ? Icons.notifications_outlined
-              : Icons.notifications_off_outlined,
-          chat.muted ? l.unmute : l.mute,
-        ),
-        item('scheduled', Icons.schedule_send_outlined, l.scheduledMessages),
-        item(
-          'pin',
-          s.pinned.contains(chat.id) ? Icons.push_pin : Icons.push_pin_outlined,
-          s.pinned.contains(chat.id) ? l.unpin : l.pin,
-        ),
-        item(
-          'hide',
-          hidden ? Icons.lock_open : Icons.lock_outline,
-          hidden ? l.unhideChat : l.hideChat,
-        ),
-        item('read', Icons.done_all, context.t('Mark all as read', 'تعليم الكل كمقروء')),
-        item('unread', Icons.mark_chat_unread_outlined, l.markUnread),
-        item('top', Icons.vertical_align_top, context.t('Jump to oldest', 'الرجوع لأقدم رسالة')),
-        item('bottom', Icons.vertical_align_bottom, context.t('Jump to latest', 'النزول لآخر رسالة')),
-        item('ghost', Icons.visibility_off_outlined, context.t('Ghost for this chat', 'الشبح للشات ده')),
-        item('options', Icons.tune, context.t('Chat options', 'خيارات الشات')),
-        item('stars', Icons.star_border, context.t('Starred messages', 'الرسايل المميزة')),
-        item('jumpdate', Icons.event, context.t('Jump to date', 'الذهاب لتاريخ')),
-        item('autodel', Icons.timer_outlined, context.t('Auto-delete timer', 'مؤقت الحذف التلقائي')),
-        item('delmine', Icons.delete_sweep_outlined, context.t('Delete all my messages', 'حذف كل رسايلي'), danger: true),
-        item('copyid', Icons.tag, context.t('Copy chat ID', 'نسخ معرّف الشات')),
-        item('archive', Icons.archive_outlined, l.archiveChat),
-        const MenuEntry.divider(),
-        item(
-          'clear',
-          Icons.cleaning_services_outlined,
-          l.clearHistory,
-          danger: true,
-        ),
-        if (isPrivate) item('block', Icons.block, l.blockUser, danger: true),
-        item(
-          'leave',
-          Icons.delete_outline,
-          isPrivate || chat.type == ChatType.secret
-              ? l.deleteChat
-              : l.leaveChat,
-          danger: true,
-        ),
-      ];
+      item('info', Icons.account_circle_outlined, l.menuProfile),
+      item(
+        'wallpaper',
+        Icons.wallpaper_outlined,
+        context.t('Chat background', 'خلفية الشات'),
+      ),
+      item('search', Icons.search, l.searchInChat),
+      item('media', Icons.perm_media_outlined, l.menuMedia),
+      item(
+        'mute',
+        chat.muted
+            ? Icons.notifications_outlined
+            : Icons.notifications_off_outlined,
+        chat.muted ? l.unmute : l.mute,
+      ),
+      item('scheduled', Icons.schedule_send_outlined, l.scheduledMessages),
+      item(
+        'pin',
+        s.pinned.contains(chat.id) ? Icons.push_pin : Icons.push_pin_outlined,
+        s.pinned.contains(chat.id) ? l.unpin : l.pin,
+      ),
+      item(
+        'hide',
+        hidden ? Icons.lock_open : Icons.lock_outline,
+        hidden ? l.unhideChat : l.hideChat,
+      ),
+      item(
+        'read',
+        Icons.done_all,
+        context.t('Mark all as read', 'تعليم الكل كمقروء'),
+      ),
+      item('unread', Icons.mark_chat_unread_outlined, l.markUnread),
+      item(
+        'top',
+        Icons.vertical_align_top,
+        context.t('Jump to oldest', 'الرجوع لأقدم رسالة'),
+      ),
+      item(
+        'bottom',
+        Icons.vertical_align_bottom,
+        context.t('Jump to latest', 'النزول لآخر رسالة'),
+      ),
+      item(
+        'ghost',
+        Icons.visibility_off_outlined,
+        context.t('Ghost for this chat', 'الشبح للشات ده'),
+      ),
+      item('options', Icons.tune, context.t('Chat options', 'خيارات الشات')),
+      item(
+        'stars',
+        Icons.star_border,
+        context.t('Starred messages', 'الرسايل المميزة'),
+      ),
+      item('jumpdate', Icons.event, context.t('Jump to date', 'الذهاب لتاريخ')),
+      item(
+        'autodel',
+        Icons.timer_outlined,
+        context.t('Auto-delete timer', 'مؤقت الحذف التلقائي'),
+      ),
+      item(
+        'delmine',
+        Icons.delete_sweep_outlined,
+        context.t('Delete all my messages', 'حذف كل رسايلي'),
+        danger: true,
+      ),
+      item('copyid', Icons.tag, context.t('Copy chat ID', 'نسخ معرّف الشات')),
+      item('archive', Icons.archive_outlined, l.archiveChat),
+      const MenuEntry.divider(),
+      item(
+        'clear',
+        Icons.cleaning_services_outlined,
+        l.clearHistory,
+        danger: true,
+      ),
+      if (isPrivate) item('block', Icons.block, l.blockUser, danger: true),
+      item(
+        'leave',
+        Icons.delete_outline,
+        isPrivate || chat.type == ChatType.secret ? l.deleteChat : l.leaveChat,
+        danger: true,
+      ),
+    ];
     return IconButton(
       tooltip: l.more,
       icon: const SIcon(Icons.more_vert),
@@ -2238,9 +2434,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 const MiniPlayer(),
                 if (_fxBusy)
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    child: Text(_fxSending ? context.t('Sending…', 'بيتبعت…') : context.t('Changing voice…', 'بيغيّر الصوت…'),
-                        style: const TextStyle(fontSize: 12, color: GlassTokens.textSecondary)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 4,
+                    ),
+                    child: Text(
+                      _fxSending
+                          ? context.t('Sending…', 'بيتبعت…')
+                          : context.t('Changing voice…', 'بيغيّر الصوت…'),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: GlassTokens.textSecondary,
+                      ),
+                    ),
                   ),
                 if (_selected.isNotEmpty)
                   Padding(
@@ -2253,12 +2459,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         'transparent' => 0.0,
                         _ => GlassTokens.fill,
                       },
-                      border: ref.watch(settingsProvider).hdrStyle == 'transparent'
+                      border:
+                          ref.watch(settingsProvider).hdrStyle == 'transparent'
                           ? 0
                           : GlassTokens.border,
                       padding: EdgeInsets.symmetric(
                         horizontal: 6,
-                        vertical: ref.watch(settingsProvider).hdrCompact ? 0 : 4,
+                        vertical: ref.watch(settingsProvider).hdrCompact
+                            ? 0
+                            : 4,
                       ),
                       child: Row(
                         children: [
@@ -2325,7 +2534,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                               onTap: _openInfo,
                               child: Row(
                                 children: [
-                                  if (ref.watch(settingsProvider).hdrAvatar) ...[
+                                  if (ref
+                                      .watch(settingsProvider)
+                                      .hdrAvatar) ...[
                                     AvatarCircle(
                                       title: widget.chat.title,
                                       photo: widget.chat.avatar,
@@ -2333,7 +2544,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                       shape: ref
                                           .watch(settingsProvider)
                                           .chatAvatarShape,
-                                      size: ref.watch(settingsProvider).hdrAvatarSize,
+                                      size: ref
+                                          .watch(settingsProvider)
+                                          .hdrAvatarSize,
                                     ),
                                     const SizedBox(width: 10),
                                   ],
@@ -2341,8 +2554,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                     child: Column(
                                       crossAxisAlignment:
                                           ref.watch(settingsProvider).hdrCenter
-                                              ? CrossAxisAlignment.center
-                                              : CrossAxisAlignment.start,
+                                          ? CrossAxisAlignment.center
+                                          : CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           ref
@@ -2352,41 +2565,50 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                           style: TextStyle(
-                                            fontWeight: ref.watch(settingsProvider).hdrBold
+                                            fontWeight:
+                                                ref
+                                                    .watch(settingsProvider)
+                                                    .hdrBold
                                                 ? FontWeight.w700
                                                 : FontWeight.w500,
-                                            fontSize: ref.watch(settingsProvider).hdrNameSize,
+                                            fontSize: ref
+                                                .watch(settingsProvider)
+                                                .hdrNameSize,
                                           ),
                                         ),
-                                        if (ref.watch(settingsProvider).hdrStatus)
-                                        StreamBuilder<ChatStatus>(
-                                          stream: _gateway.watchChatStatus(
-                                            widget.chat.id,
+                                        if (ref
+                                            .watch(settingsProvider)
+                                            .hdrStatus)
+                                          StreamBuilder<ChatStatus>(
+                                            stream: _gateway.watchChatStatus(
+                                              widget.chat.id,
+                                            ),
+                                            initialData: ChatStatus.none,
+                                            builder: (_, snap) {
+                                              final t = _statusText(
+                                                l,
+                                                snap.data ?? ChatStatus.none,
+                                              );
+                                              return t.isEmpty
+                                                  ? const SizedBox.shrink()
+                                                  : Text(
+                                                      t,
+                                                      style: TextStyle(
+                                                        fontSize: 12,
+                                                        color:
+                                                            (snap
+                                                                    .data
+                                                                    ?.typing ??
+                                                                false)
+                                                            ? GlassScope.of(
+                                                                context,
+                                                              ).accent
+                                                            : GlassTokens
+                                                                  .textSecondary,
+                                                      ),
+                                                    );
+                                            },
                                           ),
-                                          initialData: ChatStatus.none,
-                                          builder: (_, snap) {
-                                            final t = _statusText(
-                                              l,
-                                              snap.data ?? ChatStatus.none,
-                                            );
-                                            return t.isEmpty
-                                                ? const SizedBox.shrink()
-                                                : Text(
-                                                    t,
-                                                    style: TextStyle(
-                                                      fontSize: 12,
-                                                      color:
-                                                          (snap.data?.typing ??
-                                                              false)
-                                                          ? GlassScope.of(
-                                                              context,
-                                                            ).accent
-                                                          : GlassTokens
-                                                                .textSecondary,
-                                                    ),
-                                                  );
-                                          },
-                                        ),
                                       ],
                                     ),
                                   ),
@@ -2395,20 +2617,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                             ),
                           ),
                           if (ref.watch(settingsProvider).hdrGhost)
-                          Tooltip(
-                            message: l.chatControls,
-                            child: IconButton(
-                              icon: SIcon(
-                                ghost
-                                    ? Icons.visibility_off_outlined
-                                    : Icons.visibility_outlined,
-                                color: ghost
-                                    ? GlassTokens.ghost
-                                    : Colors.white54,
+                            Tooltip(
+                              message: l.chatControls,
+                              child: IconButton(
+                                icon: SIcon(
+                                  ghost
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
+                                  color: ghost
+                                      ? GlassTokens.ghost
+                                      : Colors.white54,
+                                ),
+                                onPressed: _ghostSheet,
                               ),
-                              onPressed: _ghostSheet,
                             ),
-                          ),
                           _moreMenu(l),
                         ],
                       ),
@@ -2570,7 +2792,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                   ChatType.group &&
                                               !m.outgoing,
                                           replied: m.replyToId != 0
-                                              ? (byId[m.replyToId] ?? _replyFor(m.replyToId))
+                                              ? (byId[m.replyToId] ??
+                                                    _replyFor(m.replyToId))
                                               : null,
                                           forwardLabel: _forwardLabel(
                                             l,
@@ -2820,17 +3043,30 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                         behavior: HitTestBehavior.opaque,
                                         onTap: _fxBusy ? null : _fxToggle,
                                         onLongPress: _fxBusy ? null : _fxSheet,
-                                        child: Tooltip(
-                                          message: context.t('Voice changer (hold to choose)', 'مغيّر الصوت (اضغط مطوّل للاختيار)'),
-                                          child: FxGlow(
-                                            icon: voiceFxFrom(ref.watch(settingsProvider).voiceFx) == VoiceFx.none
-                                                ? Icons.graphic_eq
-                                                : voiceFxFrom(ref.watch(settingsProvider).voiceFx).icon,
-                                            color: voiceFxFrom(ref.watch(settingsProvider).voiceFx) == VoiceFx.none
-                                                ? GlassTokens.textSecondary
-                                                : GlassScope.of(context).accent,
-                                            glowing: _fxBusy,
-                                          ),
+                                        child: FxGlow(
+                                          icon:
+                                              voiceFxFrom(
+                                                    ref
+                                                        .watch(settingsProvider)
+                                                        .fxFor(widget.chat.id),
+                                                  ) ==
+                                                  VoiceFx.none
+                                              ? Icons.graphic_eq
+                                              : voiceFxFrom(
+                                                  ref
+                                                      .watch(settingsProvider)
+                                                      .fxFor(widget.chat.id),
+                                                ).icon,
+                                          color:
+                                              voiceFxFrom(
+                                                    ref
+                                                        .watch(settingsProvider)
+                                                        .fxFor(widget.chat.id),
+                                                  ) ==
+                                                  VoiceFx.none
+                                              ? GlassTokens.textSecondary
+                                              : GlassScope.of(context).accent,
+                                          glowing: _fxBusy,
                                         ),
                                       ),
                                     Listener(
@@ -2839,44 +3075,69 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                       onPointerDown: (e) {
                                         if (!_fxBusy) _micDown(e.position);
                                       },
-                                      onPointerMove: (e) => _micMove(e.position),
+                                      onPointerMove: (e) =>
+                                          _micMove(e.position),
                                       onPointerUp: (_) => _micUp(),
-                                      onPointerCancel: (_) => _micUp(cancel: true),
+                                      onPointerCancel: (_) =>
+                                          _micUp(cancel: true),
                                       child: SizedBox(
                                         width: 56,
                                         height: 56,
-                                        child: Stack(alignment: Alignment.center, children: [
-                                          if (_fxBusy)
-                                            SizedBox(
-                                              width: 52,
-                                              height: 52,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 3,
-                                                color: GlassScope.of(context).accent,
+                                        child: Stack(
+                                          alignment: Alignment.center,
+                                          children: [
+                                            if (_fxBusy)
+                                              SizedBox(
+                                                width: 52,
+                                                height: 52,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                      strokeWidth: 3,
+                                                      color: GlassScope.of(
+                                                        context,
+                                                      ).accent,
+                                                    ),
                                               ),
-                                            ),
-                                          OverflowBox(
-                                            maxWidth: 110,
-                                            maxHeight: 110,
-                                            child: PulseRing(
-                                              color: _recCancel ? GlassTokens.ringDanger : GlassScope.of(context).accent,
-                                              size: 44,
-                                              active: _recording,
-                                              child: AnimatedContainer(
-                                                duration: const Duration(milliseconds: 90),
-                                                width: _recording ? 54 : 44,
-                                                height: _recording ? 54 : 44,
-                                                decoration: BoxDecoration(
-                                                  shape: BoxShape.circle,
-                                                  color: _recording
-                                                      ? (_recCancel ? GlassTokens.ringDanger : GlassScope.of(context).accent)
-                                                      : Colors.transparent,
+                                            OverflowBox(
+                                              maxWidth: 110,
+                                              maxHeight: 110,
+                                              child: PulseRing(
+                                                color: _recCancel
+                                                    ? GlassTokens.ringDanger
+                                                    : GlassScope.of(context)
+                                                          .accent,
+                                                size: 44,
+                                                active: _recording,
+                                                child: AnimatedContainer(
+                                                  duration: const Duration(
+                                                    milliseconds: 90,
+                                                  ),
+                                                  width: _recording ? 54 : 44,
+                                                  height: _recording ? 54 : 44,
+                                                  decoration: BoxDecoration(
+                                                    shape: BoxShape.circle,
+                                                    color: _recording
+                                                        ? (_recCancel
+                                                              ? GlassTokens
+                                                                    .ringDanger
+                                                              : GlassScope.of(
+                                                                  context,
+                                                                ).accent)
+                                                        : Colors.transparent,
+                                                  ),
+                                                  child: SIcon(
+                                                    _recording
+                                                        ? Icons.mic
+                                                        : (_fxBusy
+                                                              ? Icons
+                                                                    .hourglass_top
+                                                              : Icons.mic_none),
+                                                  ),
                                                 ),
-                                                child: SIcon(_recording ? Icons.mic : (_fxBusy ? Icons.hourglass_top : Icons.mic_none)),
                                               ),
                                             ),
-                                          ),
-                                        ]),
+                                          ],
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -3035,13 +3296,14 @@ class _Bubble extends StatelessWidget {
     }
   }
 
-  static String _hm(DateTime t) =>
-      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+  static String _hm(DateTime t, bool ar) => fmtTime12(t, ar: ar);
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final accent = ps.chatOut != null ? Color(ps.chatOut!) : GlassScope.of(context).accent;
+    final accent = ps.chatOut != null
+        ? Color(ps.chatOut!)
+        : GlassScope.of(context).accent;
     final isVisual =
         m.kind == MessageKind.photo ||
         m.kind == MessageKind.sticker ||
@@ -3049,14 +3311,20 @@ class _Bubble extends StatelessWidget {
     String? previewPath;
     for (final a in [m.thumb, if (m.kind == MessageKind.photo) m.file]) {
       final lp = a?.localPath;
-      if (a != null && lp != null && lp.isNotEmpty && (a.downloaded || File(lp).existsSync() && File(lp).lengthSync() > 0)) {
+      if (a != null &&
+          lp != null &&
+          lp.isNotEmpty &&
+          (a.downloaded ||
+              File(lp).existsSync() && File(lp).lengthSync() > 0)) {
         previewPath = lp;
         break;
       }
     }
     final contact = contactOf(m);
-    final locData = m.loc ?? (m.kind == MessageKind.other ? parseLocation(m.text) : null);
-    final showText = contact == null &&
+    final locData =
+        m.loc ?? (m.kind == MessageKind.other ? parseLocation(m.text) : null);
+    final showText =
+        contact == null &&
         locData == null &&
         (m.text.isNotEmpty || (m.file == null && !isVisual));
     final text = m.text.isNotEmpty ? m.text : kindLabel(l, m.kind);
@@ -3078,125 +3346,139 @@ class _Bubble extends StatelessWidget {
               ? EdgeInsets.zero
               : const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: sticker ? null : _decoration(accent),
-          child: MediaQuery(
-            data: MediaQuery.of(context).copyWith(
-              textScaler: TextScaler.linear(
-                MediaQuery.of(context).textScaler.scale(1) * ps.chatFontScale,
+          child: UploadPulse(
+            active: m.outgoing && m.sendState == 1 && m.file != null,
+            progress: m.file?.upProgress ?? 0,
+            label: m.file == null || m.file!.size <= 0
+                ? null
+                : '${(m.file!.upProgress * 100).round()}% · ${fmtSizeKbMb(m.file!.uploadedBytes)} / ${fmtSizeKbMb(m.file!.size)}',
+            child: MediaQuery(
+              data: MediaQuery.of(context).copyWith(
+                textScaler: TextScaler.linear(
+                  MediaQuery.of(context).textScaler.scale(1) * ps.chatFontScale,
+                ),
               ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (showSender && ps.chatShowNames && m.senderName.isNotEmpty)
-                  Text(
-                    m.senderName,
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600,
-                      color: accent,
-                    ),
-                  ),
-                if (forwardLabel != null)
-                  Text(
-                    forwardLabel!,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: GlassTokens.ghost,
-                    ),
-                  ),
-                if (m.replyToId != 0)
-                  GestureDetector(
-                    onTap: onJump,
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 4, top: 2),
-                      padding: const EdgeInsetsDirectional.only(start: 8),
-                      decoration: BoxDecoration(
-                        border: BorderDirectional(
-                          start: BorderSide(color: accent, width: 2),
-                        ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (showSender && ps.chatShowNames && m.senderName.isNotEmpty)
+                    Text(
+                      m.senderName,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: accent,
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (replied != null)
+                    ),
+                  if (forwardLabel != null)
+                    Text(
+                      forwardLabel!,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: GlassTokens.ghost,
+                      ),
+                    ),
+                  if (m.replyToId != 0)
+                    GestureDetector(
+                      onTap: onJump,
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 4, top: 2),
+                        padding: const EdgeInsetsDirectional.only(start: 8),
+                        decoration: BoxDecoration(
+                          border: BorderDirectional(
+                            start: BorderSide(color: accent, width: 2),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (replied != null)
+                              Text(
+                                replied!.outgoing
+                                    ? context.t('You', 'أنت')
+                                    : (replied!.senderName.isNotEmpty
+                                          ? replied!.senderName
+                                          : ''),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: accent,
+                                ),
+                              ),
                             Text(
-                              replied!.outgoing
-                                  ? context.t('You', 'أنت')
-                                  : (replied!.senderName.isNotEmpty ? replied!.senderName : ''),
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: accent,
+                              replied == null
+                                  ? '…'
+                                  : (replied!.text.isNotEmpty
+                                        ? replied!.text
+                                        : kindLabel(l, replied!.kind)),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 12.5,
+                                color: GlassTokens.textSecondary,
                               ),
                             ),
-                          Text(
-                            replied == null
-                                ? '…'
-                                : (replied!.text.isNotEmpty
-                                      ? replied!.text
-                                      : kindLabel(l, replied!.kind)),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 12.5,
-                              color: GlassTokens.textSecondary,
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                if (isVisual)
-                  GestureDetector(
-                    onTap: onOpen,
-                    onDoubleTap: selecting ? null : onDoubleTap,
-                    onLongPress: selecting ? onTapSelect : onLongPress,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(sticker ? 0 : 12),
-                      child:
-                          (sticker &&
-                              m.file != null &&
-                              m.file!.name.endsWith('.webm') &&
-                              m.file!.downloaded &&
-                              m.file!.localPath != null)
-                          ? _WebmSticker(path: m.file!.localPath!)
-                          : (sticker &&
+                  if (isVisual)
+                    GestureDetector(
+                      onTap: onOpen,
+                      onDoubleTap: selecting ? null : onDoubleTap,
+                      onLongPress: selecting ? onTapSelect : onLongPress,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(sticker ? 0 : 12),
+                        child:
+                            (sticker &&
                                 m.file != null &&
-                                m.file!.name.endsWith('.tgs') &&
+                                m.file!.name.endsWith('.webm') &&
                                 m.file!.downloaded &&
                                 m.file!.localPath != null)
-                          ? TgsView(path: m.file!.localPath!, emoji: m.emoji)
-                          : previewPath != null
-                          ? Image.file(
-                              File(previewPath),
-                              width: sticker ? 150 : 220,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, _, _) =>
-                                  const SizedBox(width: 150, height: 100),
-                            )
-                          : SizedBox(
-                              width: sticker ? 120 : 220,
-                              height: sticker ? 120 : 160,
-                              child: Stack(fit: StackFit.expand, children: [
-                                if (m.mini != null && !sticker)
-                                  Image.memory(m.mini!,
-                                      fit: BoxFit.cover,
-                                      gaplessPlayback: true,
-                                      filterQuality: FilterQuality.low),
-                                if (m.kind == MessageKind.video &&
-                                    m.file?.localPath != null &&
-                                    File(m.file!.localPath!).existsSync())
-                                  _VideoFrame(path: m.file!.localPath!),
-                                Center(
-                                  child: sticker && m.emoji.isNotEmpty
-                                      ? Text(
-                                          m.emoji,
-                                          style: const TextStyle(fontSize: 56),
-                                        )
-                                      : (m.mini != null ||
-                                              (m.kind == MessageKind.video &&
-                                                  m.file?.localPath != null))
+                            ? _WebmSticker(path: m.file!.localPath!)
+                            : (sticker &&
+                                  m.file != null &&
+                                  m.file!.name.endsWith('.tgs') &&
+                                  m.file!.downloaded &&
+                                  m.file!.localPath != null)
+                            ? TgsView(path: m.file!.localPath!, emoji: m.emoji)
+                            : previewPath != null
+                            ? Image.file(
+                                File(previewPath),
+                                width: sticker ? 150 : 220,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, _, _) =>
+                                    const SizedBox(width: 150, height: 100),
+                              )
+                            : SizedBox(
+                                width: sticker ? 120 : 220,
+                                height: sticker ? 120 : 160,
+                                child: Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    if (m.mini != null && !sticker)
+                                      Image.memory(
+                                        m.mini!,
+                                        fit: BoxFit.cover,
+                                        gaplessPlayback: true,
+                                        filterQuality: FilterQuality.low,
+                                      ),
+                                    if (m.kind == MessageKind.video &&
+                                        m.file?.localPath != null &&
+                                        File(m.file!.localPath!).existsSync())
+                                      _VideoFrame(path: m.file!.localPath!),
+                                    Center(
+                                      child: sticker && m.emoji.isNotEmpty
+                                          ? Text(
+                                              m.emoji,
+                                              style: const TextStyle(
+                                                fontSize: 56,
+                                              ),
+                                            )
+                                          : (m.mini != null ||
+                                                (m.kind == MessageKind.video &&
+                                                    m.file?.localPath != null))
                                           ? Icon(
                                               m.kind == MessageKind.video
                                                   ? Icons.play_circle_fill
@@ -3205,149 +3487,155 @@ class _Bubble extends StatelessWidget {
                                               color: Colors.white70,
                                             )
                                           : (m.sendState == 1
-                                              ? const CircularProgressIndicator(strokeWidth: 2)
-                                              : Text(l.photoLoading)),
+                                                ? const CircularProgressIndicator(
+                                                    strokeWidth: 2,
+                                                  )
+                                                : Text(l.photoLoading)),
+                                    ),
+                                  ],
                                 ),
-                              ]),
-                            ),
+                              ),
+                      ),
                     ),
-                  ),
-                if (showText && !(sticker && m.text.isEmpty))
-                  (m.kind == MessageKind.text && _emojiOnly(m.text))
-                      ? Text(m.text, style: const TextStyle(fontSize: 46))
-                      : _body(m, text, accent),
-                if (m.file != null && m.kind == MessageKind.voice)
-                  VoicePlayer(
-                    title: m.outgoing
-                        ? context.t('You', 'أنت')
-                        : (m.senderName.isEmpty ? context.t('Voice message', 'رسالة صوتية') : m.senderName),
-                    file: m.file!,
-                    onDownload: () => onDownload(m.file!.fileId),
-                  )
-                else if (m.file != null && !isVisual)
-                  FileCard(
-                    file: m.file!,
-                    onDownload: () => onDownload(m.file!.fileId),
-                    onCancel: () => onCancel(m.file!.fileId),
-                  ),
-                if (contact != null) ContactCardView(card: contact),
-                if (locData != null) LocationCard(m: m),
-                if (m.poll != null)
-                  _PollView(poll: m.poll!, onVote: (ids) => onVote(ids)),
-                if (m.link != null)
-                  GestureDetector(
-                    onTap: () => launchUrl(
-                      Uri.parse(m.link!.url),
-                      mode: LaunchMode.externalApplication,
+                  if (showText && !(sticker && m.text.isEmpty))
+                    (m.kind == MessageKind.text && _emojiOnly(m.text))
+                        ? Text(m.text, style: const TextStyle(fontSize: 46))
+                        : _body(m, text, accent),
+                  if (m.file != null && m.kind == MessageKind.voice)
+                    VoicePlayer(
+                      title: m.outgoing
+                          ? context.t('You', 'أنت')
+                          : (m.senderName.isEmpty
+                                ? context.t('Voice message', 'رسالة صوتية')
+                                : m.senderName),
+                      file: m.file!,
+                      onDownload: () => onDownload(m.file!.fileId),
+                    )
+                  else if (m.file != null && !isVisual)
+                    FileCard(
+                      file: m.file!,
+                      onDownload: () => onDownload(m.file!.fileId),
+                      onCancel: () => onCancel(m.file!.fileId),
                     ),
-                    child: Container(
-                      margin: const EdgeInsets.only(top: 6),
-                      padding: const EdgeInsetsDirectional.only(start: 8),
-                      decoration: BoxDecoration(
-                        border: BorderDirectional(
-                          start: BorderSide(color: accent, width: 2),
+                  if (contact != null) ContactCardView(card: contact),
+                  if (locData != null) LocationCard(m: m),
+                  if (m.poll != null)
+                    _PollView(poll: m.poll!, onVote: (ids) => onVote(ids)),
+                  if (m.link != null)
+                    GestureDetector(
+                      onTap: () => launchUrl(
+                        Uri.parse(m.link!.url),
+                        mode: LaunchMode.externalApplication,
+                      ),
+                      child: Container(
+                        margin: const EdgeInsets.only(top: 6),
+                        padding: const EdgeInsetsDirectional.only(start: 8),
+                        decoration: BoxDecoration(
+                          border: BorderDirectional(
+                            start: BorderSide(color: accent, width: 2),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (m.link!.site.isNotEmpty)
+                              Text(
+                                m.link!.site,
+                                style: TextStyle(fontSize: 12, color: accent),
+                              ),
+                            if (m.link!.title.isNotEmpty)
+                              Text(
+                                m.link!.title,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            if (m.link!.description.isNotEmpty)
+                              Text(
+                                m.link!.description,
+                                maxLines: 3,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: GlassTokens.textSecondary,
+                                ),
+                              ),
+                          ],
                         ),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    ),
+                  if (m.reactions.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Wrap(
+                        spacing: 4,
+                        runSpacing: 4,
                         children: [
-                          if (m.link!.site.isNotEmpty)
-                            Text(
-                              m.link!.site,
-                              style: TextStyle(fontSize: 12, color: accent),
-                            ),
-                          if (m.link!.title.isNotEmpty)
-                            Text(
-                              m.link!.title,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
+                          for (final e in m.reactions.entries)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 7,
+                                vertical: 2,
                               ),
-                            ),
-                          if (m.link!.description.isNotEmpty)
-                            Text(
-                              m.link!.description,
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: GlassTokens.textSecondary,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                color: m.myReactions.contains(e.key)
+                                    ? accent.withValues(alpha: 0.5)
+                                    : Colors.white12,
+                              ),
+                              child: Text(
+                                '${e.key} ${e.value}',
+                                style: const TextStyle(fontSize: 12),
                               ),
                             ),
                         ],
                       ),
                     ),
-                  ),
-                if (m.reactions.isNotEmpty)
                   Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Wrap(
-                      spacing: 4,
-                      runSpacing: 4,
+                    padding: const EdgeInsets.only(top: 3),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        for (final e in m.reactions.entries)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 7,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              color: m.myReactions.contains(e.key)
-                                  ? accent.withValues(alpha: 0.5)
-                                  : Colors.white12,
-                            ),
+                        if (m.deletedByPeer || m.edited)
+                          Flexible(
                             child: Text(
-                              '${e.key} ${e.value}',
-                              style: const TextStyle(fontSize: 12),
+                              '${[if (m.deletedByPeer) l.deletedByPeer, if (m.edited) l.edited].join(' · ')}  ',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: GlassTokens.textTertiary,
+                              ),
                             ),
                           ),
-                      ],
-                    ),
-                  ),
-                Padding(
-                  padding: const EdgeInsets.only(top: 3),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (m.deletedByPeer || m.edited)
-                        Flexible(
-                          child: Text(
-                            '${[if (m.deletedByPeer) l.deletedByPeer, if (m.edited) l.edited].join(' · ')}  ',
+                        if (ps.chatShowTime)
+                          Text(
+                            '${_hm(m.time, context.isAr)}${m.file != null && m.file!.size > 0 && m.kind != MessageKind.photo && m.kind != MessageKind.sticker ? ' · ${fmtSizeKbMb(m.file!.size)}' : ''}',
                             style: const TextStyle(
                               fontSize: 11,
                               color: GlassTokens.textTertiary,
                             ),
                           ),
-                        ),
-                      if (ps.chatShowTime)
-                        Text(
-                          _hm(m.time),
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: GlassTokens.textTertiary,
+                        if (m.outgoing && ps.chatShowTicks) ...[
+                          const SizedBox(width: 3),
+                          SIcon(
+                            m.sendState == 2
+                                ? Icons.error_outline
+                                : m.sendState == 1
+                                ? Icons.schedule
+                                : (m.read ? Icons.done_all : Icons.done),
+                            size: 14,
+                            color: m.sendState == 2
+                                ? GlassTokens.ringDanger
+                                : (m.read ? accent : GlassTokens.textTertiary),
                           ),
-                        ),
-                      if (m.outgoing && ps.chatShowTicks) ...[
-                        const SizedBox(width: 3),
-                        SIcon(
-                          m.sendState == 2
-                              ? Icons.error_outline
-                              : m.sendState == 1
-                              ? Icons.schedule
-                              : (m.read ? Icons.done_all : Icons.done),
-                          size: 14,
-                          color: m.sendState == 2
-                              ? GlassTokens.ringDanger
-                              : (m.read ? accent : GlassTokens.textTertiary),
-                        ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -3375,9 +3663,12 @@ class _VideoFrameState extends State<_VideoFrame> {
     final c = VideoPlayerController.file(File(widget.path));
     _c = c;
     c.setVolume(0);
-    c.initialize().then((_) {
-      if (mounted) setState(() {});
-    }).catchError((Object _) {});
+    c
+        .initialize()
+        .then((_) {
+          if (mounted) setState(() {});
+        })
+        .catchError((Object _) {});
   }
 
   @override
@@ -3464,7 +3755,11 @@ Widget _body(ChatMessage m, String text, Color accent) {
 }
 
 class _LinkText extends StatefulWidget {
-  const _LinkText({required this.text, required this.color, this.inline = const []});
+  const _LinkText({
+    required this.text,
+    required this.color,
+    this.inline = const [],
+  });
   final String text;
   final Color color;
   final List<TextEnt> inline;
@@ -3495,25 +3790,36 @@ class _LinkTextState extends State<_LinkText> {
       ];
       final isCode = here.any((e) => e.style.isEmpty);
       if (isCode) {
-        out.add(WidgetSpan(
-          alignment: PlaceholderAlignment.middle,
-          child: GestureDetector(
-            onLongPress: () {
-              Clipboard.setData(ClipboardData(text: run));
-              notice(context, context.t('Copied', 'تم النسخ'), kind: NoticeKind.success);
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E1E1E),
-                borderRadius: BorderRadius.circular(5),
-              ),
-              child: Text(run,
+        out.add(
+          WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: GestureDetector(
+              onLongPress: () {
+                Clipboard.setData(ClipboardData(text: run));
+                notice(
+                  context,
+                  context.t('Copied', 'تم النسخ'),
+                  kind: NoticeKind.success,
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E1E1E),
+                  borderRadius: BorderRadius.circular(5),
+                ),
+                child: Text(
+                  run,
                   style: const TextStyle(
-                      fontFamily: 'monospace', fontSize: 13, color: Color(0xFFCE9178))),
+                    fontFamily: 'monospace',
+                    fontSize: 13,
+                    color: Color(0xFFCE9178),
+                  ),
+                ),
+              ),
             ),
           ),
-        ));
+        );
         continue;
       }
       var style = const TextStyle();
@@ -3533,39 +3839,60 @@ class _LinkTextState extends State<_LinkText> {
             spoilerId = e.offset;
         }
       }
-      if (deco.isNotEmpty) style = style.copyWith(decoration: TextDecoration.combine(deco));
+      if (deco.isNotEmpty) {
+        style = style.copyWith(decoration: TextDecoration.combine(deco));
+      }
       if (spoilerId >= 0 && !_revealed.contains(spoilerId)) {
-        final r = TapGestureRecognizer()..onTap = () => setState(() => _revealed.add(spoilerId));
+        final r = TapGestureRecognizer()
+          ..onTap = () => setState(() => _revealed.add(spoilerId));
         _recognizers.add(r);
-        out.add(TextSpan(
-          text: run,
-          recognizer: r,
-          style: style.copyWith(
-            color: Colors.transparent,
-            backgroundColor: Colors.white.withValues(alpha: 0.28),
+        out.add(
+          TextSpan(
+            text: run,
+            recognizer: r,
+            style: style.copyWith(
+              color: Colors.transparent,
+              backgroundColor: Colors.white.withValues(alpha: 0.28),
+            ),
           ),
-        ));
+        );
         continue;
       }
       // links / mentions inside this run
       var last = 0;
       for (final m in re.allMatches(run)) {
-        if (m.start > last) out.add(TextSpan(text: run.substring(last, m.start), style: style));
+        if (m.start > last) {
+          out.add(TextSpan(text: run.substring(last, m.start), style: style));
+        }
         final url = m.group(1);
         if (url != null) {
           final r = TapGestureRecognizer()
-            ..onTap = () => launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+            ..onTap = () =>
+                launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
           _recognizers.add(r);
-          out.add(TextSpan(
+          out.add(
+            TextSpan(
               text: url,
               recognizer: r,
-              style: style.copyWith(color: widget.color, decoration: TextDecoration.underline)));
+              style: style.copyWith(
+                color: widget.color,
+                decoration: TextDecoration.underline,
+              ),
+            ),
+          );
         } else {
-          out.add(TextSpan(text: m.group(0), style: style.copyWith(color: widget.color)));
+          out.add(
+            TextSpan(
+              text: m.group(0),
+              style: style.copyWith(color: widget.color),
+            ),
+          );
         }
         last = m.end;
       }
-      if (last < run.length) out.add(TextSpan(text: run.substring(last), style: style));
+      if (last < run.length) {
+        out.add(TextSpan(text: run.substring(last), style: style));
+      }
     }
     return out;
   }
@@ -3783,7 +4110,8 @@ class _SwipeToActState extends State<_SwipeToAct> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: _fired
-                          ? GlassScope.of(context).accent.withValues(alpha: 0.85)
+                          ? GlassScope.of(context).accent
+                                .withValues(alpha: 0.85)
                           : Colors.white.withValues(alpha: 0.15),
                     ),
                     child: SIcon(_icon(act), size: 20),
@@ -3803,13 +4131,17 @@ class _SwipeToActState extends State<_SwipeToAct> {
   }
 }
 
-
 /// Up to three emoji and nothing else → shown big, like Telegram.
 bool _emojiOnly(String t) {
   final c = t.trim().characters;
   if (c.isEmpty || c.length > 3) return false;
   return c.every((g) {
     final r = g.runes.first;
-    return r >= 0x1F000 || (r >= 0x2190 && r <= 0x2BFF) || r == 0x00A9 || r == 0x00AE || r == 0x203C || r == 0x2049;
+    return r >= 0x1F000 ||
+        (r >= 0x2190 && r <= 0x2BFF) ||
+        r == 0x00A9 ||
+        r == 0x00AE ||
+        r == 0x203C ||
+        r == 0x2049;
   });
 }

@@ -91,6 +91,8 @@ class Attachment {
     this.downloaded = false,
     this.downloading = false,
     this.downloadedBytes = 0,
+    this.uploading = false,
+    this.uploadedBytes = 0,
   });
 
   final int fileId;
@@ -100,6 +102,11 @@ class Attachment {
   final bool downloaded;
   final bool downloading;
   final int downloadedBytes;
+  final bool uploading;
+  final int uploadedBytes;
+
+  double get upProgress =>
+      size <= 0 ? 0 : (uploadedBytes / size).clamp(0.0, 1.0);
 
   double get progress =>
       size <= 0 ? 0 : (downloadedBytes / size).clamp(0.0, 1.0);
@@ -110,6 +117,8 @@ class Attachment {
     bool? downloading,
     int? downloadedBytes,
     int? size,
+    bool? uploading,
+    int? uploadedBytes,
   }) => Attachment(
     fileId: fileId,
     name: name,
@@ -118,6 +127,8 @@ class Attachment {
     downloaded: downloaded ?? this.downloaded,
     downloading: downloading ?? this.downloading,
     downloadedBytes: downloadedBytes ?? this.downloadedBytes,
+    uploading: uploading ?? this.uploading,
+    uploadedBytes: uploadedBytes ?? this.uploadedBytes,
   );
 }
 

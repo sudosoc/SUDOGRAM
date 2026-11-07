@@ -15,6 +15,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/providers.dart';
 import '../chat/chat_extras.dart';
 import 'setup_screen.dart';
+import '../../core/time_fmt.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../core/device_perms.dart';
 import '../../core/media_save.dart';
@@ -42,10 +43,10 @@ String kindLabel(AppLocalizations l, MessageKind k) => switch (k) {
   _ => l.kindOther,
 };
 
-String _fmtTime(DateTime t) {
+String _fmtTime(DateTime t, bool ar) {
   final n = DateTime.now();
   if (n.difference(t).inHours < 24 && n.day == t.day) {
-    return '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+    return fmtTime12(t, ar: ar);
   }
   return '${t.day}/${t.month}';
 }
@@ -878,7 +879,7 @@ class ChatRow extends ConsumerWidget {
                   children: [
                     if (chat.lastTime != null && st.homeShowTime)
                       Text(
-                        _fmtTime(chat.lastTime!),
+                        _fmtTime(chat.lastTime!, context.isAr),
                         style: const TextStyle(
                           fontSize: 12,
                           color: GlassTokens.textTertiary,

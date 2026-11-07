@@ -67,6 +67,35 @@ class MainActivity : FlutterFragmentActivity() {
                             runOnUiThread { result.error("opus", e.toString(), null) }
                         }
                     }.start()
+                } else if (call.method == "videoMeta") {
+                    val path = call.argument<String>("path") ?: ""
+                    val dst = call.argument<String>("dst") ?: ""
+                    Thread {
+                        try {
+                            val r = android.media.MediaMetadataRetriever()
+                            r.setDataSource(path)
+                            var w = (r.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH) ?: "0").toInt()
+                            var h = (r.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT) ?: "0").toInt()
+                            val rot = (r.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION) ?: "0").toInt()
+                            val ms = (r.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION) ?: "0").toLong()
+                            if (rot == 90 || rot == 270) { val x = w; w = h; h = x }
+                            var tw = 0
+                            var th = 0
+                            val frame = r.getFrameAtTime(if (ms > 1500) 1000000L else 0L, android.media.MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+                            if (frame != null && dst.isNotEmpty()) {
+                                val scale = 320f / Math.max(frame.width, frame.height)
+                                val bmp = android.graphics.Bitmap.createScaledBitmap(frame, Math.max(1, (frame.width * scale).toInt()), Math.max(1, (frame.height * scale).toInt()), true)
+                                java.io.FileOutputStream(dst).use { bmp.compress(android.graphics.Bitmap.CompressFormat.JPEG, 80, it) }
+                                tw = bmp.width
+                                th = bmp.height
+                            }
+                            r.release()
+                            val out = hashMapOf<String, Any>("w" to w, "h" to h, "ms" to ms, "tw" to tw, "th" to th)
+                            runOnUiThread { result.success(out) }
+                        } catch (e: Throwable) {
+                            runOnUiThread { result.error("meta", e.toString(), null) }
+                        }
+                    }.start()
                 } else if (call.method == "tts") {
                     val text = call.argument<String>("text") ?: ""
                     val lang = call.argument<String>("lang") ?: "en"
@@ -106,7 +135,7 @@ class MainActivity : FlutterFragmentActivity() {
                 } else if (call.method == "setLauncher") {
                     val idx = call.argument<Int>("index") ?: 0
                     val pm = packageManager
-                    for (i in (listOf(idx) + (0 until 52).filter { it != idx })) {
+                    for (i in (listOf(idx) + (0 until 56).filter { it != idx })) {
                         val cn = android.content.ComponentName(this, "com.sudosoc.sudogram.Alias%02d".format(i))
                         try {
                             pm.setComponentEnabledSetting(

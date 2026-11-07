@@ -349,7 +349,6 @@ class AttachMenuScreen extends ConsumerWidget {
     'video': (Icons.videocam_outlined, 'Camera video', 'تصوير فيديو'),
     'file': (Icons.attach_file, 'File', 'ملف'),
     'location': (Icons.location_on_outlined, 'Location', 'الموقع'),
-    'live': (Icons.share_location, 'Live location', 'الموقع المباشر'),
     'contact': (Icons.contact_page_outlined, 'Contact', 'جهة اتصال'),
     'poll': (Icons.poll_outlined, 'Poll', 'استطلاع'),
     'scheduled': (Icons.schedule_send_outlined, 'Scheduled messages', 'الرسايل المجدولة'),

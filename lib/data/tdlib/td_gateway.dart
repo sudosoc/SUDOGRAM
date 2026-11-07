@@ -1,6 +1,8 @@
 import '../../core/code_markup.dart';
 import 'dart:convert';
 import 'dart:io';
+
+import 'package:flutter/services.dart' show MethodChannel;
 import 'dart:typed_data';
 import 'dart:async';
 
@@ -282,17 +284,39 @@ class TdlibGateway implements TelegramGateway {
 
   static const _videoExt = {'mp4', 'mov', 'mkv', 'webm', 'avi', 'm4v', '3gp'};
 
-  Map<String, dynamic> _mediaContent(String path, String caption) {
+  static const _winCh = MethodChannel('sudogram/window');
+
+  Future<Map<String, dynamic>> _mediaContent(String path, String caption) async {
     final ext = path.split('.').last.toLowerCase();
     final file = {'@type': 'inputFileLocal', 'path': path};
     final cap = {'@type': 'formattedText', 'text': caption};
     if (_videoExt.contains(ext)) {
+      // Duration, size and a thumbnail: without them the video shows as a
+      // black box on the receiver's side.
+      var meta = <String, dynamic>{};
+      final thumb = '$path.thumb.jpg';
+      try {
+        meta = Map<String, dynamic>.from(
+          await _winCh.invokeMethod('videoMeta', {'path': path, 'dst': thumb}) as Map,
+        );
+      } catch (_) {}
+      final hasThumb = asInt(meta['tw']) > 0 && File(thumb).existsSync();
       return {
         '@type': 'inputMessageVideo',
         'video': {
           '@type': 'inputVideo',
           'video': file,
           'supports_streaming': true,
+          'duration': (asInt(meta['ms']) / 1000).round(),
+          'width': asInt(meta['w']),
+          'height': asInt(meta['h']),
+          if (hasThumb)
+            'thumbnail': {
+              '@type': 'inputThumbnail',
+              'thumbnail': {'@type': 'inputFileLocal', 'path': thumb},
+              'width': asInt(meta['tw']),
+              'height': asInt(meta['th']),
+            },
         },
         'caption': cap,
       };
@@ -322,7 +346,7 @@ class TdlibGateway implements TelegramGateway {
       await _td.request({
         '@type': 'sendMessage',
         'chat_id': chatId,
-        'input_message_content': _mediaContent(paths.first, caption),
+        'input_message_content': await _mediaContent(paths.first, caption),
       });
       return;
     }
@@ -336,7 +360,7 @@ class TdlibGateway implements TelegramGateway {
         'chat_id': chatId,
         'input_message_contents': [
           for (var j = 0; j < group.length; j++)
-            _mediaContent(group[j], i == 0 && j == 0 ? caption : ''),
+            await _mediaContent(group[j], i == 0 && j == 0 ? caption : ''),
         ],
       });
     }
@@ -837,6 +861,8 @@ class TdlibGateway implements TelegramGateway {
               File(path).lengthSync() >= size),
       downloading: local['is_downloading_active'] == true,
       downloadedBytes: asInt(local['downloaded_size']),
+      uploading: ((file['remote'] as Map?)?['is_uploading_active']) == true,
+      uploadedBytes: asInt((file['remote'] as Map?)?['uploaded_size']),
     );
   }
 
