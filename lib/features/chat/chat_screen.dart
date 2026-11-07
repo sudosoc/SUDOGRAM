@@ -431,10 +431,93 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     await _sendPaths([x.path]);
   }
 
+  Future<void> _muteFor(int chatId) async {
+    final secs = await showModalBottomSheet<int>(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          ListTile(title: Text(context.t('Mute notifications', 'كتم الإشعارات'))),
+          for (final (v, label) in [
+            (3600, context.t('For 1 hour', 'لمدة ساعة')),
+            (28800, context.t('For 8 hours', 'لمدة 8 ساعات')),
+            (172800, context.t('For 2 days', 'لمدة يومين')),
+            (2147483647, context.t('Forever', 'للأبد')),
+          ])
+            ListTile(
+              leading: const SIcon(Icons.notifications_off_outlined),
+              title: Text(label),
+              onTap: () => Navigator.pop(context, v),
+            ),
+        ]),
+      ),
+    );
+    if (secs == null) return;
+    await _safe(() async {
+      await _gateway.tdRaw({
+        '@type': 'setChatNotificationSettings',
+        'chat_id': chatId,
+        'notification_settings': {
+          '@type': 'chatNotificationSettings',
+          'use_default_mute_for': false,
+          'mute_for': secs,
+          'use_default_sound': true,
+          'use_default_show_preview': true,
+          'use_default_mute_stories': true,
+          'use_default_story_sound': true,
+          'use_default_show_story_poster': true,
+          'use_default_disable_pinned_message_notifications': true,
+          'use_default_disable_mention_notifications': true,
+        },
+      });
+      if (mounted) {
+        notice(context, context.t('Muted', 'تم الكتم'), kind: NoticeKind.success);
+      }
+    });
+  }
+
+  Future<void> _sendSilently(String text) async {
+    await _safe(() async {
+      await _gateway.tdRaw({
+        '@type': 'sendMessage',
+        'chat_id': widget.chat.id,
+        'input_message_content': {
+          '@type': 'inputMessageText',
+          'text': {'@type': 'formattedText', 'text': text},
+        },
+        'options': {'@type': 'messageSendOptions', 'disable_notification': true},
+      });
+      _c.clear();
+      DraftStore.set(widget.chat.id, '');
+      if (mounted) setState(() {});
+    });
+  }
+
   Future<void> _scheduleSend() async {
     final l = AppLocalizations.of(context);
     final text = _c.text.trim();
     if (text.isEmpty || _editing != null) return;
+    final how = await showModalBottomSheet<String>(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          ListTile(
+            leading: const SIcon(Icons.notifications_off_outlined),
+            title: Text(context.t('Send without sound', 'إرسال بدون صوت')),
+            onTap: () => Navigator.pop(context, 'silent'),
+          ),
+          ListTile(
+            leading: const SIcon(Icons.schedule_send_outlined),
+            title: Text(context.t('Schedule…', 'جدولة…')),
+            onTap: () => Navigator.pop(context, 'schedule'),
+          ),
+        ]),
+      ),
+    );
+    if (how == null || !mounted) return;
+    if (how == 'silent') {
+      await _sendSilently(text);
+      return;
+    }
     final now = DateTime.now();
     final d = await showDatePicker(
       context: context,
@@ -1069,6 +1152,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 item(Icons.ios_share, l.share, () => _share([m])),
               if (!m.deletedByPeer && widget.chat.type != ChatType.secret)
                 item(Icons.shortcut, l.forward, () => _pickForward(m, chats)),
+              if (!m.deletedByPeer && widget.chat.type != ChatType.secret)
+                item(Icons.forward_to_inbox_outlined,
+                    context.t('Forward without author', 'إعادة توجيه بدون اسم المرسل'),
+                    () => _pickForward(m, chats, copy: true)),
               if (m.edited)
                 item(
                   Icons.history,
@@ -1496,7 +1583,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
-  void _pickForward(ChatMessage m, List<ChatSummary> chats) {
+  void _pickForward(ChatMessage m, List<ChatSummary> chats, {bool copy = false}) {
     final l = AppLocalizations.of(context);
     showModalBottomSheet<void>(
       context: context,
@@ -1533,9 +1620,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                             title: Text(c.title),
                             onTap: () {
                               Navigator.of(context).pop();
-                              _gateway.forwardMessages(c.id, widget.chat.id, [
-                                m.id,
-                              ]);
+                              if (copy) {
+                                _safe(() => _gateway.tdRaw({
+                                      '@type': 'forwardMessages',
+                                      'chat_id': c.id,
+                                      'from_chat_id': widget.chat.id,
+                                      'message_ids': [m.id],
+                                      'send_copy': true,
+                                      'remove_caption': false,
+                                    }));
+                              } else {
+                                _gateway.forwardMessages(c.id, widget.chat.id, [
+                                  m.id,
+                                ]);
+                              }
                             },
                           ),
                     ],
@@ -1661,7 +1759,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               _hits = null;
             });
           case 'mute':
-            _gateway.setMuted(chat.id, !chat.muted);
+            if (chat.muted) {
+              _gateway.setMuted(chat.id, false);
+            } else {
+              _muteFor(chat.id);
+            }
           case 'scheduled':
             _showScheduled();
           case 'media':
@@ -2846,7 +2948,9 @@ class _Bubble extends StatelessWidget {
                     ),
                   ),
                 if (showText && !(sticker && m.text.isEmpty))
-                  _LinkText(text: text, color: accent),
+                  (m.kind == MessageKind.text && _emojiOnly(m.text))
+                      ? Text(m.text, style: const TextStyle(fontSize: 46))
+                      : _LinkText(text: text, color: accent),
                 if (m.file != null && m.kind == MessageKind.voice)
                   VoicePlayer(
                     file: m.file!,
@@ -3251,4 +3355,15 @@ class _SwipeToActState extends State<_SwipeToAct> {
       ),
     );
   }
+}
+
+
+/// Up to three emoji and nothing else → shown big, like Telegram.
+bool _emojiOnly(String t) {
+  final c = t.trim().characters;
+  if (c.isEmpty || c.length > 3) return false;
+  return c.every((g) {
+    final r = g.runes.first;
+    return r >= 0x1F000 || (r >= 0x2190 && r <= 0x2BFF) || r == 0x00A9 || r == 0x00AE || r == 0x203C || r == 0x2049;
+  });
 }
