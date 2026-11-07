@@ -1,15 +1,24 @@
 import 'package:audioplayers/audioplayers.dart';
+
 import '../../core/audio_hub.dart';
+
 import 'package:flutter/material.dart';
+
 import '../../core/ui/icon_styles.dart';
 
 import '../../core/theme/glass.dart';
 import '../../domain/models.dart';
 import 'file_card.dart';
+import 'fx_widgets.dart';
 
 /// Voice notes / audio: play, seek bar, ±10 s skip and playback speed.
 class VoicePlayer extends StatefulWidget {
-  const VoicePlayer({super.key, required this.file, required this.onDownload, this.title = 'Voice message'});
+  const VoicePlayer({
+    super.key,
+    required this.file,
+    required this.onDownload,
+    this.title = 'Voice message',
+  });
 
   final String title;
   final Attachment file;
@@ -93,91 +102,132 @@ class _VoicePlayerState extends State<VoicePlayer> {
         : _pos;
     return SizedBox(
       width: 250,
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Row(children: [
-          IconButton.filled(
-            style: IconButton.styleFrom(backgroundColor: accent),
-            icon: SIcon(!f.downloaded
-                ? (f.downloading ? Icons.hourglass_top : Icons.download)
-                : playing
-                    ? Icons.pause
-                    : Icons.play_arrow),
-            onPressed: _toggle,
-          ),
-          Expanded(
-            child: f.downloaded
-                ? SliderTheme(
-                    data: SliderTheme.of(context).copyWith(
-                      trackHeight: 3,
-                      thumbShape:
-                          const RoundSliderThumbShape(enabledThumbRadius: 6),
-                      overlayShape:
-                          const RoundSliderOverlayShape(overlayRadius: 12),
-                    ),
-                    child: Slider(
-                      value: value,
-                      activeColor: accent,
-                      onChanged: totalMs == 0
-                          ? null
-                          : (v) => setState(() => _drag = v),
-                      onChangeEnd: (v) async {
-                        final t = Duration(milliseconds: (v * totalMs).round());
-                        if (_active) await _hub.seek(t);
-                        if (mounted) setState(() => _drag = null);
-                      },
-                    ),
-                  )
-                : Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: LinearProgressIndicator(
-                        value: f.downloading ? f.progress : 0),
-                  ),
-          ),
-        ]),
-        Row(children: [
-          const SizedBox(width: 12),
-          Text(
-              f.downloaded
-                  ? '${_fmt(shown)} / ${_fmt(_dur)}'
-                  : formatBytes(f.size),
-              style: const TextStyle(
-                  fontSize: 11, color: GlassTokens.textSecondary)),
-          const Spacer(),
-          if (f.downloaded) ...[
-            InkWell(
-              onTap: () => _skip(-10),
-              child: const Padding(
-                padding: EdgeInsets.all(4),
-                child: SIcon(Icons.replay_10, size: 22),
-              ),
-            ),
-            InkWell(
-              onTap: () => _skip(10),
-              child: const Padding(
-                padding: EdgeInsets.all(4),
-                child: SIcon(Icons.forward_10, size: 22),
-              ),
-            ),
-            InkWell(
-              onTap: _cycleSpeed,
-              borderRadius: BorderRadius.circular(10),
-              child: Container(
-                margin: const EdgeInsets.only(left: 4),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              DecoratedBox(
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  color: Colors.white12,
+                  shape: BoxShape.circle,
+                  boxShadow: playing
+                      ? [
+                          BoxShadow(
+                            color: accent.withValues(alpha: .55),
+                            blurRadius: 14,
+                            spreadRadius: 1,
+                          ),
+                        ]
+                      : null,
                 ),
-                child: Text(
-                    '${_speed == _speed.roundToDouble() ? _speed.toInt() : _speed}x',
-                    style: const TextStyle(
-                        fontSize: 12, fontWeight: FontWeight.w600)),
+                child: IconButton.filled(
+                  style: IconButton.styleFrom(backgroundColor: accent),
+                  icon: SIcon(
+                    !f.downloaded
+                        ? (f.downloading ? Icons.hourglass_top : Icons.download)
+                        : playing
+                        ? Icons.pause
+                        : Icons.play_arrow,
+                  ),
+                  onPressed: _toggle,
+                ),
               ),
-            ),
-          ],
-        ]),
-      ]),
+              if (playing)
+                Padding(
+                  padding: const EdgeInsets.only(left: 6),
+                  child: EqBars(color: accent),
+                ),
+              Expanded(
+                child: f.downloaded
+                    ? SliderTheme(
+                        data: SliderTheme.of(context).copyWith(
+                          trackHeight: 3,
+                          thumbShape: const RoundSliderThumbShape(
+                            enabledThumbRadius: 6,
+                          ),
+                          overlayShape: const RoundSliderOverlayShape(
+                            overlayRadius: 12,
+                          ),
+                        ),
+                        child: Slider(
+                          value: value,
+                          activeColor: accent,
+                          onChanged: totalMs == 0
+                              ? null
+                              : (v) => setState(() => _drag = v),
+                          onChangeEnd: (v) async {
+                            final t = Duration(
+                              milliseconds: (v * totalMs).round(),
+                            );
+                            if (_active) await _hub.seek(t);
+                            if (mounted) setState(() => _drag = null);
+                          },
+                        ),
+                      )
+                    : Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: LinearProgressIndicator(
+                          value: f.downloading ? f.progress : 0,
+                        ),
+                      ),
+              ),
+            ],
+          ),
+          Row(
+            children: [
+              const SizedBox(width: 12),
+              Text(
+                f.downloaded
+                    ? '${_fmt(shown)} / ${_fmt(_dur)}'
+                    : formatBytes(f.size),
+                style: const TextStyle(
+                  fontSize: 11,
+                  color: GlassTokens.textSecondary,
+                ),
+              ),
+              const Spacer(),
+              if (f.downloaded) ...[
+                InkWell(
+                  onTap: () => _skip(-10),
+                  child: const Padding(
+                    padding: EdgeInsets.all(4),
+                    child: SIcon(Icons.replay_10, size: 22),
+                  ),
+                ),
+                InkWell(
+                  onTap: () => _skip(10),
+                  child: const Padding(
+                    padding: EdgeInsets.all(4),
+                    child: SIcon(Icons.forward_10, size: 22),
+                  ),
+                ),
+                InkWell(
+                  onTap: _cycleSpeed,
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    margin: const EdgeInsets.only(left: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      color: Colors.white12,
+                    ),
+                    child: Text(
+                      '${_speed == _speed.roundToDouble() ? _speed.toInt() : _speed}x',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

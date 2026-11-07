@@ -1,0 +1,64 @@
+# Wallpaper photo credits
+
+All photos are CC0 / Public Domain Mark (found via Openverse). Attribution kept as a courtesy.
+
+- love_p1: Love lock, romance padlock — None (cc0) https://www.rawpixel.com/image/6021951/photo-image-heart-public-domain-free
+- love_p2: None — None (cc0) https://www.rawpixel.com/image/6048377/free-public-domain-cc0-photo
+- love_p3: Grass Cloud — Anne Edgar (cc0) https://stocksnap.io/photo/grass-cloud-XUHPHMGXBX
+- love_p4: Pink Blossom — Macro Mama (cc0) https://stocksnap.io/photo/pink-blossom-VJKQYQBLAD
+- love_p5: Pink Blossoms — indah nur (cc0) https://stocksnap.io/photo/pink-blossoms-7ECDECD630
+- love_p6: Long shot pink blossom trees — None (cc0) https://www.rawpixel.com/image/3282689/free-photo-image-cherry-blossom-tree-japan
+- love_p7: Rose petals on cobblestones. — 4briang (cc0) https://wordpress.org/photos/photo/17862e96a7/
+- love_p8: red rose — lisafree54 (cc0) https://www.flickr.com/photos/136594255@N06/27433125184
+- love_p9: red rose — lucianomandolina (pdm) https://www.flickr.com/photos/125047102@N06/34889390776
+- love_p10: solo red rose — mrksteele04 (pdm) https://www.flickr.com/photos/158934835@N04/50034730813
+- love_p11: Red Rose — cgus51@sbcglobal.net (pdm) https://www.flickr.com/photos/154119024@N06/42422270862
+- mystery_p1: leaf-covered path foggy forest — None (cc0) https://www.rawpixel.com/image/3292914/free-photo-image-cc0-creative-commons
+- mystery_p2: Foggy forest - Rinderschinken, St. Jakob in Defereggen, Tyrol — Ted Moravec (cc0) https://commons.wikimedia.org/w/index.php?curid=164234719
+- mystery_p3: Silhouette foggy forest misty morning — None (cc0) https://www.rawpixel.com/image/3291327/free-photo-image-cc0-creative-commons
+- mystery_p4: Free misty mountains image — None (cc0) https://www.rawpixel.com/image/5908417/image-public-domain-trees-nature
+- mystery_p5: Misty Mountain — Free Nature Stock (cc0) https://stocksnap.io/photo/misty-mountain-XUK4KWZTYG
+- mystery_p6: Misty Mountain — Tyler Lastovich (cc0) https://stocksnap.io/photo/misty-mountain-X1V8PUNDU2
+- mystery_p7: Structure Lighthouse — Joshua Hibbert (cc0) https://stocksnap.io/photo/structure-lighthouse-QIMXXHTIQG
+- mystery_p8: Cape Hatteras Light — CapeHatterasNPS (pdm) https://www.flickr.com/photos/106602675@N05/53497930583
+- mystery_p9: empty leaf-covered trail foggy forest — None (cc0) https://www.rawpixel.com/image/3292611/free-photo-image-abies-belgium-cc0
+- mystery_p10: Free foggy forest road landscape — None (cc0) https://www.rawpixel.com/image/5916467/image-public-domain-woods-forest
+- mystery_p11: foggy forest road rural Elblag — None (cc0) https://www.rawpixel.com/image/3283961/free-photo-image-tree-autumn-cc0
+- mystery_p12: Low-angle shot foggy forest — None (cc0) https://www.rawpixel.com/image/3299808/free-photo-image-jungle-art-cc0
+- cars_p1: Sports Car, Ueno, Tokyo, Japan — None (cc0) https://www.rawpixel.com/image/11175919/image-person-sky-light
+- cars_p2: Steering wheel sports car — Markus Spiske (cc0) https://www.rawpixel.com/image/680896/black-steering-wheel
+- cars_p3: Side view black sports car — None (cc0) https://www.rawpixel.com/image/5974655/photo-image-black-technology-metal
+- cars_p4: Free speed sport car image — None (cc0) https://www.rawpixel.com/image/5925416/photo-image-light-public-domain-logo
+- cars_p5: Frantic — None (cc0) https://www.rawpixel.com/image/6077398/frantic
+- cars_p6: long exposure car driving Wencheng — None (cc0) https://www.rawpixel.com/image/3285513/free-photo-image-road-stock-car-motion
+- cars_p7: Road Street — Negative Space (cc0) https://stocksnap.io/photo/road-street-WYR8HIVM8J
+- cars_p8: Highway Road — Negative Space (cc0) https://stocksnap.io/photo/highway-road-RG8KA41GN8
+- cars_p9: Dark Night — Caleb George (cc0) https://stocksnap.io/photo/dark-night-08770132A3
+- cars_p10: City Urban — Kaique Rocha (cc0) https://stocksnap.io/photo/city-urban-PQGQS53RX3
+- cars_p11: Highway Road — Jamie Street (cc0) https://stocksnap.io/photo/highway-road-P8YANJ5UA5
+- cars_p12: City Traffic — Burst (cc0) https://stocksnap.io/photo/city-traffic-GTCS4HWVPK
+- cars_p13: City Street — Zachary Staines (cc0) https://stocksnap.io/photo/city-street-YHT5EIS8XR
+- cars_p14: Cityscape Skyline — Verne Ho (cc0) https://stocksnap.io/photo/cityscape-skyline-KDOIQSH4ZW
+- hacker_p1: A messy network server room showing wires, patch panels in a room — Moses Cursor Ssebunya (cc0) https://wordpress.org/photos/photo/64767dd6fa/
+- hacker_p2: Circuit Board Textures — None (cc0) https://www.rawpixel.com/image/5964907/circuit-board-textures
+- hacker_p3: A close-up image of a green printed circuit board featuring various electronic components, including capacitors, resistors, and connectors. Some of the components are labeled with values. In the background, there are blurred out tools and screws, suggesting a workspace environment focused on electronics repair or assembly. — Moses Cursor Ssebunya (cc0) https://wordpress.org/photos/photo/430689b35a/
+- hacker_p4: Coding on a computer screen — Markus Spiske (cc0) https://www.rawpixel.com/image/432706/free-photo-image-coding-digital-programming
+- hacker_p5: Coding on a computer screen — Markus Spiske (cc0) https://www.rawpixel.com/image/432895/binary-code-laptop
+- hacker_p6: Close up of computer coding — Markus Spiske (cc0) https://www.rawpixel.com/image/432912/free-photo-image-technology-computer-code
+- hacker_p7: None — None (cc0) https://www.rawpixel.com/image/5945544/free-public-domain-cc0-photo
+- hacker_p8: Neon Street — Ethan Brooke (cc0) https://stocksnap.io/photo/neon-street-GO8WSAD6EJ
+- hacker_p9: Street Neon — Ethan Brooke (cc0) https://stocksnap.io/photo/street-neon-4AGMHST0M6
+- hacker_p10: Free networking cables image — None (cc0) https://www.rawpixel.com/image/5927873/photo-image-background-public-domain-technology
+- hacker_p11: Free power zone image — None (cc0) https://www.rawpixel.com/image/5913365/image-lights-public-domain-technology
+- hacker_p12: At Lawrence Livermore National Laboratory — U.S. Department of Energy (cc0) https://www.rawpixel.com/image/3325557/free-photo-image-server-room-supercomputer
+- moto_p1: Motorcycles Came Summer Vacation Retirement — U.S. National Archives (cc0) https://www.rawpixel.com/image/8770336/photo-image-person-nature-summer
+- moto_p2: Close-up of a motorcycle engine, highlighting the cylinder, exhaust pipe, and wiring. — Moses Cursor Ssebunya (cc0) https://wordpress.org/photos/photo/83968ea371/
+- moto_p3: Harley Davidson Bike — Wallboat (cc0) https://www.flickr.com/photos/151415985@N06/36714675705
+- moto_p4: Wandering — Philippe Vieux-Jeanton (cc0) https://www.flickr.com/photos/11234074@N05/40931365614
+- moto_p5: Christmas Motocross 10° — mattiacastiglioni (cc0) https://www.flickr.com/photos/119259164@N07/23260959153
+- moto_p6: Silhouette of a person in a motorcycle helmet making a sign with their hand raised against a hazy morning sun in a misty sky. — Tilak Bahadur Karki (cc0) https://wordpress.org/photos/photo/5896a28366/
+- moto_p7: A person wearing a full-face motorcycle helmet and gloves stands on the edge of a concrete barrier. — Iqbal Hossain (cc0) https://wordpress.org/photos/photo/8246899546/
+- moto_p8: person wearing leather jacket carrying — None (cc0) https://www.rawpixel.com/image/3301020/free-photo-image-red-biker-motorcycle-helmet
+- moto_p9: Poste italiane — Philippe Vieux-Jeanton (cc0) https://www.flickr.com/photos/11234074@N05/24894073060
+- moto_p10: Motorcyclist driving — StockyPics (cc0) https://www.flickr.com/photos/135371437@N04/22356192190
+- moto_p11: Boozefighters M.C. Hollister Calif. 1947 — ATOMIC Hot Links (pdm) https://www.flickr.com/photos/7552532@N07/48811734786

@@ -67,10 +67,46 @@ class MainActivity : FlutterFragmentActivity() {
                             runOnUiThread { result.error("opus", e.toString(), null) }
                         }
                     }.start()
+                } else if (call.method == "tts") {
+                    val text = call.argument<String>("text") ?: ""
+                    val lang = call.argument<String>("lang") ?: "en"
+                    val dst = call.argument<String>("dst") ?: ""
+                    var engine: android.speech.tts.TextToSpeech? = null
+                    var answered = false
+                    fun fail(msg: String) {
+                        if (answered) return
+                        answered = true
+                        runOnUiThread { result.error("tts", msg, null) }
+                        try { engine?.shutdown() } catch (_: Exception) {}
+                    }
+                    engine = android.speech.tts.TextToSpeech(applicationContext) { status ->
+                        val e = engine
+                        if (status != android.speech.tts.TextToSpeech.SUCCESS || e == null) {
+                            fail("init"); return@TextToSpeech
+                        }
+                        val r = e.setLanguage(java.util.Locale(lang))
+                        if (r == android.speech.tts.TextToSpeech.LANG_MISSING_DATA ||
+                            r == android.speech.tts.TextToSpeech.LANG_NOT_SUPPORTED) {
+                            fail("lang"); return@TextToSpeech
+                        }
+                        e.setOnUtteranceProgressListener(object : android.speech.tts.UtteranceProgressListener() {
+                            override fun onStart(id: String?) {}
+                            override fun onDone(id: String?) {
+                                if (answered) return
+                                answered = true
+                                runOnUiThread { result.success(dst) }
+                                try { e.shutdown() } catch (_: Exception) {}
+                            }
+                            @Deprecated("Deprecated in Java")
+                            override fun onError(id: String?) { fail("synth") }
+                        })
+                        val rc = e.synthesizeToFile(text, android.os.Bundle(), java.io.File(dst), "sg_fx")
+                        if (rc != android.speech.tts.TextToSpeech.SUCCESS) fail("synth")
+                    }
                 } else if (call.method == "setLauncher") {
                     val idx = call.argument<Int>("index") ?: 0
                     val pm = packageManager
-                    for (i in (listOf(idx) + (0 until 50).filter { it != idx })) {
+                    for (i in (listOf(idx) + (0 until 52).filter { it != idx })) {
                         val cn = android.content.ComponentName(this, "com.sudosoc.sudogram.Alias%02d".format(i))
                         try {
                             pm.setComponentEnabledSetting(

@@ -9,6 +9,8 @@ class LauncherIcon {
 
 const kLauncherIcons = <LauncherIcon>[
   LauncherIcon(0, 'sudogram', 'SUDOGRAM', 'سودوجرام (الأصلية)'),
+  LauncherIcon(50, 'brand_glass', 'SUDOGRAM · Glass', 'سودوجرام · زجاجي'),
+  LauncherIcon(51, 'brand_shield', 'SUDOGRAM · Shield', 'سودوجرام · درع'),
   LauncherIcon(1, 'ghost_ocean', 'Ghost · Ocean', 'شبح · محيط'),
   LauncherIcon(2, 'ghost_rose', 'Ghost · Rose', 'شبح · وردي'),
   LauncherIcon(3, 'ghost_graphite', 'Ghost · Graphite', 'شبح · جرافيت'),

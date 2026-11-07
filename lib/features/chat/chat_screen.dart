@@ -45,6 +45,7 @@ import 'package:video_player/video_player.dart';
 import 'package:geolocator/geolocator.dart';
 
 import 'wallpapers.dart';
+import 'fx_widgets.dart';
 
 
 import 'info_screen.dart';
@@ -886,6 +887,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final _recorder = AudioRecorder();
   VoiceFx _recFx = VoiceFx.none;
   bool _fxBusy = false;
+  bool _fxSending = false;
+  Offset? _micStart;
+  DateTime? _micDownAt;
+  String? _tmpDir;
+  bool? _opusOk;
   bool _recording = false;
   int _recSeconds = 0;
   Timer? _recTimer;
@@ -894,17 +900,25 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   bool _recCancel = false;
   Future<void>? _recStart;
 
-  void _micDown() {
+  void _micDown(Offset pos) {
     _recLocked = false;
     _recCancel = false;
-    HapticFeedback.mediumImpact();
+    _micStart = pos;
+    _micDownAt = DateTime.now();
+    HapticFeedback.lightImpact();
+    // Show the recording UI instantly (no waiting for the recorder to spin up).
+    setState(() {
+      _recording = true;
+      _recSeconds = 0;
+    });
     _recStart = _startRecording();
   }
 
-  void _micMove(LongPressMoveUpdateDetails d) {
-    if (_recLocked || !_recording) return;
-    final o = d.offsetFromOrigin;
-    if (o.dy < -90) {
+  void _micMove(Offset pos) {
+    final st = _micStart;
+    if (st == null || _recLocked || !_recording) return;
+    final o = pos - st;
+    if (o.dy < -80) {
       HapticFeedback.selectionClick();
       setState(() {
         _recLocked = true;
@@ -913,16 +927,28 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       return;
     }
     final rtl = Directionality.of(context) == TextDirection.rtl;
-    final cancel = rtl ? o.dx > 100 : o.dx < -100;
-    if (cancel != _recCancel) setState(() => _recCancel = cancel);
+    final cancel = rtl ? o.dx > 90 : o.dx < -90;
+    if (cancel != _recCancel) {
+      if (cancel) HapticFeedback.selectionClick();
+      setState(() => _recCancel = cancel);
+    }
   }
 
   Future<void> _micUp({bool cancel = false}) async {
+    final held = DateTime.now().difference(_micDownAt ?? DateTime.now());
     await _recStart;
     if (!mounted || _recLocked) return;
     final c = cancel || _recCancel;
     _recCancel = false;
-    if (_recording) await _stopRecording(send: !c);
+    if (_recording) {
+      if (held < const Duration(milliseconds: 400) && !c) {
+        notice(context, AppLocalizations.of(context).holdToRecord, kind: NoticeKind.info);
+        await _stopRecording(send: false);
+        return;
+      }
+      HapticFeedback.lightImpact();
+      await _stopRecording(send: !c);
+    }
   }
 
   Future<void> _startRecording() async {
@@ -931,13 +957,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     try {
       if (!await _recorder.hasPermission()) {
         messenger.showSnackBar(SnackBar(content: Text(l.micDenied)));
+        if (mounted) setState(() => _recording = false);
         return;
       }
-      if (!await _recorder.isEncoderSupported(AudioEncoder.opus)) {
+      _opusOk ??= await _recorder.isEncoderSupported(AudioEncoder.opus);
+      if (_opusOk != true) {
         messenger.showSnackBar(SnackBar(content: Text(l.micUnsupported)));
+        if (mounted) setState(() => _recording = false);
         return;
       }
-      final tmp = await getTemporaryDirectory();
+      _tmpDir ??= (await getTemporaryDirectory()).path;
+      final tmp = Directory(_tmpDir!);
       _recFx = voiceFxFrom(ref.read(settingsProvider).voiceFx);
       final fxOn = _recFx != VoiceFx.none;
       _recPath =
@@ -953,11 +983,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         path: _recPath!,
       );
       _recSeconds = 0;
+      _recTimer?.cancel();
       _recTimer = Timer.periodic(const Duration(seconds: 1), (_) {
         if (mounted) setState(() => _recSeconds++);
       });
-      setState(() => _recording = true);
+      if (mounted) setState(() => _recording = true);
     } catch (e) {
+      if (mounted) setState(() => _recording = false);
       messenger.showSnackBar(SnackBar(content: Text(friendlyError(e, ar: l.localeName == 'ar'))));
     }
   }
@@ -987,9 +1019,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       return;
     }
     if (_recFx != VoiceFx.none && path.endsWith('.wav')) {
-      if (mounted) setState(() => _fxBusy = true);
+      if (mounted) setState(() { _fxBusy = true; _fxSending = false; });
       try {
         final r = await applyVoiceFx(path, _recFx);
+        if (mounted) setState(() => _fxSending = true);
+        _toBottom();
         if (r.fallbackWav) {
           if (mounted) {
             notice(context,
@@ -1004,7 +1038,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       } catch (e) {
         if (mounted) notice(context, friendlyError(e, ar: context.isAr), kind: NoticeKind.error);
       } finally {
-        if (mounted) setState(() => _fxBusy = false);
+        if (mounted) setState(() { _fxBusy = false; _fxSending = false; });
       }
       return;
     }
@@ -1013,45 +1047,30 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   void _fxSheet() {
-    final accent = GlassScope.of(context).accent;
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (sheet) => Consumer(builder: (ctx, ref2, _) {
-        final cur = voiceFxFrom(ref2.watch(settingsProvider).voiceFx);
-        return Padding(
-          padding: const EdgeInsets.all(12),
-          child: GlassSurface(
-            blur: true,
-            radius: 26,
-            padding: const EdgeInsets.all(16),
-            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(context.t('Voice changer', 'مغيّر الصوت'),
-                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 4),
-              Text(
-                  context.t('Hold the mic as usual — your recording is sent with the selected voice.',
-                      'سجّل زي العادة — التسجيل بيتبعت بالصوت اللي تختاره.'),
-                  style: const TextStyle(fontSize: 12, color: GlassTokens.textSecondary)),
-              const SizedBox(height: 12),
-              Wrap(spacing: 8, runSpacing: 8, children: [
-                for (final f in VoiceFx.values)
-                  ChoiceChip(
-                    avatar: SIcon(f.icon, size: 18, color: cur == f ? Colors.white : accent),
-                    label: Text(f.label(context.isAr)),
-                    selected: cur == f,
-                    onSelected: (_) {
-                      ref2.read(settingsProvider.notifier).setX('voiceFx', f.id);
-                      Navigator.of(sheet).pop();
-                    },
-                  ),
-              ]),
-            ]),
-          ),
-        );
-      }),
+      builder: (_) => const VoiceFxSheet(),
     );
+  }
+
+  void _fxToggle() {
+    final n = ref.read(settingsProvider.notifier);
+    final st = ref.read(settingsProvider);
+    final cur = voiceFxFrom(st.voiceFx);
+    HapticFeedback.selectionClick();
+    if (cur != VoiceFx.none) {
+      n.setX('voiceFx', 'none');
+      notice(context, context.t('Voice changer off', 'مغيّر الصوت اتقفل'), kind: NoticeKind.info);
+    } else {
+      var last = voiceFxFrom(st.x['voiceFxLast'] as String?);
+      if (last == VoiceFx.none) last = VoiceFx.deep;
+      n.setX('voiceFx', last.id);
+      notice(context,
+          context.t('Voice changer on: ${last.label(false)}', 'مغيّر الصوت اشتغل: ${last.label(true)}'),
+          kind: NoticeKind.success);
+    }
   }
 
   Future<void> _send() async {
@@ -2220,7 +2239,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 if (_fxBusy)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    child: Text(context.t('Changing voice…', 'بيغيّر الصوت…'),
+                    child: Text(_fxSending ? context.t('Sending…', 'بيتبعت…') : context.t('Changing voice…', 'بيغيّر الصوت…'),
                         style: const TextStyle(fontSize: 12, color: GlassTokens.textSecondary)),
                   ),
                 if (_selected.isNotEmpty)
@@ -2753,11 +2772,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                         )
                                       else
                                         const SizedBox(width: 12),
-                                      const SIcon(
-                                        Icons.fiber_manual_record,
-                                        size: 14,
-                                        color: GlassTokens.ringDanger,
-                                      ),
+                                      const BlinkDot(),
                                       const SizedBox(width: 6),
                                       Text(
                                         '${_recSeconds ~/ 60}:${(_recSeconds % 60).toString().padLeft(2, '0')}',
@@ -2801,48 +2816,69 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     if (!_recording)
-                                      IconButton(
-                                        tooltip: context.t('Voice changer', 'مغيّر الصوت'),
-                                        onPressed: _fxSheet,
-                                        icon: SIcon(
-                                          Icons.graphic_eq,
-                                          color: voiceFxFrom(ref.watch(settingsProvider).voiceFx) ==
-                                                  VoiceFx.none
-                                              ? null
-                                              : GlassScope.of(context).accent,
+                                      GestureDetector(
+                                        behavior: HitTestBehavior.opaque,
+                                        onTap: _fxBusy ? null : _fxToggle,
+                                        onLongPress: _fxBusy ? null : _fxSheet,
+                                        child: Tooltip(
+                                          message: context.t('Voice changer (hold to choose)', 'مغيّر الصوت (اضغط مطوّل للاختيار)'),
+                                          child: FxGlow(
+                                            icon: voiceFxFrom(ref.watch(settingsProvider).voiceFx) == VoiceFx.none
+                                                ? Icons.graphic_eq
+                                                : voiceFxFrom(ref.watch(settingsProvider).voiceFx).icon,
+                                            color: voiceFxFrom(ref.watch(settingsProvider).voiceFx) == VoiceFx.none
+                                                ? GlassTokens.textSecondary
+                                                : GlassScope.of(context).accent,
+                                            glowing: _fxBusy,
+                                          ),
                                         ),
                                       ),
-                                    GestureDetector(
-                                  key: const ValueKey('mic'),
-                                  behavior: HitTestBehavior.opaque,
-                                  onTap: () => ScaffoldMessenger.of(context)
-                                      .showSnackBar(
-                                        SnackBar(
-                                          content: Text(l.holdToRecord),
-                                          duration: const Duration(seconds: 1),
-                                        ),
+                                    Listener(
+                                      key: const ValueKey('mic'),
+                                      behavior: HitTestBehavior.opaque,
+                                      onPointerDown: (e) {
+                                        if (!_fxBusy) _micDown(e.position);
+                                      },
+                                      onPointerMove: (e) => _micMove(e.position),
+                                      onPointerUp: (_) => _micUp(),
+                                      onPointerCancel: (_) => _micUp(cancel: true),
+                                      child: SizedBox(
+                                        width: 56,
+                                        height: 56,
+                                        child: Stack(alignment: Alignment.center, children: [
+                                          if (_fxBusy)
+                                            SizedBox(
+                                              width: 52,
+                                              height: 52,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 3,
+                                                color: GlassScope.of(context).accent,
+                                              ),
+                                            ),
+                                          OverflowBox(
+                                            maxWidth: 110,
+                                            maxHeight: 110,
+                                            child: PulseRing(
+                                              color: _recCancel ? GlassTokens.ringDanger : GlassScope.of(context).accent,
+                                              size: 44,
+                                              active: _recording,
+                                              child: AnimatedContainer(
+                                                duration: const Duration(milliseconds: 90),
+                                                width: _recording ? 54 : 44,
+                                                height: _recording ? 54 : 44,
+                                                decoration: BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  color: _recording
+                                                      ? (_recCancel ? GlassTokens.ringDanger : GlassScope.of(context).accent)
+                                                      : Colors.transparent,
+                                                ),
+                                                child: SIcon(_recording ? Icons.mic : (_fxBusy ? Icons.hourglass_top : Icons.mic_none)),
+                                              ),
+                                            ),
+                                          ),
+                                        ]),
                                       ),
-                                  onLongPressStart: (_) => _micDown(),
-                                  onLongPressMoveUpdate: _micMove,
-                                  onLongPressEnd: (_) => _micUp(),
-                                  onLongPressCancel: () => _micUp(cancel: true),
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 150),
-                                    width: _recording ? 54 : 44,
-                                    height: _recording ? 54 : 44,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: _recording
-                                          ? (_recCancel
-                                                ? GlassTokens.ringDanger
-                                                : GlassScope.of(context).accent)
-                                          : Colors.transparent,
                                     ),
-                                    child: SIcon(
-                                      _recording ? Icons.mic : Icons.mic_none,
-                                    ),
-                                  ),
-                                ),
                                   ],
                                 )
                               else

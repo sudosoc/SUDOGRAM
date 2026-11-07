@@ -35,4 +35,22 @@ void main() {
     expect(fxProcess(x, VoiceFx.echo).length, greaterThan(x.length));
     expect(identical(fxProcess(x, VoiceFx.none), x), true);
   });
+
+  test('every effect gives finite, audible output', () {
+    final noisy = Float32List(kFxRate * 2);
+    final r = math.Random(3);
+    for (var i = 0; i < noisy.length; i++) {
+      noisy[i] = 0.4 * math.sin(2 * math.pi * 220 * i / kFxRate) * (0.6 + 0.4 * math.sin(i / 4000)) +
+          (r.nextDouble() - .5) * .02;
+    }
+    for (final f in VoiceFx.values) {
+      final y = fxProcess(noisy, f);
+      var peak = 0.0;
+      for (final v in y) {
+        expect(v.isFinite, true, reason: f.name);
+        if (v.abs() > peak) peak = v.abs();
+      }
+      expect(peak, greaterThan(0.005), reason: f.name);
+    }
+  });
 }

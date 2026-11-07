@@ -6,7 +6,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-enum VoiceFx { none, deep, monster, high, chipmunk, robot, telephone, echo }
+enum VoiceFx { none, deep, monster, high, chipmunk, robot, telephone, echo, alien, cave, whisper, radio, megaphone, underwater, demon, vibrato }
 
 extension VoiceFxInfo on VoiceFx {
   String get id => name;
@@ -19,6 +19,14 @@ extension VoiceFxInfo on VoiceFx {
         VoiceFx.robot => ar ? 'روبوت' : 'Robot',
         VoiceFx.telephone => ar ? 'تليفون' : 'Telephone',
         VoiceFx.echo => ar ? 'صدى' : 'Echo',
+        VoiceFx.alien => ar ? 'فضائي' : 'Alien',
+        VoiceFx.cave => ar ? 'كهف' : 'Cave',
+        VoiceFx.whisper => ar ? 'همس' : 'Whisper',
+        VoiceFx.radio => ar ? 'راديو' : 'Radio',
+        VoiceFx.megaphone => ar ? 'ميكروفون عالي' : 'Megaphone',
+        VoiceFx.underwater => ar ? 'تحت المية' : 'Underwater',
+        VoiceFx.demon => ar ? 'شيطان' : 'Demon',
+        VoiceFx.vibrato => ar ? 'مرتعش' : 'Wobble',
       };
   IconData get icon => switch (this) {
         VoiceFx.none => Icons.mic_none,
@@ -29,6 +37,14 @@ extension VoiceFxInfo on VoiceFx {
         VoiceFx.robot => Icons.smart_toy_outlined,
         VoiceFx.telephone => Icons.phone_in_talk_outlined,
         VoiceFx.echo => Icons.surround_sound_outlined,
+        VoiceFx.alien => Icons.blur_on,
+        VoiceFx.cave => Icons.landscape_outlined,
+        VoiceFx.whisper => Icons.volume_down_outlined,
+        VoiceFx.radio => Icons.radio_outlined,
+        VoiceFx.megaphone => Icons.campaign_outlined,
+        VoiceFx.underwater => Icons.water,
+        VoiceFx.demon => Icons.local_fire_department_outlined,
+        VoiceFx.vibrato => Icons.waves,
       };
 }
 
@@ -152,6 +168,22 @@ Float32List _run(Float32List x, VoiceFx fx) {
       return _telephone(x);
     case VoiceFx.echo:
       return _echo(x);
+    case VoiceFx.alien:
+      return _ring(_pitch(x, math.pow(2, 3 / 12).toDouble()), 90, 0.5);
+    case VoiceFx.cave:
+      return _reverb(x);
+    case VoiceFx.whisper:
+      return _whisper(x);
+    case VoiceFx.radio:
+      return _radio(x);
+    case VoiceFx.megaphone:
+      return _megaphone(x);
+    case VoiceFx.underwater:
+      return _underwater(x);
+    case VoiceFx.demon:
+      return _echo(_ring(_pitch(x, math.pow(2, -10 / 12).toDouble()), 18, 0.3));
+    case VoiceFx.vibrato:
+      return _vibrato(x);
   }
 }
 
@@ -257,6 +289,189 @@ Float32List _echo(Float32List x) {
     y[i] = dry + (i >= d ? 0.42 * y[i - d] : 0.0);
   }
   return y;
+}
+
+Float32List _reverb(Float32List x) {
+  const delays = [0.047, 0.071, 0.103, 0.149, 0.211];
+  final y = Float32List(x.length + kFxRate * 2);
+  for (var i = 0; i < x.length; i++) {
+    y[i] = x[i];
+  }
+  for (final dsec in delays) {
+    final d = (kFxRate * dsec).round();
+    final c = Float32List(y.length);
+    for (var i = 0; i < y.length; i++) {
+      final dry = i < x.length ? x[i] : 0.0;
+      c[i] = dry + (i >= d ? 0.62 * c[i - d] : 0.0);
+    }
+    for (var i = 0; i < y.length; i++) {
+      y[i] += c[i] * 0.28;
+    }
+  }
+  return y;
+}
+
+Float32List _hpf(Float32List x, double hz) {
+  final a = math.exp(-2 * math.pi * hz / kFxRate);
+  final y = Float32List(x.length);
+  var px = 0.0, py = 0.0;
+  for (var i = 0; i < x.length; i++) {
+    py = a * (py + x[i] - px);
+    px = x[i];
+    y[i] = py;
+  }
+  return y;
+}
+
+Float32List _lpf(Float32List x, double hz, {int stages = 2}) {
+  final a = 1 - math.exp(-2 * math.pi * hz / kFxRate);
+  var cur = x;
+  for (var s = 0; s < stages; s++) {
+    final y = Float32List(cur.length);
+    var st = 0.0;
+    for (var i = 0; i < cur.length; i++) {
+      st += a * (cur[i] - st);
+      y[i] = st;
+    }
+    cur = y;
+  }
+  return cur;
+}
+
+Float32List _whisper(Float32List x) {
+  final rnd = math.Random(7);
+  final y = Float32List(x.length);
+  final att = 1 - math.exp(-1 / (kFxRate * 0.004));
+  final rel = 1 - math.exp(-1 / (kFxRate * 0.030));
+  var env = 0.0, prev = 0.0;
+  for (var i = 0; i < x.length; i++) {
+    final a = x[i].abs();
+    env += (a > env ? att : rel) * (a - env);
+    final n = rnd.nextDouble() * 2 - 1;
+    final hn = n - prev * 0.6; // tilt noise to the highs
+    prev = n;
+    y[i] = hn * env * 3.2;
+  }
+  final hp = _hpf(x, 1800);
+  for (var i = 0; i < y.length; i++) {
+    y[i] += hp[i] * 0.4;
+  }
+  return y;
+}
+
+Float32List _radio(Float32List x) {
+  final b = _lpf(_hpf(x, 420), 2800);
+  final rnd = math.Random(11);
+  final y = Float32List(b.length);
+  for (var i = 0; i < b.length; i++) {
+    y[i] = _tanh(b[i] * 2.4) * 0.8 + (rnd.nextDouble() - 0.5) * 0.012;
+  }
+  return y;
+}
+
+double _tanh(double v) {
+  final e = math.exp(2 * v.clamp(-12.0, 12.0));
+  return (e - 1) / (e + 1);
+}
+
+Float32List _megaphone(Float32List x) {
+  final b = _lpf(_hpf(x, 650), 3800);
+  final y = Float32List(b.length);
+  for (var i = 0; i < b.length; i++) {
+    y[i] = (b[i] * 5).clamp(-0.55, 0.55).toDouble();
+  }
+  return _comb(y, 140, 0.35);
+}
+
+Float32List _underwater(Float32List x) {
+  final b = _lpf(x, 650, stages: 3);
+  final y = Float32List(b.length);
+  for (var i = 0; i < b.length; i++) {
+    final t = i / kFxRate;
+    y[i] = b[i] * 2.8 * (1 + 0.45 * math.sin(2 * math.pi * 6 * t));
+  }
+  return y;
+}
+
+Float32List _vibrato(Float32List x) {
+  final y = Float32List(x.length);
+  for (var i = 0; i < x.length; i++) {
+    final d = 70 + 60 * math.sin(2 * math.pi * 6 * i / kFxRate);
+    final p = i - d;
+    if (p < 0) continue;
+    final i0 = p.floor();
+    final f = p - i0;
+    y[i] = (x[i0] * (1 - f) + x[math.min(i0 + 1, x.length - 1)] * f).toDouble();
+  }
+  return y;
+}
+
+// ---------------------------------------------------------------- preview
+
+/// Spoken sample (same sentence in Arabic and English) processed with [fx],
+/// so the user can hear a voice before using it. Uses the phone's own TTS.
+class FxPreview {
+  static const sentences = {
+    'ar': 'مرحباً، أنا بجرّب تغيير الصوت في سودوجرام',
+    'en': 'Hello, I am trying the voice changer in Sudogram',
+  };
+  static final _out = <String, String>{};
+  static final _base = <String, String>{};
+
+  /// Returns a playable wav path, or throws when the phone has no TTS voice.
+  static Future<String> sample(String lang, VoiceFx fx, String dir) async {
+    final key = '$lang-${fx.name}';
+    final hit = _out[key];
+    if (hit != null && File(hit).existsSync()) return hit;
+    var base = _base[lang];
+    if (base == null || !File(base).existsSync()) {
+      final raw = '$dir/fxs_$lang.raw.wav';
+      base = '$dir/fxs_$lang.wav';
+      await _ch
+          .invokeMethod('tts', {'text': sentences[lang], 'lang': lang, 'dst': raw})
+          .timeout(const Duration(seconds: 25));
+      await Isolate.run(() => _to48k(raw, base!));
+      _base[lang] = base;
+    }
+    if (fx == VoiceFx.none) return _out[key] = base;
+    final dst = '$dir/fxs_${lang}_${fx.name}.wav';
+    await Isolate.run(() => _processFile(base!, dst, fx.index));
+    return _out[key] = dst;
+  }
+}
+
+int _to48k(String src, String dst) {
+  final b = File(src).readAsBytesSync();
+  final bd = ByteData.sublistView(b);
+  var pos = 12, rate = 22050, ch = 1, at = 44, len = b.length - 44;
+  while (pos + 8 <= b.length) {
+    final id = String.fromCharCodes(b.sublist(pos, pos + 4));
+    final l = bd.getUint32(pos + 4, Endian.little);
+    if (id == 'fmt ') {
+      ch = bd.getUint16(pos + 10, Endian.little);
+      rate = bd.getUint32(pos + 12, Endian.little);
+    } else if (id == 'data') {
+      at = pos + 8;
+      len = math.min(l, b.length - at);
+      break;
+    }
+    pos += 8 + l + (l & 1);
+  }
+  final n = len ~/ (2 * ch);
+  final mono = Float32List(n);
+  for (var i = 0; i < n; i++) {
+    mono[i] = bd.getInt16(at + i * 2 * ch, Endian.little) / 32768.0;
+  }
+  final outN = (n * kFxRate / rate).floor();
+  final y = Float32List(outN);
+  for (var i = 0; i < outN; i++) {
+    final p = i * rate / kFxRate;
+    final i0 = p.floor();
+    final f = p - i0;
+    y[i] = (mono[i0] * (1 - f) + mono[math.min(i0 + 1, n - 1)] * f).toDouble();
+  }
+  File(dst).writeAsBytesSync(_writeWav(y));
+  return outN;
 }
 
 /// Exposed for tests.

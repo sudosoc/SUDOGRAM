@@ -1,4 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/settings/app_settings.dart';
@@ -91,6 +95,16 @@ const wallCats = <String, List<String>>{
   'moto': ['Motorcycles', 'موتوسيكلات'],
   'hacker': ['Hackers', 'هاكرز'],
   'gradient': ['Gradients', 'ألوان'],
+  'mine': ['My photos', 'صوري'],
+};
+
+/// Number of real (free-licence) photos shipped per category (ids like love_p1).
+const wallPhotoCounts = <String, int>{
+  'love': 11,
+  'mystery': 12,
+  'cars': 14,
+  'moto': 11,
+  'hacker': 12,
 };
 
 final wallCatalog = <WallItem>[
@@ -102,6 +116,8 @@ final wallCatalog = <WallItem>[
     'hacker': 6,
   }.entries)
     for (var i = 1; i <= e.value; i++) WallItem('${e.key}_$i', e.key),
+  for (final e in wallPhotoCounts.entries)
+    for (var i = 1; i <= e.value; i++) WallItem('${e.key}_p$i', e.key),
   for (var i = 1; i < wallpapers.length; i++) WallItem('g$i', 'gradient'),
 ];
 
@@ -115,6 +131,15 @@ LinearGradient? _grad(String id) {
 
 /// Image/gradient for a wallpaper id as a widget (thumbnail or full).
 Widget wallImage(String id, {int? cacheWidth}) {
+  if (id.startsWith('file:')) {
+    return Image.file(
+      File(id.substring(5)),
+      fit: BoxFit.cover,
+      cacheWidth: cacheWidth,
+      gaplessPlayback: true,
+      errorBuilder: (_, _, _) => const ColoredBox(color: Colors.black26),
+    );
+  }
   final g = _grad(id);
   if (g != null) return DecoratedBox(decoration: BoxDecoration(gradient: g));
   return Image.asset(
@@ -164,6 +189,49 @@ class WallpaperPicker extends ConsumerStatefulWidget {
 class _WallpaperPickerState extends ConsumerState<WallpaperPicker> {
   String _cat = 'love';
 
+  Future<void> _addFromGallery() async {
+    final x = await ImagePicker().pickImage(source: ImageSource.gallery, maxWidth: 1600, imageQuality: 88);
+    if (x == null || !mounted) return;
+    final dir = Directory('${(await getApplicationSupportDirectory()).path}/wallpapers');
+    await dir.create(recursive: true);
+    final dst = '${dir.path}/custom_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    await File(x.path).copy(dst);
+    if (!mounted) return;
+    final c = ref.read(settingsProvider.notifier);
+    final cur = ((ref.read(settingsProvider).x['customWalls'] as List?) ?? const []).cast<String>();
+    c.setX('customWalls', [dst, ...cur]);
+    final id = 'file:$dst';
+    final ok = await Navigator.of(context).push<bool>(MaterialPageRoute(builder: (_) => _WallPreview(id: id)));
+    if (ok == true && mounted) _apply(id);
+  }
+
+  void _apply(String id) {
+    final s = ref.read(settingsProvider);
+    final c = ref.read(settingsProvider.notifier);
+    if (widget.chatId != null) {
+      final m = Map<String, dynamic>.of(s.chatWall);
+      if (id.isEmpty) {
+        m.remove('${widget.chatId}');
+      } else {
+        m['${widget.chatId}'] = id;
+      }
+      c.setX('chatWall', m);
+    } else {
+      c.setX('wallId', id.isEmpty ? null : id);
+      if (s.wallpaper != 0) c.setWallpaper(0);
+    }
+  }
+
+  void _removeCustom(String id) {
+    final path = id.substring(5);
+    final c = ref.read(settingsProvider.notifier);
+    final cur = ((ref.read(settingsProvider).x['customWalls'] as List?) ?? const []).cast<String>();
+    c.setX('customWalls', cur.where((e) => e != path).toList());
+    try {
+      File(path).deleteSync();
+    } catch (_) {}
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = ref.watch(settingsProvider);
@@ -188,11 +256,24 @@ class _WallpaperPickerState extends ConsumerState<WallpaperPicker> {
     }
 
     final w = (MediaQuery.of(context).size.width - 32 - 20) / 3;
-    final items = wallCatalog.where((e) => e.cat == _cat).toList();
+    final custom = ((s.x['customWalls'] as List?) ?? const []).cast<String>();
+    final items = _cat == 'mine'
+        ? [for (final f in custom) WallItem('file:$f', 'mine')]
+        : wallCatalog.where((e) => e.cat == _cat).toList();
     Widget tile(String id, {required String label}) {
       final sel = cur == id;
       return GestureDetector(
-        onTap: () => pick(id),
+        onTap: () async {
+          if (id.isEmpty || id == 'none') {
+            pick(id);
+            return;
+          }
+          final ok = await Navigator.of(context).push<bool>(
+            MaterialPageRoute(builder: (_) => _WallPreview(id: id)),
+          );
+          if (ok == true) pick(id);
+        },
+        onLongPress: id.startsWith('file:') ? () => _removeCustom(id) : null,
         child: Container(
           width: w,
           height: w * 1.9,
@@ -244,8 +325,29 @@ class _WallpaperPickerState extends ConsumerState<WallpaperPicker> {
             spacing: 10,
             runSpacing: 10,
             children: [
-              tile('', label: per ? context.t('Use default', 'الافتراضية') : context.t('None', 'بدون')),
-              if (per) tile('none', label: context.t('No background', 'بدون خلفية')),
+              if (_cat == 'mine')
+                GestureDetector(
+                  onTap: _addFromGallery,
+                  child: Container(
+                    width: w,
+                    height: w * 1.9,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: GlassScope.of(context).accent, width: 1.5),
+                      color: Colors.white10,
+                    ),
+                    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      Icon(Icons.add_photo_alternate_outlined, size: 30, color: GlassScope.of(context).accent),
+                      const SizedBox(height: 6),
+                      Text(context.t('From gallery', 'من المعرض'),
+                          textAlign: TextAlign.center, style: const TextStyle(fontSize: 12)),
+                    ]),
+                  ),
+                )
+              else ...[
+                tile('', label: per ? context.t('Use default', 'الافتراضية') : context.t('None', 'بدون')),
+                if (per) tile('none', label: context.t('No background', 'بدون خلفية')),
+              ],
               for (final e in items) tile(e.id, label: ''),
             ],
           ),
@@ -263,6 +365,107 @@ class _WallpaperPickerState extends ConsumerState<WallpaperPicker> {
           ),
         ]),
       ],
+    );
+  }
+}
+
+
+/// Full-screen preview of a wallpaper with a fake conversation on top.
+class _WallPreview extends ConsumerStatefulWidget {
+  const _WallPreview({required this.id});
+  final String id;
+  @override
+  ConsumerState<_WallPreview> createState() => _WallPreviewState();
+}
+
+class _WallPreviewState extends ConsumerState<_WallPreview> {
+  double? _dim;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = ref.watch(settingsProvider);
+    final accent = s.chatOut != null ? Color(s.chatOut!) : GlassScope.of(context).accent;
+    final dim = _dim ?? s.wallDim;
+    Widget bubble(String t, bool out) => Align(
+          alignment: out ? AlignmentDirectional.centerEnd : AlignmentDirectional.centerStart,
+          child: Container(
+            margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+            constraints: const BoxConstraints(maxWidth: 260),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              color: out
+                  ? accent.withValues(alpha: .55)
+                  : (s.chatIn != null ? Color(s.chatIn!) : Colors.white.withValues(alpha: .14)),
+            ),
+            child: Text(t),
+          ),
+        );
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: WallBackdrop(
+        id: widget.id,
+        dim: dim,
+        child: SafeArea(
+          child: Column(children: [
+            Row(children: [
+              IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.of(context).pop(false),
+              ),
+              Expanded(
+                child: Text(context.t('Preview', 'معاينة'),
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              ),
+            ]),
+            const Spacer(),
+            bubble(context.t('How does this background look?', 'شكل الخلفية دي عامل إزاي؟'), false),
+            bubble(context.t('Looks great!', 'تحفة!'), true),
+            bubble(context.t('Text stays readable on top of it.', 'والكلام بيفضل واضح فوقها.'), false),
+            const Spacer(),
+            Container(
+              margin: const EdgeInsets.all(14),
+              padding: const EdgeInsets.fromLTRB(14, 8, 14, 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(22),
+                color: Colors.black.withValues(alpha: .55),
+              ),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                if (!widget.id.startsWith('g'))
+                  Row(children: [
+                    const Icon(Icons.brightness_6_outlined, size: 18),
+                    Expanded(
+                      child: Slider(
+                        value: dim.clamp(0.0, .7),
+                        min: 0,
+                        max: .7,
+                        onChanged: (v) => setState(() => _dim = v),
+                      ),
+                    ),
+                  ]),
+                Row(children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      child: Text(context.t('Back', 'رجوع')),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: () {
+                        if (_dim != null) ref.read(settingsProvider.notifier).setX('wallDim', _dim);
+                        Navigator.of(context).pop(true);
+                      },
+                      child: Text(context.t('Use this background', 'استخدم الخلفية دي')),
+                    ),
+                  ),
+                ]),
+              ]),
+            ),
+          ]),
+        ),
+      ),
     );
   }
 }
