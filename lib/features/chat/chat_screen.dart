@@ -414,6 +414,49 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
   }
 
+  final Map<int, ChatMessage> _replyCache = {};
+  final Set<int> _replyAsked = {};
+
+  /// Replied-to messages outside the loaded window are fetched on demand.
+  ChatMessage? _replyFor(int id) {
+    final hit = _replyCache[id];
+    if (hit != null) return hit;
+    if (_replyAsked.add(id)) _fetchReply(id);
+    return null;
+  }
+
+  Future<void> _fetchReply(int id) async {
+    try {
+      final r = await _gateway.tdRaw({
+        '@type': 'getMessage',
+        'chat_id': widget.chat.id,
+        'message_id': id,
+      });
+      final c = (r['content'] as Map?) ?? const {};
+      final t = (c['@type'] ?? '').toString();
+      final text = ((c['text'] as Map?)?['text'] ?? (c['caption'] as Map?)?['text'] ?? '').toString();
+      final kind = switch (t) {
+        'messagePhoto' => MessageKind.photo,
+        'messageVideo' => MessageKind.video,
+        'messageVoiceNote' => MessageKind.voice,
+        'messageSticker' => MessageKind.sticker,
+        'messageText' => MessageKind.text,
+        'messageDocument' || 'messageAudio' => MessageKind.document,
+        _ => MessageKind.other,
+      };
+      final out = r['is_outgoing'] == true;
+      _replyCache[id] = ChatMessage(
+        id: id,
+        chatId: widget.chat.id,
+        text: text,
+        kind: kind,
+        outgoing: out,
+        time: DateTime.now(),
+      );
+      if (mounted) setState(() {});
+    } catch (_) {}
+  }
+
   Future<void> _sendPaths(List<String> paths) =>
       _safe(() => _gateway.sendMedia(widget.chat.id, paths));
 
@@ -428,7 +471,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         ? await ImagePicker().pickVideo(source: ImageSource.camera)
         : await ImagePicker().pickImage(source: ImageSource.camera);
     if (x == null || !mounted) return;
-    await _sendPaths([x.path]);
+    var path = x.path;
+    try {
+      // Keep our own copy: the picker's cache file can vanish mid-upload.
+      final dir = Directory('${(await getApplicationSupportDirectory()).path}/outbox');
+      await dir.create(recursive: true);
+      final ext = path.contains('.') ? path.split('.').last : (video ? 'mp4' : 'jpg');
+      final copy = '${dir.path}/${DateTime.now().millisecondsSinceEpoch}.$ext';
+      await File(path).copy(copy);
+      path = copy;
+    } catch (_) {}
+    await _sendPaths([path]);
   }
 
   Future<void> _muteFor(int chatId) async {
@@ -2388,7 +2441,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                   ChatType.group &&
                                               !m.outgoing,
                                           replied: m.replyToId != 0
-                                              ? byId[m.replyToId]
+                                              ? (byId[m.replyToId] ?? _replyFor(m.replyToId))
                                               : null,
                                           forwardLabel: _forwardLabel(
                                             l,
@@ -2881,18 +2934,34 @@ class _Bubble extends StatelessWidget {
                           start: BorderSide(color: accent, width: 2),
                         ),
                       ),
-                      child: Text(
-                        replied == null
-                            ? '…'
-                            : (replied!.text.isNotEmpty
-                                  ? replied!.text
-                                  : kindLabel(l, replied!.kind)),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 12.5,
-                          color: GlassTokens.textSecondary,
-                        ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (replied != null)
+                            Text(
+                              replied!.outgoing
+                                  ? context.t('You', 'أنت')
+                                  : (replied!.senderName.isNotEmpty ? replied!.senderName : ''),
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: accent,
+                              ),
+                            ),
+                          Text(
+                            replied == null
+                                ? '…'
+                                : (replied!.text.isNotEmpty
+                                      ? replied!.text
+                                      : kindLabel(l, replied!.kind)),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12.5,
+                              color: GlassTokens.textSecondary,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -2931,13 +3000,19 @@ class _Bubble extends StatelessWidget {
                                       fit: BoxFit.cover,
                                       gaplessPlayback: true,
                                       filterQuality: FilterQuality.low),
+                                if (m.kind == MessageKind.video &&
+                                    m.file?.localPath != null &&
+                                    File(m.file!.localPath!).existsSync())
+                                  _VideoFrame(path: m.file!.localPath!),
                                 Center(
                                   child: sticker && m.emoji.isNotEmpty
                                       ? Text(
                                           m.emoji,
                                           style: const TextStyle(fontSize: 56),
                                         )
-                                      : m.mini != null
+                                      : (m.mini != null ||
+                                              (m.kind == MessageKind.video &&
+                                                  m.file?.localPath != null))
                                           ? Icon(
                                               m.kind == MessageKind.video
                                                   ? Icons.play_circle_fill
@@ -2945,7 +3020,9 @@ class _Bubble extends StatelessWidget {
                                               size: 40,
                                               color: Colors.white70,
                                             )
-                                          : Text(l.photoLoading),
+                                          : (m.sendState == 1
+                                              ? const CircularProgressIndicator(strokeWidth: 2)
+                                              : Text(l.photoLoading)),
                                 ),
                               ]),
                             ),
@@ -3093,6 +3170,51 @@ class _Bubble extends StatelessWidget {
 }
 
 /// Looping, muted WebM sticker.
+/// First frame of a local video, used while no thumbnail exists yet.
+class _VideoFrame extends StatefulWidget {
+  const _VideoFrame({required this.path});
+  final String path;
+
+  @override
+  State<_VideoFrame> createState() => _VideoFrameState();
+}
+
+class _VideoFrameState extends State<_VideoFrame> {
+  VideoPlayerController? _c;
+
+  @override
+  void initState() {
+    super.initState();
+    final c = VideoPlayerController.file(File(widget.path));
+    _c = c;
+    c.setVolume(0);
+    c.initialize().then((_) {
+      if (mounted) setState(() {});
+    }).catchError((Object _) {});
+  }
+
+  @override
+  void dispose() {
+    _c?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = _c;
+    if (c == null || !c.value.isInitialized) return const SizedBox.shrink();
+    return FittedBox(
+      fit: BoxFit.cover,
+      clipBehavior: Clip.hardEdge,
+      child: SizedBox(
+        width: c.value.size.width,
+        height: c.value.size.height,
+        child: VideoPlayer(c),
+      ),
+    );
+  }
+}
+
 class _WebmSticker extends StatefulWidget {
   const _WebmSticker({required this.path});
   final String path;

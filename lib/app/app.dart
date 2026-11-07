@@ -109,6 +109,7 @@ class _SudogramAppState extends ConsumerState<SudogramApp>
         ref.read(appLockedProvider.notifier).lock();
       }
     } else if (state == AppLifecycleState.resumed) {
+      _keepAlive?.onResumed();
       final at = _pausedAt;
       _pausedAt = null;
       final d = ref.read(settingsProvider).lockDelay;

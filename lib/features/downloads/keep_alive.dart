@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 
 /// No-op handler: the service only exists so Android keeps the process (and
@@ -32,6 +33,10 @@ class DownloadKeepAlive {
   final String Function(int count) text;
   bool _inited = false;
 
+  bool get _foreground =>
+      WidgetsBinding.instance.lifecycleState == null ||
+      WidgetsBinding.instance.lifecycleState == AppLifecycleState.resumed;
+
   void init() {
     FlutterForegroundTask.init(
       androidNotificationOptions: AndroidNotificationOptions(
@@ -61,9 +66,13 @@ class DownloadKeepAlive {
       final want = n > 0 || keepConnected();
       final label = n > 0 ? text(n) : idleText;
       if (want) {
-        if (await FlutterForegroundTask.checkNotificationPermission() !=
-            NotificationPermission.granted) {
-          await FlutterForegroundTask.requestNotificationPermission();
+        // Android 12+ kills apps that start a foreground service from the
+        // background; an already-running service may still be updated.
+        if (!running && !_foreground) return;
+        if (!running &&
+            await FlutterForegroundTask.checkNotificationPermission() !=
+                NotificationPermission.granted) {
+          return;
         }
         if (running) {
           await FlutterForegroundTask.updateService(
@@ -83,6 +92,8 @@ class DownloadKeepAlive {
       debugPrint('keep-alive failed: $e');
     }
   }
+
+  void onResumed() => _sync();
 
   void dispose() => pending.removeListener(_sync);
 }
