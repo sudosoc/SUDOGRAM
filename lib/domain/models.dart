@@ -106,16 +106,15 @@ class Attachment {
     bool? downloading,
     int? downloadedBytes,
     int? size,
-  }) =>
-      Attachment(
-        fileId: fileId,
-        name: name,
-        size: size ?? this.size,
-        localPath: localPath ?? this.localPath,
-        downloaded: downloaded ?? this.downloaded,
-        downloading: downloading ?? this.downloading,
-        downloadedBytes: downloadedBytes ?? this.downloadedBytes,
-      );
+  }) => Attachment(
+    fileId: fileId,
+    name: name,
+    size: size ?? this.size,
+    localPath: localPath ?? this.localPath,
+    downloaded: downloaded ?? this.downloaded,
+    downloading: downloading ?? this.downloading,
+    downloadedBytes: downloadedBytes ?? this.downloadedBytes,
+  );
 }
 
 class ChatMessage {
@@ -262,15 +261,20 @@ enum AuthStep {
   waitPhone,
   waitCode,
   waitPassword,
+  waitQr,
   ready,
   closed,
 }
 
 class AuthState {
-  const AuthState(this.step, {this.error});
+  const AuthState(this.step, {this.error, this.qrLink, this.codeLength = 5});
 
   final AuthStep step;
   final String? error;
+
+  /// tg://login?token=… while waiting for another device to confirm.
+  final String? qrLink;
+  final int codeLength;
 
   static const initializing = AuthState(AuthStep.initializing);
   static const ready = AuthState(AuthStep.ready);
@@ -295,7 +299,6 @@ class ContactChange {
   final DateTime at;
 }
 
-
 /// Profile / group info shown on the chat info page.
 class ContactCard {
   const ContactCard({required this.name, required this.phone, this.userId = 0});
@@ -310,7 +313,9 @@ class ContactCard {
     final i = body.lastIndexOf(' +');
     if (i < 0) return ContactCard(name: body, phone: '');
     return ContactCard(
-        name: body.substring(0, i).trim(), phone: body.substring(i + 2).trim());
+      name: body.substring(0, i).trim(),
+      phone: body.substring(i + 2).trim(),
+    );
   }
 }
 
@@ -343,7 +348,6 @@ class ChatInfo {
   final int members;
 }
 
-
 class PollOption {
   const PollOption(this.text, this.votes, this.chosen);
   final String text;
@@ -367,7 +371,12 @@ class PollData {
 }
 
 class LinkPreview {
-  const LinkPreview({required this.url, this.site = '', this.title = '', this.description = ''});
+  const LinkPreview({
+    required this.url,
+    this.site = '',
+    this.title = '',
+    this.description = '',
+  });
   final String url;
   final String site;
   final String title;
@@ -382,7 +391,25 @@ class DeviceSession {
     required this.location,
     required this.lastActive,
     required this.current,
+    this.ip = '',
+    this.country = '',
+    this.region = '',
+    this.platform = '',
+    this.official = false,
+    this.passwordPending = false,
+    this.canAcceptCalls = true,
+    this.canAcceptSecret = true,
+    this.loggedIn,
   });
+  final String ip;
+  final String country;
+  final String region;
+  final String platform;
+  final bool official;
+  final bool passwordPending;
+  final bool canAcceptCalls;
+  final bool canAcceptSecret;
+  final DateTime? loggedIn;
   final int id;
   final String app;
   final String device;
@@ -391,14 +418,12 @@ class DeviceSession {
   final bool current;
 }
 
-
 class MentionCandidate {
   const MentionCandidate(this.id, this.name, this.username);
   final int id;
   final String name;
   final String username;
 }
-
 
 /// The logged-in account's own profile.
 class ProfileInfo {
@@ -420,7 +445,6 @@ class ProfileInfo {
   final Attachment? avatar;
 }
 
-
 class StickerSetInfo {
   const StickerSetInfo(this.id, this.title);
   final int id;
@@ -428,7 +452,12 @@ class StickerSetInfo {
 }
 
 class StickerItem {
-  const StickerItem(this.fileId, this.thumbFileId, this.emoji, {this.gif = false});
+  const StickerItem(
+    this.fileId,
+    this.thumbFileId,
+    this.emoji, {
+    this.gif = false,
+  });
   final bool gif;
   final int fileId;
   final int thumbFileId;

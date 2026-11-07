@@ -102,16 +102,22 @@ class GhostGateway implements TelegramGateway {
   Future<void> sendFile(int chatId, String path, {String caption = ''}) =>
       _inner.sendFile(chatId, path, caption: caption);
   @override
-  Future<void> sendMedia(int chatId, List<String> paths, {String caption = ''}) =>
-      _inner.sendMedia(chatId, paths, caption: caption);
+  Future<void> sendMedia(
+    int chatId,
+    List<String> paths, {
+    String caption = '',
+  }) => _inner.sendMedia(chatId, paths, caption: caption);
   @override
   Future<bool> loadOlder(int chatId) => _inner.loadOlder(chatId);
   @override
   Future<void> editText(int chatId, int messageId, String text) =>
       _inner.editText(chatId, messageId, text);
   @override
-  Future<void> deleteMessages(int chatId, List<int> ids, {bool forAll = false}) =>
-      _inner.deleteMessages(chatId, ids, forAll: forAll);
+  Future<void> deleteMessages(
+    int chatId,
+    List<int> ids, {
+    bool forAll = false,
+  }) => _inner.deleteMessages(chatId, ids, forAll: forAll);
   @override
   Future<List<ChatSummary>> contacts() => _inner.contacts();
 
@@ -131,9 +137,12 @@ class GhostGateway implements TelegramGateway {
       _inner.pinnedMessage(chatId);
 
   @override
-  Future<void> toggleReaction(int chatId, int messageId, String emoji,
-          {required bool on}) =>
-      _inner.toggleReaction(chatId, messageId, emoji, on: on);
+  Future<void> toggleReaction(
+    int chatId,
+    int messageId,
+    String emoji, {
+    required bool on,
+  }) => _inner.toggleReaction(chatId, messageId, emoji, on: on);
 
   @override
   Future<ChatInfo?> chatInfo(int chatId) => _inner.chatInfo(chatId);
@@ -182,7 +191,11 @@ class GhostGateway implements TelegramGateway {
   Future<ProfileInfo?> me() => _inner.me();
 
   @override
-  Future<void> updateProfile({String? firstName, String? lastName, String? bio}) =>
+  Future<void> updateProfile({
+    String? firstName,
+    String? lastName,
+    String? bio,
+  }) =>
       _inner.updateProfile(firstName: firstName, lastName: lastName, bio: bio);
 
   @override
@@ -195,7 +208,8 @@ class GhostGateway implements TelegramGateway {
   Future<void> logOut() => _inner.logOut();
 
   @override
-  Future<void> setMuted(int chatId, bool muted) => _inner.setMuted(chatId, muted);
+  Future<void> setMuted(int chatId, bool muted) =>
+      _inner.setMuted(chatId, muted);
 
   @override
   Future<void> clearHistory(int chatId) => _inner.clearHistory(chatId);
@@ -225,10 +239,15 @@ class GhostGateway implements TelegramGateway {
   Future<bool> hasCloudPassword() => _inner.hasCloudPassword();
 
   @override
-  Future<bool> setCloudPassword(
-          {String oldPassword = '', String newPassword = '', String hint = ''}) =>
-      _inner.setCloudPassword(
-          oldPassword: oldPassword, newPassword: newPassword, hint: hint);
+  Future<bool> setCloudPassword({
+    String oldPassword = '',
+    String newPassword = '',
+    String hint = '',
+  }) => _inner.setCloudPassword(
+    oldPassword: oldPassword,
+    newPassword: newPassword,
+    hint: hint,
+  );
 
   @override
   Future<List<StickerSetInfo>> stickerSets() => _inner.stickerSets();
@@ -260,10 +279,19 @@ class GhostGateway implements TelegramGateway {
       _inner.pinMessage(chatId, messageId, pin: pin);
 
   @override
-  Future<void> sendPoll(int chatId, String question, List<String> options,
-          {bool multiple = false, bool anonymous = true}) =>
-      _inner.sendPoll(chatId, question, options,
-          multiple: multiple, anonymous: anonymous);
+  Future<void> sendPoll(
+    int chatId,
+    String question,
+    List<String> options, {
+    bool multiple = false,
+    bool anonymous = true,
+  }) => _inner.sendPoll(
+    chatId,
+    question,
+    options,
+    multiple: multiple,
+    anonymous: anonymous,
+  );
 
   @override
   Future<void> sendLocation(int chatId, double lat, double lon) =>
@@ -281,7 +309,8 @@ class GhostGateway implements TelegramGateway {
       _inner.sendGif(chatId, gif);
 
   @override
-  Future<void> resend(int chatId, int messageId) => _inner.resend(chatId, messageId);
+  Future<void> resend(int chatId, int messageId) =>
+      _inner.resend(chatId, messageId);
 
   @override
   Future<void> markUnread(int chatId, bool unread) =>
@@ -316,10 +345,30 @@ class GhostGateway implements TelegramGateway {
       _inner.markRead(chatId, messageIds);
 
   @override
+  Future<void> terminateOtherSessions() => _inner.terminateOtherSessions();
+
+  @override
+  Future<int> sessionTtlDays() => _inner.sessionTtlDays();
+
+  @override
+  Future<void> setSessionTtlDays(int days) => _inner.setSessionTtlDays(days);
+
+  @override
+  Future<void> requestQrLogin() => _inner.requestQrLogin();
+
+  @override
+  Future<void> confirmQrLink(String link) => _inner.confirmQrLink(link);
+
+  @override
+  Future<ChatSummary?> resolveUsername(String username) =>
+      _inner.resolveUsername(username);
+
+  @override
   Future<void> forwardMessages(int toChatId, int fromChatId, List<int> ids) =>
       _inner.forwardMessages(toChatId, fromChatId, ids);
   @override
-  Stream<ChatStatus> watchChatStatus(int chatId) => _inner.watchChatStatus(chatId);
+  Stream<ChatStatus> watchChatStatus(int chatId) =>
+      _inner.watchChatStatus(chatId);
   @override
   Stream<ContactChange> contactChanges() => _inner.contactChanges();
 

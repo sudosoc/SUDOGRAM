@@ -13,7 +13,11 @@ class AvatarCircle extends StatelessWidget {
     this.photo,
     this.size = 48,
     this.ring,
+    this.shape = 'circle',
   });
+
+  /// circle | squircle | square
+  final String shape;
 
   final String title;
   final Attachment? photo;
@@ -21,19 +25,28 @@ class AvatarCircle extends StatelessWidget {
   final Color? ring;
 
   static const _palette = [
-    Color(0xFF6366F1), Color(0xFF14B8A6), Color(0xFFF59E0B),
-    Color(0xFFEC4899), Color(0xFF3B82F6), Color(0xFF22C55E), Color(0xFFA855F7),
+    Color(0xFF6366F1),
+    Color(0xFF14B8A6),
+    Color(0xFFF59E0B),
+    Color(0xFFEC4899),
+    Color(0xFF3B82F6),
+    Color(0xFF22C55E),
+    Color(0xFFA855F7),
   ];
 
   @override
   Widget build(BuildContext context) {
     final path = photo != null && photo!.downloaded ? photo!.localPath : null;
-    final color = _palette[title.runes.fold<int>(0, (a, b) => a + b) % _palette.length];
+    final color =
+        _palette[title.runes.fold<int>(0, (a, b) => a + b) % _palette.length];
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
-        shape: BoxShape.circle,
+        shape: shape == 'circle' ? BoxShape.circle : BoxShape.rectangle,
+        borderRadius: shape == 'circle'
+            ? null
+            : BorderRadius.circular(size * (shape == 'square' ? .12 : .34)),
         color: color.withValues(alpha: 0.55),
         border: ring == null ? null : Border.all(color: ring!, width: 2.5),
         image: path != null && File(path).existsSync()
@@ -43,7 +56,9 @@ class AvatarCircle extends StatelessWidget {
       alignment: Alignment.center,
       child: path == null
           ? Text(
-              title.characters.isEmpty ? '?' : title.characters.first.toUpperCase(),
+              title.characters.isEmpty
+                  ? '?'
+                  : title.characters.first.toUpperCase(),
               style: TextStyle(fontSize: size * 0.4),
             )
           : null,

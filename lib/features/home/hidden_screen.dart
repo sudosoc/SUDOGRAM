@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
 import '../../core/settings/app_settings.dart';
+import '../../core/i18n/tr.dart';
 import '../../core/theme/glass.dart';
 import '../../domain/models.dart';
 import '../../l10n/app_localizations.dart';
@@ -70,25 +71,38 @@ class _HiddenChatsScreenState extends ConsumerState<HiddenChatsScreen> {
         child: GlassSurface(
           blur: true,
           radius: 24,
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            ListTile(
-              leading: const Icon(Icons.edit_outlined),
-              title: Text(l.renameSection),
-              onTap: () => Navigator.pop(sctx, 'rename'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete_outline, color: GlassTokens.ringDanger),
-              title: Text(l.deleteSection,
-                  style: const TextStyle(color: GlassTokens.ringDanger)),
-              onTap: () => Navigator.pop(sctx, 'delete'),
-            ),
-          ]),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.edit_outlined),
+                title: Text(l.renameSection),
+                onTap: () => Navigator.pop(sctx, 'rename'),
+              ),
+              ListTile(
+                leading: const Icon(
+                  Icons.delete_outline,
+                  color: GlassTokens.ringDanger,
+                ),
+                title: Text(
+                  l.deleteSection,
+                  style: const TextStyle(color: GlassTokens.ringDanger),
+                ),
+                onTap: () => Navigator.pop(sctx, 'delete'),
+              ),
+            ],
+          ),
         ),
       ),
     );
     if (!mounted || choice == null) return;
     if (choice == 'rename') {
-      final n = await askText(context, l.renameSection, l.sectionName, initial: name);
+      final n = await askText(
+        context,
+        l.renameSection,
+        l.sectionName,
+        initial: name,
+      );
       if (n != null && n.trim().isNotEmpty && n.trim() != name) {
         c.renameHiddenFolder(name, n.trim());
         if (_section == 'f:$name') setState(() => _section = 'f:${n.trim()}');
@@ -109,36 +123,55 @@ class _HiddenChatsScreenState extends ConsumerState<HiddenChatsScreen> {
     final all = ref.watch(chatsProvider).value ?? const <ChatSummary>[];
     final hiddenAll = [
       for (final ch in all)
-        if (settings.hiddenChats.contains(ch.id)) ch
+        if (settings.hiddenChats.contains(ch.id)) ch,
     ];
     final q = _q.trim().toLowerCase();
-    final shown = [
-      for (final ch in hiddenAll)
-        if (_inSection(ch, settings) &&
-            (q.isEmpty ||
-                (settings.aliases[ch.id] ?? ch.title).toLowerCase().contains(q)))
-          ch
-    ]..sort((a, b) {
-        final pa = settings.pinned.contains(a.id) ? 0 : 1;
-        final pb = settings.pinned.contains(b.id) ? 0 : 1;
-        return pa.compareTo(pb);
-      });
+    final shown =
+        [
+          for (final ch in hiddenAll)
+            if (_inSection(ch, settings) &&
+                (q.isEmpty ||
+                    (settings.aliases[ch.id] ?? ch.title)
+                        .toLowerCase()
+                        .contains(q)))
+              ch,
+        ]..sort((a, b) {
+          final pa = settings.pinned.contains(a.id) ? 0 : 1;
+          final pb = settings.pinned.contains(b.id) ? 0 : 1;
+          return pa.compareTo(pb);
+        });
 
     final chips = <(String, String, int)>[
       ('all', l.sectAll, hiddenAll.length),
       if (settings.hiddenSections) ...[
-        ('people', l.sectPeople,
-            hiddenAll.where((x) => x.type == ChatType.private).length),
-        ('groups', l.sectGroups,
-            hiddenAll.where((x) => x.type == ChatType.group).length),
-        ('channels', l.sectChannels,
-            hiddenAll.where((x) => x.type == ChatType.channel).length),
+        (
+          'people',
+          l.sectPeople,
+          hiddenAll.where((x) => x.type == ChatType.private).length,
+        ),
+        (
+          'groups',
+          l.sectGroups,
+          hiddenAll.where((x) => x.type == ChatType.group).length,
+        ),
+        (
+          'channels',
+          l.sectChannels,
+          hiddenAll.where((x) => x.type == ChatType.channel).length,
+        ),
         if (hiddenAll.any((x) => x.type == ChatType.secret))
-          ('secret', l.sectSecret,
-              hiddenAll.where((x) => x.type == ChatType.secret).length),
+          (
+            'secret',
+            l.sectSecret,
+            hiddenAll.where((x) => x.type == ChatType.secret).length,
+          ),
       ],
       for (final e in settings.hiddenFolders.entries)
-        ('f:${e.key}', e.key, e.value.where(settings.hiddenChats.contains).length),
+        (
+          'f:${e.key}',
+          e.key,
+          e.value.where(settings.hiddenChats.contains).length,
+        ),
     ];
 
     return Scaffold(
@@ -151,11 +184,21 @@ class _HiddenChatsScreenState extends ConsumerState<HiddenChatsScreen> {
                 decoration: InputDecoration(hintText: l.searchHint),
                 onChanged: (v) => setState(() => _q = v),
               )
-            : Row(children: [
-                const Icon(Icons.lock_outline, size: 18, color: GlassTokens.ghost),
-                const SizedBox(width: 8),
-                Text(l.hiddenChatsTitle),
-              ]),
+            : Row(
+                children: [
+                  const Icon(
+                    Icons.lock_outline,
+                    size: 18,
+                    color: GlassTokens.ghost,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    ref.watch(settingsProvider).hiddenTitle.isEmpty
+                        ? l.hiddenChatsTitle
+                        : ref.watch(settingsProvider).hiddenTitle,
+                  ),
+                ],
+              ),
         actions: [
           IconButton(
             icon: Icon(_searching ? Icons.close : Icons.search),
@@ -172,75 +215,93 @@ class _HiddenChatsScreenState extends ConsumerState<HiddenChatsScreen> {
           IconButton(
             tooltip: l.hiddenSettings,
             icon: const Icon(Icons.settings_outlined),
-            onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
-                builder: (_) => const HiddenSettingsScreen())),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const HiddenSettingsScreen(),
+              ),
+            ),
           ),
         ],
       ),
-      body: Column(children: [
-        SizedBox(
-          height: 48,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            children: [
-              for (final (id, label, n) in chips)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-                  child: GestureDetector(
-                    onLongPress: id.startsWith('f:')
-                        ? () => _folderMenu(id.substring(2))
-                        : null,
-                    child: ChoiceChip(
-                      label: Text('$label  $n'),
-                      selected: _section == id,
-                      onSelected: (_) => setState(() => _section = id),
+      body: Column(
+        children: [
+          SizedBox(
+            height: 48,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              children: [
+                for (final (id, label, n) in chips)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 6,
+                    ),
+                    child: GestureDetector(
+                      onLongPress: id.startsWith('f:')
+                          ? () => _folderMenu(id.substring(2))
+                          : null,
+                      child: ChoiceChip(
+                        label: Text('$label  $n'),
+                        selected: _section == id,
+                        onSelected: (_) => setState(() => _section = id),
+                      ),
                     ),
                   ),
-                ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-                child: ActionChip(
-                  avatar: const Icon(Icons.add, size: 16),
-                  label: Text(l.newSection),
-                  onPressed: () async {
-                    final n = await askText(context, l.newSection, l.sectionName);
-                    if (n != null && n.trim().isNotEmpty) {
-                      c.addHiddenFolder(n.trim());
-                      setState(() => _section = 'f:${n.trim()}');
-                    }
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: shown.isEmpty
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(32),
-                    child: Text(
-                        _section.startsWith('f:') ? l.sectionEmpty : l.noHiddenChats,
-                        textAlign: TextAlign.center),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 6,
                   ),
-                )
-              : ListView(
-                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
-                  children: [
-                    for (final ch in shown)
-                      ChatRow(
-                        chat: ch,
-                        hidden: true,
-                        inHidden: true,
-                        pinned: settings.pinned.contains(ch.id),
-                        alias: settings.aliases[ch.id],
-                        showPreview: settings.hiddenPreview,
-                      ),
-                  ],
+                  child: ActionChip(
+                    avatar: const Icon(Icons.add, size: 16),
+                    label: Text(l.newSection),
+                    onPressed: () async {
+                      final n = await askText(
+                        context,
+                        l.newSection,
+                        l.sectionName,
+                      );
+                      if (n != null && n.trim().isNotEmpty) {
+                        c.addHiddenFolder(n.trim());
+                        setState(() => _section = 'f:${n.trim()}');
+                      }
+                    },
+                  ),
                 ),
-        ),
-      ]),
+              ],
+            ),
+          ),
+          Expanded(
+            child: shown.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Text(
+                        _section.startsWith('f:')
+                            ? l.sectionEmpty
+                            : l.noHiddenChats,
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  )
+                : ListView(
+                    padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
+                    children: [
+                      for (final ch in shown)
+                        ChatRow(
+                          chat: ch,
+                          hidden: true,
+                          inHidden: true,
+                          pinned: settings.pinned.contains(ch.id),
+                          alias: settings.aliases[ch.id],
+                          showPreview: settings.hiddenPreview,
+                        ),
+                    ],
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -279,126 +340,186 @@ class HiddenSettingsScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-          backgroundColor: Colors.transparent, title: Text(l.hiddenSettings)),
-      body: ListView(padding: const EdgeInsets.fromLTRB(12, 4, 12, 32), children: [
-        _H(l.hiddenOpenMethods),
-        GlassSurface(
-          radius: 20,
-          child: Column(children: [
-            method('search', Icons.search, l.mSearch),
-            method('title', Icons.touch_app_outlined, l.mTitle),
-            method('ghost', Icons.visibility_off_outlined, l.mGhost),
-            method('settings', Icons.tune, l.mSettings),
-            method('fab', Icons.edit_outlined, l.mFab),
-            method('swipe', Icons.swipe, l.mSwipe, sub: l.mSwipeHint),
-            method('code', Icons.password, l.mCode,
-                sub: s.hiddenCode.isEmpty ? null : '•' * s.hiddenCode.length),
-            if (methods.contains('code'))
-              ListTile(
-                leading: const Icon(Icons.edit_outlined),
-                title: Text(l.hiddenCodeChange),
-                onTap: () => _askCode(context, ref),
+        backgroundColor: Colors.transparent,
+        title: Text(l.hiddenSettings),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(12, 4, 12, 32),
+        children: [
+          _H(l.hiddenOpenMethods),
+          GlassSurface(
+            radius: 20,
+            child: Column(
+              children: [
+                method('search', Icons.search, l.mSearch),
+                method('title', Icons.touch_app_outlined, l.mTitle),
+                method('ghost', Icons.visibility_off_outlined, l.mGhost),
+                method('settings', Icons.tune, l.mSettings),
+                method('fab', Icons.edit_outlined, l.mFab),
+                method('swipe', Icons.swipe, l.mSwipe, sub: l.mSwipeHint),
+                method(
+                  'code',
+                  Icons.password,
+                  l.mCode,
+                  sub: s.hiddenCode.isEmpty ? null : '•' * s.hiddenCode.length,
+                ),
+                if (methods.contains('code'))
+                  ListTile(
+                    leading: const Icon(Icons.edit_outlined),
+                    title: Text(l.hiddenCodeChange),
+                    onTap: () => _askCode(context, ref),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          _H(l.hiddenSecurity),
+          GlassSurface(
+            radius: 20,
+            child: Column(
+              children: [
+                SwitchListTile(
+                  secondary: const Icon(Icons.fingerprint),
+                  title: Text(l.hiddenRequireAuth),
+                  value: s.hiddenAuth,
+                  onChanged: (v) {
+                    if (!v && !s.hasHiddenPin) {
+                      // never leave the hidden chats without any protection by accident
+                      c.setX('hiddenAuth', false);
+                      return;
+                    }
+                    c.setX('hiddenAuth', v);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.pin_outlined),
+                  title: Text(l.hiddenPin),
+                  subtitle: Text(
+                    s.hasHiddenPin
+                        ? (s.hiddenPinKind == 'text'
+                              ? l.pinKindWord
+                              : l.pinKindDigits(s.hiddenPinKind))
+                        : l.pinOff,
+                  ),
+                  trailing: s.hasHiddenPin
+                      ? IconButton(
+                          icon: const Icon(Icons.delete_outline),
+                          onPressed: () {
+                            c.setX('hiddenPinHash', null);
+                            c.setX('hiddenPinSalt', null);
+                          },
+                        )
+                      : null,
+                  onTap: () => _setPin(context, ref),
+                ),
+                SwitchListTile(
+                  secondary: const Icon(Icons.lock_clock_outlined),
+                  title: Text(l.hiddenLockExit),
+                  subtitle: Text(l.hiddenLockExitHint),
+                  value: s.hiddenLockOnExit,
+                  onChanged: (v) => c.setX('hiddenLockOnExit', v),
+                ),
+                SwitchListTile(
+                  secondary: const Icon(Icons.subject),
+                  title: Text(l.hiddenShowPreview),
+                  value: s.hiddenPreview,
+                  onChanged: (v) => c.setX('hiddenPreview', v),
+                ),
+                SwitchListTile(
+                  secondary: const Icon(Icons.dashboard_customize_outlined),
+                  title: Text(l.hiddenSectionsT),
+                  value: s.hiddenSections,
+                  onChanged: (v) => c.setX('hiddenSections', v),
+                ),
+                SwitchListTile(
+                  secondary: const Icon(Icons.screenshot_monitor),
+                  title: Text(
+                    context.t(
+                      'Block screenshots inside',
+                      'منع لقطات الشاشة جوه',
+                    ),
+                  ),
+                  subtitle: Text(
+                    context.t(
+                      'Also hides the hidden chats from the recent-apps preview.',
+                      'وبيخفيها من معاينة التطبيقات الأخيرة كمان.',
+                    ),
+                  ),
+                  value: s.hiddenSecure,
+                  onChanged: (v) => c.setX('hiddenSecure', v),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.badge_outlined),
+                  title: Text(context.t('Custom title', 'عنوان مخصص')),
+                  subtitle: Text(
+                    s.hiddenTitle.isEmpty
+                        ? context.t('Default', 'الافتراضي')
+                        : s.hiddenTitle,
+                  ),
+                  onTap: () async {
+                    final t = await askText(
+                      context,
+                      context.t(
+                        'Title of the hidden area',
+                        'عنوان المنطقة المخفية',
+                      ),
+                      '',
+                      initial: s.hiddenTitle,
+                    );
+                    if (t != null) {
+                      c.setX('hiddenTitle', t.trim().isEmpty ? null : t.trim());
+                    }
+                  },
+                ),
+                SwitchListTile(
+                  secondary: const Icon(Icons.visibility_off_outlined),
+                  title: Text(l.ghostForceHidden),
+                  subtitle: Text(l.ghostForceHint),
+                  value: s.ghostForceHidden,
+                  onChanged: (v) => c.setX('ghostForceHidden', v),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          _H(l.hiddenNotifyT),
+          GlassSurface(
+            radius: 20,
+            padding: const EdgeInsets.all(12),
+            child: SegmentedButton<int>(
+              showSelectedIcon: false,
+              segments: [
+                ButtonSegment(value: 0, label: Text(l.notifyGeneric)),
+                ButtonSegment(value: 1, label: Text(l.notifyNone)),
+              ],
+              selected: {s.hiddenNotify},
+              onSelectionChanged: (v) => c.setX('hiddenNotify', v.first),
+            ),
+          ),
+          const SizedBox(height: 12),
+          GlassSurface(
+            radius: 20,
+            child: ListTile(
+              leading: const Icon(
+                Icons.lock_open,
+                color: GlassTokens.ringDanger,
               ),
-          ]),
-        ),
-        const SizedBox(height: 12),
-        _H(l.hiddenSecurity),
-        GlassSurface(
-          radius: 20,
-          child: Column(children: [
-            SwitchListTile(
-              secondary: const Icon(Icons.fingerprint),
-              title: Text(l.hiddenRequireAuth),
-              value: s.hiddenAuth,
-              onChanged: (v) {
-                if (!v && !s.hasHiddenPin) {
-                  // never leave the hidden chats without any protection by accident
-                  c.setX('hiddenAuth', false);
-                  return;
+              title: Text(
+                l.unhideAll,
+                style: const TextStyle(color: GlassTokens.ringDanger),
+              ),
+              onTap: () async {
+                if (s.hiddenChats.isEmpty) return;
+                if (await confirmDialog(context, l.unhideAllQ)) {
+                  for (final id in s.hiddenChats.toList()) {
+                    c.setHidden(id, false);
+                  }
                 }
-                c.setX('hiddenAuth', v);
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.pin_outlined),
-              title: Text(l.hiddenPin),
-              subtitle: Text(s.hasHiddenPin
-                  ? (s.hiddenPinKind == 'text'
-                      ? l.pinKindWord
-                      : l.pinKindDigits(s.hiddenPinKind))
-                  : l.pinOff),
-              trailing: s.hasHiddenPin
-                  ? IconButton(
-                      icon: const Icon(Icons.delete_outline),
-                      onPressed: () {
-                        c.setX('hiddenPinHash', null);
-                        c.setX('hiddenPinSalt', null);
-                      },
-                    )
-                  : null,
-              onTap: () => _setPin(context, ref),
-            ),
-            SwitchListTile(
-              secondary: const Icon(Icons.lock_clock_outlined),
-              title: Text(l.hiddenLockExit),
-              subtitle: Text(l.hiddenLockExitHint),
-              value: s.hiddenLockOnExit,
-              onChanged: (v) => c.setX('hiddenLockOnExit', v),
-            ),
-            SwitchListTile(
-              secondary: const Icon(Icons.subject),
-              title: Text(l.hiddenShowPreview),
-              value: s.hiddenPreview,
-              onChanged: (v) => c.setX('hiddenPreview', v),
-            ),
-            SwitchListTile(
-              secondary: const Icon(Icons.dashboard_customize_outlined),
-              title: Text(l.hiddenSectionsT),
-              value: s.hiddenSections,
-              onChanged: (v) => c.setX('hiddenSections', v),
-            ),
-            SwitchListTile(
-              secondary: const Icon(Icons.visibility_off_outlined),
-              title: Text(l.ghostForceHidden),
-              subtitle: Text(l.ghostForceHint),
-              value: s.ghostForceHidden,
-              onChanged: (v) => c.setX('ghostForceHidden', v),
-            ),
-          ]),
-        ),
-        const SizedBox(height: 12),
-        _H(l.hiddenNotifyT),
-        GlassSurface(
-          radius: 20,
-          padding: const EdgeInsets.all(12),
-          child: SegmentedButton<int>(
-            showSelectedIcon: false,
-            segments: [
-              ButtonSegment(value: 0, label: Text(l.notifyGeneric)),
-              ButtonSegment(value: 1, label: Text(l.notifyNone)),
-            ],
-            selected: {s.hiddenNotify},
-            onSelectionChanged: (v) => c.setX('hiddenNotify', v.first),
           ),
-        ),
-        const SizedBox(height: 12),
-        GlassSurface(
-          radius: 20,
-          child: ListTile(
-            leading: const Icon(Icons.lock_open, color: GlassTokens.ringDanger),
-            title: Text(l.unhideAll,
-                style: const TextStyle(color: GlassTokens.ringDanger)),
-            onTap: () async {
-              if (s.hiddenChats.isEmpty) return;
-              if (await confirmDialog(context, l.unhideAllQ)) {
-                for (final id in s.hiddenChats.toList()) {
-                  c.setHidden(id, false);
-                }
-              }
-            },
-          ),
-        ),
-      ]),
+        ],
+      ),
     );
   }
 
@@ -418,59 +539,79 @@ class HiddenSettingsScreen extends ConsumerWidget {
           return AlertDialog(
             title: Text(l.hiddenPin),
             content: SingleChildScrollView(
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Wrap(spacing: 6, children: [
-                  for (final k in const ['4', '6', '8', '10', 'text'])
-                    ChoiceChip(
-                      label: Text(k == 'text' ? l.pinKindWord : k),
-                      selected: kind == k,
-                      onSelected: (_) => setS(() {
-                        kind = k;
-                        a.clear();
-                        b.clear();
-                        err = null;
-                      }),
-                    ),
-                ]),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: a,
-                  obscureText: true,
-                  keyboardType: digits ? TextInputType.number : TextInputType.text,
-                  inputFormatters: digits
-                      ? [FilteringTextInputFormatter.digitsOnly,
-                          LengthLimitingTextInputFormatter(len)]
-                      : null,
-                  decoration: InputDecoration(hintText: l.gateEnterCode),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: b,
-                  obscureText: true,
-                  keyboardType: digits ? TextInputType.number : TextInputType.text,
-                  inputFormatters: digits
-                      ? [FilteringTextInputFormatter.digitsOnly,
-                          LengthLimitingTextInputFormatter(len)]
-                      : null,
-                  decoration: InputDecoration(hintText: l.pinConfirm),
-                ),
-                if (err != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text(err!,
-                        style: const TextStyle(color: GlassTokens.ringDanger)),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Wrap(
+                    spacing: 6,
+                    children: [
+                      for (final k in const ['4', '6', '8', '10', 'text'])
+                        ChoiceChip(
+                          label: Text(k == 'text' ? l.pinKindWord : k),
+                          selected: kind == k,
+                          onSelected: (_) => setS(() {
+                            kind = k;
+                            a.clear();
+                            b.clear();
+                            err = null;
+                          }),
+                        ),
+                    ],
                   ),
-              ]),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: a,
+                    obscureText: true,
+                    keyboardType: digits
+                        ? TextInputType.number
+                        : TextInputType.text,
+                    inputFormatters: digits
+                        ? [
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(len),
+                          ]
+                        : null,
+                    decoration: InputDecoration(hintText: l.gateEnterCode),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: b,
+                    obscureText: true,
+                    keyboardType: digits
+                        ? TextInputType.number
+                        : TextInputType.text,
+                    inputFormatters: digits
+                        ? [
+                            FilteringTextInputFormatter.digitsOnly,
+                            LengthLimitingTextInputFormatter(len),
+                          ]
+                        : null,
+                    decoration: InputDecoration(hintText: l.pinConfirm),
+                  ),
+                  if (err != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        err!,
+                        style: const TextStyle(color: GlassTokens.ringDanger),
+                      ),
+                    ),
+                ],
+              ),
             ),
             actions: [
               TextButton(
-                  onPressed: () => Navigator.pop(dctx, false),
-                  child: Text(l.cancelAction)),
+                onPressed: () => Navigator.pop(dctx, false),
+                child: Text(l.cancelAction),
+              ),
               TextButton(
                 onPressed: () {
                   final v = a.text;
                   if (digits ? v.length != len : v.length < 4) {
-                    setS(() => err = digits ? l.pinLenErr('$len') : l.hiddenCodeHint);
+                    setS(
+                      () =>
+                          err = digits ? l.pinLenErr('$len') : l.hiddenCodeHint,
+                    );
                     return;
                   }
                   if (v != b.text) {
@@ -494,15 +635,23 @@ class HiddenSettingsScreen extends ConsumerWidget {
     }
   }
 
-  Future<void> _askCode(BuildContext context, WidgetRef ref,
-      {bool enableAfter = false}) async {
+  Future<void> _askCode(
+    BuildContext context,
+    WidgetRef ref, {
+    bool enableAfter = false,
+  }) async {
     final l = AppLocalizations.of(context);
     final c = ref.read(settingsProvider.notifier);
-    final v = await askText(context, l.mCode, l.hiddenCodeHint,
-        initial: ref.read(settingsProvider).hiddenCode);
+    final v = await askText(
+      context,
+      l.mCode,
+      l.hiddenCodeHint,
+      initial: ref.read(settingsProvider).hiddenCode,
+    );
     if (v == null || v.trim().length < 3) return;
     c.setX('hiddenCode', v.trim());
-    if (enableAfter && !ref.read(settingsProvider).hiddenMethods.contains('code')) {
+    if (enableAfter &&
+        !ref.read(settingsProvider).hiddenMethods.contains('code')) {
       c.toggleHiddenMethod('code');
     }
   }
@@ -513,9 +662,13 @@ class _H extends StatelessWidget {
   final String text;
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(8, 4, 8, 6),
-        child: Text(text,
-            style: const TextStyle(
-                color: GlassTokens.textSecondary, fontWeight: FontWeight.w600)),
-      );
+    padding: const EdgeInsets.fromLTRB(8, 4, 8, 6),
+    child: Text(
+      text,
+      style: const TextStyle(
+        color: GlassTokens.textSecondary,
+        fontWeight: FontWeight.w600,
+      ),
+    ),
+  );
 }

@@ -20,6 +20,7 @@ import '../settings/settings_screen.dart';
 import 'chat_actions.dart';
 import 'hidden_gate.dart';
 import '../settings/ghost_screen.dart';
+import 'account_switcher.dart';
 
 String kindLabel(AppLocalizations l, MessageKind k) => switch (k) {
   MessageKind.photo => l.kindPhoto,
@@ -75,25 +76,38 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         child: GlassSurface(
           blur: true,
           radius: 24,
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            ListTile(
-              leading: const Icon(Icons.edit_outlined),
-              title: Text(l.renameSection),
-              onTap: () => Navigator.pop(sctx, 'rename'),
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete_outline, color: GlassTokens.ringDanger),
-              title: Text(l.deleteSection,
-                  style: const TextStyle(color: GlassTokens.ringDanger)),
-              onTap: () => Navigator.pop(sctx, 'delete'),
-            ),
-          ]),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.edit_outlined),
+                title: Text(l.renameSection),
+                onTap: () => Navigator.pop(sctx, 'rename'),
+              ),
+              ListTile(
+                leading: const Icon(
+                  Icons.delete_outline,
+                  color: GlassTokens.ringDanger,
+                ),
+                title: Text(
+                  l.deleteSection,
+                  style: const TextStyle(color: GlassTokens.ringDanger),
+                ),
+                onTap: () => Navigator.pop(sctx, 'delete'),
+              ),
+            ],
+          ),
         ),
       ),
     );
     if (!mounted || choice == null) return;
     if (choice == 'rename') {
-      final n = await askText(context, l.renameSection, l.sectionName, initial: name);
+      final n = await askText(
+        context,
+        l.renameSection,
+        l.sectionName,
+        initial: name,
+      );
       if (n != null && n.trim().isNotEmpty && n.trim() != name) {
         c.renameFolder(name, n.trim());
         if (_section == 'f:$name') setState(() => _section = 'f:${n.trim()}');
@@ -103,6 +117,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (_section == 'f:$name') setState(() => _section = 'all');
     }
   }
+
   int _titleTaps = 0;
   DateTime _lastTap = DateTime(2000);
 
@@ -272,51 +287,53 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ),
                       ),
                     ),
-                  GestureDetector(
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const GhostScreen(),
+                  const AccountSwitcherButton(),
+                  if (settings.homeShowGhost)
+                    GestureDetector(
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const GhostScreen(),
+                        ),
+                      ),
+                      onLongPress: () {
+                        if (settings.hiddenMethods.contains('ghost')) {
+                          _openVault();
+                        } else {
+                          ref
+                              .read(settingsProvider.notifier)
+                              .setGhostGlobal(!settings.ghostGlobal);
+                        }
+                      },
+                      child: GlassSurface(
+                        radius: 16,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        borderColor: settings.ghostGlobal
+                            ? GlassTokens.ghost.withValues(alpha: 0.6)
+                            : null,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.visibility_off_outlined,
+                              size: 16,
+                              color: settings.ghostGlobal
+                                  ? GlassTokens.ghost
+                                  : Colors.white54,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              settings.ghostGlobal
+                                  ? l.ghostOnShort
+                                  : l.ghostOffShort,
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                    onLongPress: () {
-                      if (settings.hiddenMethods.contains('ghost')) {
-                        _openVault();
-                      } else {
-                        ref
-                            .read(settingsProvider.notifier)
-                            .setGhostGlobal(!settings.ghostGlobal);
-                      }
-                    },
-                    child: GlassSurface(
-                      radius: 16,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      borderColor: settings.ghostGlobal
-                          ? GlassTokens.ghost.withValues(alpha: 0.6)
-                          : null,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.visibility_off_outlined,
-                            size: 16,
-                            color: settings.ghostGlobal
-                                ? GlassTokens.ghost
-                                : Colors.white54,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            settings.ghostGlobal
-                                ? l.ghostOnShort
-                                : l.ghostOffShort,
-                            style: const TextStyle(fontSize: 12),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
                   const SizedBox(width: 8),
                   GlassIconButton(
                     icon: Icons.tune,
@@ -331,83 +348,115 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         : null,
                   ),
                   const SizedBox(width: 8),
-                  GlassIconButton(
-                    icon: _searching ? Icons.close : Icons.search,
-                    tooltip: l.search,
-                    onPressed: () => setState(() {
-                      _searching = !_searching;
-                      if (!_searching) _query = '';
-                    }),
-                    onLongPress: settings.hiddenMethods.contains('search')
-                        ? _openVault
-                        : null,
-                  ),
+                  if (settings.homeShowSearch || _searching)
+                    GlassIconButton(
+                      icon: _searching ? Icons.close : Icons.search,
+                      tooltip: l.search,
+                      onPressed: () => setState(() {
+                        _searching = !_searching;
+                        if (!_searching) _query = '';
+                      }),
+                      onLongPress: settings.hiddenMethods.contains('search')
+                          ? _openVault
+                          : null,
+                    ),
                 ],
               ),
             ),
             if (settings.homeSections || settings.folders.isNotEmpty)
-              Builder(builder: (context) {
-                final all = chats.value ?? const <ChatSummary>[];
-                final visible = [
-                  for (final c in all)
-                    if (!settings.hiddenChats.contains(c.id)) c
-                ];
-                int unread(bool Function(ChatSummary) f) =>
-                    visible.where((c) => f(c) && !c.muted && c.unread > 0).length;
-                final chips = <(String, String, int)>[
-                  ('all', l.sectAll, unread((_) => true)),
-                  if (settings.homeSections) ...[
-                    ('unread', l.sectUnread, 0),
-                    ('people', l.sectPeople,
-                        unread((c) => c.type == ChatType.private || c.type == ChatType.secret)),
-                    ('groups', l.sectGroups, unread((c) => c.type == ChatType.group)),
-                    ('channels', l.sectChannels, unread((c) => c.type == ChatType.channel)),
-                  ],
-                  for (final e in settings.folders.entries)
-                    ('f:${e.key}', e.key,
-                        unread((c) => e.value.contains(c.id))),
-                ];
-                return SizedBox(
-                  height: 48,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    children: [
-                      for (final (id, label, n) in chips)
-                        Padding(
-                          padding:
-                              const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-                          child: GestureDetector(
-                            onLongPress: id.startsWith('f:')
-                                ? () => _folderMenu(id.substring(2))
-                                : null,
-                            child: ChoiceChip(
-                              label: Text(n > 0 ? '$label  $n' : label),
-                              selected: _section == id,
-                              onSelected: (_) => setState(() => _section = id),
-                            ),
-                          ),
-                        ),
-                      Padding(
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-                        child: ActionChip(
-                          avatar: const Icon(Icons.add, size: 16),
-                          label: Text(l.newSection),
-                          onPressed: () async {
-                            final n =
-                                await askText(context, l.newSection, l.sectionName);
-                            if (n != null && n.trim().isNotEmpty) {
-                              ref.read(settingsProvider.notifier).addFolder(n.trim());
-                              setState(() => _section = 'f:${n.trim()}');
-                            }
-                          },
+              Builder(
+                builder: (context) {
+                  final all = chats.value ?? const <ChatSummary>[];
+                  final visible = [
+                    for (final c in all)
+                      if (!settings.hiddenChats.contains(c.id)) c,
+                  ];
+                  int unread(bool Function(ChatSummary) f) => visible
+                      .where((c) => f(c) && !c.muted && c.unread > 0)
+                      .length;
+                  final chips = <(String, String, int)>[
+                    ('all', l.sectAll, unread((_) => true)),
+                    if (settings.homeSections) ...[
+                      ('unread', l.sectUnread, 0),
+                      (
+                        'people',
+                        l.sectPeople,
+                        unread(
+                          (c) =>
+                              c.type == ChatType.private ||
+                              c.type == ChatType.secret,
                         ),
                       ),
+                      (
+                        'groups',
+                        l.sectGroups,
+                        unread((c) => c.type == ChatType.group),
+                      ),
+                      (
+                        'channels',
+                        l.sectChannels,
+                        unread((c) => c.type == ChatType.channel),
+                      ),
                     ],
-                  ),
-                );
-              }),
+                    for (final e in settings.folders.entries)
+                      (
+                        'f:${e.key}',
+                        e.key,
+                        unread((c) => e.value.contains(c.id)),
+                      ),
+                  ];
+                  return SizedBox(
+                    height: 48,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      children: [
+                        for (final (id, label, n) in chips)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 6,
+                            ),
+                            child: GestureDetector(
+                              onLongPress: id.startsWith('f:')
+                                  ? () => _folderMenu(id.substring(2))
+                                  : null,
+                              child: ChoiceChip(
+                                label: Text(n > 0 ? '$label  $n' : label),
+                                selected: _section == id,
+                                onSelected: (_) =>
+                                    setState(() => _section = id),
+                              ),
+                            ),
+                          ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 6,
+                          ),
+                          child: ActionChip(
+                            avatar: const Icon(Icons.add, size: 16),
+                            label: Text(l.newSection),
+                            onPressed: () async {
+                              final n = await askText(
+                                context,
+                                l.newSection,
+                                l.sectionName,
+                              );
+                              if (n != null && n.trim().isNotEmpty) {
+                                ref
+                                    .read(settingsProvider.notifier)
+                                    .addFolder(n.trim());
+                                setState(() => _section = 'f:${n.trim()}');
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
             Expanded(
               child: chats.when(
                 loading: () => Center(child: Text(l.connecting)),
@@ -538,8 +587,19 @@ class ChatRow extends ConsumerWidget {
     );
   }
 
+  IconData _swipeIcon(String a) => switch (a) {
+    'pin' => pinned ? Icons.push_pin_outlined : Icons.push_pin,
+    'archive' => Icons.archive_outlined,
+    'mute' => chat.muted ? Icons.volume_up_outlined : Icons.volume_off_outlined,
+    'read' => Icons.mark_chat_read_outlined,
+    'hide' => Icons.lock_outline,
+    _ => Icons.block,
+  };
+
   Widget _build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context);
+    final st = ref.watch(settingsProvider);
+    final mode = st.rowMode;
     final draft = DraftStore.get(chat.id);
     final preview = !showPreview
         ? '•••'
@@ -560,21 +620,45 @@ class ChatRow extends ConsumerWidget {
     );
     return Dismissible(
       key: ValueKey('row_${chat.id}_$inHidden'),
-      background: swipeBg(
-        pinned ? Icons.push_pin_outlined : Icons.push_pin,
-        AlignmentDirectional.centerStart,
-        accent,
-      ),
-      secondaryBackground: swipeBg(
-        Icons.archive_outlined,
-        AlignmentDirectional.centerEnd,
-        GlassTokens.ringCaution,
-      ),
+      background: st.homeSwipeRight == 'none'
+          ? null
+          : swipeBg(
+              _swipeIcon(st.homeSwipeRight),
+              AlignmentDirectional.centerStart,
+              accent,
+            ),
+      secondaryBackground: st.homeSwipeLeft == 'none'
+          ? null
+          : swipeBg(
+              _swipeIcon(st.homeSwipeLeft),
+              AlignmentDirectional.centerEnd,
+              GlassTokens.ringCaution,
+            ),
+      direction: st.homeSwipeRight == 'none' && st.homeSwipeLeft == 'none'
+          ? DismissDirection.none
+          : st.homeSwipeRight == 'none'
+          ? DismissDirection.endToStart
+          : st.homeSwipeLeft == 'none'
+          ? DismissDirection.startToEnd
+          : DismissDirection.horizontal,
       confirmDismiss: (dir) async {
-        if (dir == DismissDirection.startToEnd) {
-          ref.read(settingsProvider.notifier).togglePin(chat.id);
-        } else if (!inHidden) {
-          ref.read(gatewayProvider).setArchived(chat.id, true);
+        final act = dir == DismissDirection.startToEnd
+            ? st.homeSwipeRight
+            : st.homeSwipeLeft;
+        final gw = ref.read(gatewayProvider);
+        final cfg = ref.read(settingsProvider.notifier);
+        switch (act) {
+          case 'pin':
+            cfg.togglePin(chat.id);
+          case 'archive':
+            if (!inHidden) gw.setArchived(chat.id, true);
+          case 'mute':
+            gw.setMuted(chat.id, !chat.muted);
+          case 'read':
+            gw.markUnread(chat.id, chat.unread == 0 && !chat.markedUnread);
+          case 'hide':
+            cfg.setHidden(chat.id, !hidden);
+          default:
         }
         return false; // the list rebuilds itself from state
       },
@@ -589,15 +673,21 @@ class ChatRow extends ConsumerWidget {
               showChatActions(context, ref, chat, inHidden: inHidden),
           child: GlassSurface(
             radius: 20,
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(mode == 'compact' ? 8 : 12),
             child: Row(
               children: [
-                AvatarCircle(
-                  title: chat.title,
-                  photo: chat.avatar,
-                  ring: _ring,
-                ),
-                const SizedBox(width: 12),
+                if (st.avatarShape != 'hidden') ...[
+                  AvatarCircle(
+                    title: chat.title,
+                    photo: chat.avatar,
+                    ring: _ring,
+                    shape: st.avatarShape,
+                    size: mode == 'compact'
+                        ? st.avatarSize * .8
+                        : st.avatarSize,
+                  ),
+                  const SizedBox(width: 12),
+                ],
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -671,17 +761,18 @@ class ChatRow extends ConsumerWidget {
                             ),
                         ],
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        preview,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: draft.isNotEmpty
-                              ? GlassTokens.ringDanger
-                              : GlassTokens.textSecondary,
+                      if (mode != 'nameOnly') const SizedBox(height: 2),
+                      if (mode != 'nameOnly')
+                        Text(
+                          preview,
+                          maxLines: mode == 'compact' ? 1 : st.homeLines,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: draft.isNotEmpty
+                                ? GlassTokens.ringDanger
+                                : GlassTokens.textSecondary,
+                          ),
                         ),
-                      ),
                     ],
                   ),
                 ),
@@ -689,7 +780,7 @@ class ChatRow extends ConsumerWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    if (chat.lastTime != null)
+                    if (chat.lastTime != null && st.homeShowTime)
                       Text(
                         _fmtTime(chat.lastTime!),
                         style: const TextStyle(
@@ -707,7 +798,7 @@ class ChatRow extends ConsumerWidget {
                           shape: BoxShape.circle,
                         ),
                       ),
-                    if (chat.unread > 0)
+                    if (chat.unread > 0 && st.homeShowUnreadBadge)
                       Container(
                         margin: const EdgeInsets.only(top: 4),
                         padding: const EdgeInsets.symmetric(

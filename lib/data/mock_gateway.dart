@@ -20,18 +20,23 @@ class MockGateway implements TelegramGateway {
   @override
   Future<void> start() async {
     final now = DateTime.now();
-    ChatSummary c(int id, String t, String last, int mins, int unread,
-            [RiskLevel r = RiskLevel.none]) =>
-        ChatSummary(
-          id: id,
-          title: t,
-          lastText: last,
-          lastKind: MessageKind.text,
-          lastTime: now.subtract(Duration(minutes: mins)),
-          unread: unread,
-          order: 1000 - id,
-          risk: r,
-        );
+    ChatSummary c(
+      int id,
+      String t,
+      String last,
+      int mins,
+      int unread, [
+      RiskLevel r = RiskLevel.none,
+    ]) => ChatSummary(
+      id: id,
+      title: t,
+      lastText: last,
+      lastKind: MessageKind.text,
+      lastTime: now.subtract(Duration(minutes: mins)),
+      unread: unread,
+      order: 1000 - id,
+      risk: r,
+    );
     _chats = LiveValue([
       c(1, 'أحمد', 'تمام، هبعتلك الملف النهارده', 3, 2, RiskLevel.safe),
       c(2, 'Team SOC', 'Alert triage done ✅', 25, 0, RiskLevel.caution),
@@ -115,7 +120,11 @@ class MockGateway implements TelegramGateway {
       sendText(chatId, caption.isEmpty ? path.split('/').last : caption);
 
   @override
-  Future<void> sendMedia(int chatId, List<String> paths, {String caption = ''}) async {
+  Future<void> sendMedia(
+    int chatId,
+    List<String> paths, {
+    String caption = '',
+  }) async {
     for (final p in paths) {
       await sendText(chatId, p.split('/').last);
     }
@@ -129,15 +138,22 @@ class MockGateway implements TelegramGateway {
     if (live == null) return;
     live.value = [
       for (final m in live.value)
-        m.id == messageId ? m.copyWith(text: text, edited: true) : m
+        m.id == messageId ? m.copyWith(text: text, edited: true) : m,
     ];
   }
 
   @override
-  Future<void> deleteMessages(int chatId, List<int> ids, {bool forAll = false}) async {
+  Future<void> deleteMessages(
+    int chatId,
+    List<int> ids, {
+    bool forAll = false,
+  }) async {
     final live = _msgs[chatId];
     if (live == null) return;
-    live.value = [for (final m in live.value) if (!ids.contains(m.id)) m];
+    live.value = [
+      for (final m in live.value)
+        if (!ids.contains(m.id)) m,
+    ];
   }
 
   @override
@@ -151,16 +167,20 @@ class MockGateway implements TelegramGateway {
 
   @override
   Future<List<ChatMessage>> searchChat(int chatId, String query) async => [
-        for (final m in await watchMessages(chatId).first)
-          if (m.text.contains(query)) m
-      ];
+    for (final m in await watchMessages(chatId).first)
+      if (m.text.contains(query)) m,
+  ];
 
   @override
   Future<ChatMessage?> pinnedMessage(int chatId) async => null;
 
   @override
-  Future<void> toggleReaction(int chatId, int messageId, String emoji,
-      {required bool on}) async {}
+  Future<void> toggleReaction(
+    int chatId,
+    int messageId,
+    String emoji, {
+    required bool on,
+  }) async {}
 
   @override
   Future<ChatInfo?> chatInfo(int chatId) async => const ChatInfo();
@@ -176,10 +196,14 @@ class MockGateway implements TelegramGateway {
   @override
   Future<void> terminateSession(int id) async {}
   @override
-  Future<ChatSummary?> createGroup(String title, List<int> userIds) async => null;
+  Future<ChatSummary?> createGroup(String title, List<int> userIds) async =>
+      null;
 
   @override
-  Future<List<MentionCandidate>> searchMembers(int chatId, String query) async => const [];
+  Future<List<MentionCandidate>> searchMembers(
+    int chatId,
+    String query,
+  ) async => const [];
   @override
   Future<String> getPrivacy(String key) async => 'everybody';
   @override
@@ -192,7 +216,11 @@ class MockGateway implements TelegramGateway {
   @override
   Future<ProfileInfo?> me() async => const ProfileInfo(id: 0);
   @override
-  Future<void> updateProfile({String? firstName, String? lastName, String? bio}) async {}
+  Future<void> updateProfile({
+    String? firstName,
+    String? lastName,
+    String? bio,
+  }) async {}
   @override
   Future<bool> setUsername(String username) async => true;
   @override
@@ -219,8 +247,11 @@ class MockGateway implements TelegramGateway {
   @override
   Future<bool> hasCloudPassword() async => false;
   @override
-  Future<bool> setCloudPassword(
-          {String oldPassword = '', String newPassword = '', String hint = ''}) async => true;
+  Future<bool> setCloudPassword({
+    String oldPassword = '',
+    String newPassword = '',
+    String hint = '',
+  }) async => true;
   @override
   Future<List<StickerSetInfo>> stickerSets() async => const [];
   @override
@@ -237,10 +268,19 @@ class MockGateway implements TelegramGateway {
   Future<void> removeMember(int chatId, int userId) async {}
 
   @override
-  Future<void> pinMessage(int chatId, int messageId, {required bool pin}) async {}
+  Future<void> pinMessage(
+    int chatId,
+    int messageId, {
+    required bool pin,
+  }) async {}
   @override
-  Future<void> sendPoll(int chatId, String question, List<String> options,
-      {bool multiple = false, bool anonymous = true}) async {}
+  Future<void> sendPoll(
+    int chatId,
+    String question,
+    List<String> options, {
+    bool multiple = false,
+    bool anonymous = true,
+  }) async {}
   @override
   Future<void> sendLocation(int chatId, double lat, double lon) async {}
   @override
@@ -263,18 +303,42 @@ class MockGateway implements TelegramGateway {
   @override
   Future<void> loadAround(int chatId, int messageId) async {}
   @override
-  Future<List<ChatMessage>> sharedMedia(int chatId, String filter) async => const [];
+  Future<List<ChatMessage>> sharedMedia(int chatId, String filter) async =>
+      const [];
 
   @override
   Future<List<ChatMessage>> pinnedMessages(int chatId) async => const [];
   @override
-  Future<List<String>> availableReactions(int chatId, int messageId) async => const [];
+  Future<List<String>> availableReactions(int chatId, int messageId) async =>
+      const [];
 
   @override
   Future<void> markReadManual(int chatId, List<int> messageIds) async {}
 
   @override
-  Future<void> forwardMessages(int toChatId, int fromChatId, List<int> ids) async {}
+  Future<void> terminateOtherSessions() async {}
+
+  @override
+  Future<int> sessionTtlDays() async => 180;
+
+  @override
+  Future<void> setSessionTtlDays(int days) async {}
+
+  @override
+  Future<void> requestQrLogin() async {}
+
+  @override
+  Future<void> confirmQrLink(String link) async {}
+
+  @override
+  Future<ChatSummary?> resolveUsername(String username) async => null;
+
+  @override
+  Future<void> forwardMessages(
+    int toChatId,
+    int fromChatId,
+    List<int> ids,
+  ) async {}
   @override
   Stream<ChatStatus> watchChatStatus(int chatId) =>
       Stream.value(const ChatStatus(seen: SeenKind.recently));

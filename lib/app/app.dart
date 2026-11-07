@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -42,10 +43,13 @@ class _SudogramAppState extends ConsumerState<SudogramApp>
   }
 
   DownloadKeepAlive? _keepAlive;
+  DateTime? _pausedAt;
+  bool _secure = false;
 
   /// This widget sits above MaterialApp, so it has no localizations yet.
   bool _ar() {
-    final code = ref.read(settingsProvider).localeCode ??
+    final code =
+        ref.read(settingsProvider).localeCode ??
         WidgetsBinding.instance.platformDispatcher.locale.languageCode;
     return code == 'ar';
   }
@@ -62,28 +66,82 @@ class _SudogramAppState extends ConsumerState<SudogramApp>
     // Hidden chats re-lock whenever the app leaves the foreground.
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden) {
+      _pausedAt ??= DateTime.now();
       ref.read(vaultUnlockProvider.notifier).lock();
-      ref.read(appLockedProvider.notifier).lock();
+      if (ref.read(settingsProvider).lockDelay == 0) {
+        ref.read(appLockedProvider.notifier).lock();
+      }
+    } else if (state == AppLifecycleState.resumed) {
+      final at = _pausedAt;
+      _pausedAt = null;
+      final d = ref.read(settingsProvider).lockDelay;
+      if (at != null && d > 0 && DateTime.now().difference(at).inSeconds >= d) {
+        ref.read(appLockedProvider.notifier).lock();
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final s = ref.watch(settingsProvider);
-    ref.listen(settingsProvider.select((x) => x.notifications),
-        (_, _) => _keepAlive?.refresh());
+    final secure =
+        s.lockBlockScreenshots ||
+        (s.hiddenSecure && ref.watch(hiddenAreaProvider) > 0);
+    if (secure != _secure) {
+      _secure = secure;
+      const MethodChannel('sudogram/window')
+          .invokeMethod<void>('secure', {'on': secure})
+          .catchError((Object _) {});
+    }
+    ref.listen(
+      settingsProvider.select((x) => x.notifications),
+      (_, _) => _keepAlive?.refresh(),
+    );
+    ref.listen(meProvider, (_, next) {
+      final me = next.value;
+      if (me == null) return;
+      ref
+          .read(settingsProvider.notifier)
+          .updateAccount(
+            ref.read(settingsProvider).activeSlot,
+            name: '${me.firstName} ${me.lastName}'.trim(),
+            username: me.username,
+          );
+    });
     ref.listen(chatsProvider, (_, next) {
       final chats = next.value;
       if (chats == null) return;
       final st = ref.read(settingsProvider);
-      ref.read(notifierProvider).onChats(chats,
-          enabled: st.notifications,
-          privateIds: st.hiddenChats,
-          silentIds: st.hiddenNotify == 1 ? st.hiddenChats : const {},
-          sound: st.notifSound,
-          vibrate: st.notifVibrate,
-          preview: st.notifPreview,
-          hiddenBody: _ar() ? 'رسالة جديدة' : 'New message');
+      var unread = 0;
+      for (final c in chats) {
+        if (!c.muted) unread += c.unread;
+      }
+      ref
+          .read(settingsProvider.notifier)
+          .updateAccount(st.activeSlot, unread: unread);
+      ref
+          .read(notifierProvider)
+          .onChats(
+            chats,
+            enabled: st.notifications,
+            privateIds: st.ghostNotifGeneric
+                ? {
+                    ...st.hiddenChats,
+                    for (final c in chats)
+                      if (st.blocksRead(c.id)) c.id,
+                  }
+                : st.hiddenChats,
+            silentIds: st.hiddenNotify == 1 ? st.hiddenChats : const {},
+            sound: st.notifSound,
+            vibrate: st.notifVibrate,
+            preview: st.notifPreview,
+            content: st.notifContent,
+            perChat: st.notifChats,
+            locked:
+                st.appLock && st.lockHidePreview && ref.read(appLockedProvider),
+            countBody: (n) => _ar() ? '$n رسائل جديدة' : '$n new messages',
+            hiddenBody: _ar() ? 'رسالة جديدة' : 'New message',
+          );
     });
     return MaterialApp(
       navigatorKey: rootNavKey,
@@ -131,7 +189,8 @@ class _Root extends ConsumerWidget {
     if (step == AuthStep.ready) return const HomeScreen();
     if (step == AuthStep.waitPhone ||
         step == AuthStep.waitCode ||
-        step == AuthStep.waitPassword) {
+        step == AuthStep.waitPassword ||
+        step == AuthStep.waitQr) {
       return const LoginScreen();
     }
     return Scaffold(
@@ -170,46 +229,47 @@ class _LockGateState extends ConsumerState<_LockGate> {
         ref.read(appLockedProvider.notifier).unlock(l.appLockReason);
       });
     }
-    return Stack(children: [
-      Positioned.fill(child: widget.child ?? const SizedBox.shrink()),
-      if (!locked && inHidden && !hiddenOpen)
-        Positioned.fill(
-          // own Overlay: this sits above the Navigator, text fields need one
-          child: Overlay(initialEntries: [
-            OverlayEntry(
-              builder: (_) => Scaffold(
-                backgroundColor: GlassTokens.base,
-                body: HiddenGateView(
-                  onUnlocked: () =>
-                      ref.read(vaultUnlockProvider.notifier).open(),
-                  onCancel: () =>
-                      rootNavKey.currentState?.popUntil((r) => r.isFirst),
-                ),
-              ),
-            ),
-          ]),
-        ),
-      if (locked)
-        Positioned.fill(
-          child: Scaffold(
-            backgroundColor: GlassTokens.base,
-            body: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.lock_outline, size: 48),
-                  const SizedBox(height: 16),
-                  FilledButton(
-                    onPressed: () => ref
-                        .read(appLockedProvider.notifier)
-                        .unlock(l.appLockReason),
-                    child: Text(l.unlock),
+    return Stack(
+      children: [
+        Positioned.fill(child: widget.child ?? const SizedBox.shrink()),
+        if (!locked && inHidden && !hiddenOpen)
+          Positioned.fill(
+            // own Overlay: this sits above the Navigator, text fields need one
+            child: Overlay(
+              initialEntries: [
+                OverlayEntry(
+                  builder: (_) => Scaffold(
+                    backgroundColor: GlassTokens.base,
+                    body: HiddenGateView(
+                      onUnlocked: () =>
+                          ref.read(vaultUnlockProvider.notifier).open(),
+                      onCancel: () =>
+                          rootNavKey.currentState?.popUntil((r) => r.isFirst),
+                    ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
-        ),
-    ]);
+        if (locked)
+          Positioned.fill(
+            child: Overlay(
+              initialEntries: [
+                OverlayEntry(
+                  builder: (_) => Scaffold(
+                    backgroundColor: GlassTokens.base,
+                    body: HiddenGateView(
+                      app: true,
+                      onUnlocked: () =>
+                          ref.read(appLockedProvider.notifier).unlockNow(),
+                      onCancel: () => SystemNavigator.pop(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
   }
 }

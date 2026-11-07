@@ -83,21 +83,41 @@ class AppSettings {
     return ms == null ? null : DateTime.fromMillisecondsSinceEpoch(ms);
   }
 
-  bool get ghostPaused =>
-      ghostPausedUntil?.isAfter(DateTime.now()) ?? false;
+  bool get ghostPaused => ghostPausedUntil?.isAfter(DateTime.now()) ?? false;
+
+  // Scheduled ghost ("night mode"): ghost is forced on inside the window.
+  bool get ghostSchedule => x['ghostSchedule'] as bool? ?? false;
+  int get ghostFrom => x['ghostFrom'] as int? ?? 22 * 60;
+  int get ghostTo => x['ghostTo'] as int? ?? 7 * 60;
+  bool get scheduleActive {
+    if (!ghostSchedule) return false;
+    final n = DateTime.now();
+    final m = n.hour * 60 + n.minute;
+    return ghostFrom <= ghostTo
+        ? (m >= ghostFrom && m < ghostTo)
+        : (m >= ghostFrom || m < ghostTo);
+  }
+
+  /// Send read receipts for a ghosted chat once you reply in it.
+  bool get ghostReadOnReply => x['ghostReadOnReply'] as bool? ?? false;
+
+  /// Notifications from ghosted chats never show names or text.
+  bool get ghostNotifGeneric => x['ghostNotifGeneric'] as bool? ?? false;
 
   bool _ghostOn(int id) =>
       !ghostPaused &&
-      (ghostFor(id) || (ghostForceHidden && hiddenChats.contains(id)));
+      (scheduleActive ||
+          ghostFor(id) ||
+          (ghostForceHidden && hiddenChats.contains(id)));
 
   /// True when we must NOT send read receipts for this chat.
-  bool blocksRead(int id) =>
-      _ghostOn(id) && (chatHidesRead(id) ?? ghostRead);
+  bool blocksRead(int id) => _ghostOn(id) && (chatHidesRead(id) ?? ghostRead);
   bool blocksTyping(int id) =>
       _ghostOn(id) && (chatHidesTyping(id) ?? ghostTyping);
 
   /// True when we must not appear online.
-  bool get hidesOnline => ghostGlobal && ghostOnline && !ghostPaused;
+  bool get hidesOnline =>
+      (ghostGlobal || scheduleActive) && ghostOnline && !ghostPaused;
 
   // ---- Message gestures
   /// Actions: reply, forward, copy, react, heart, pin, select, delete,
@@ -116,6 +136,84 @@ class AppSettings {
 
   bool get homeSections => x['homeSections'] as bool? ?? true;
 
+  // ---- Home gestures (chat list rows)
+  String get homeSwipeRight => x['homeSwipeRight'] as String? ?? 'pin';
+  String get homeSwipeLeft => x['homeSwipeLeft'] as String? ?? 'archive';
+
+  // ---- Hidden chats (extra)
+  /// Block screenshots / recents preview while inside hidden chats.
+  bool get hiddenSecure => x['hiddenSecure'] as bool? ?? true;
+
+  /// Custom title for the hidden area (empty = default).
+  String get hiddenTitle => x['hiddenTitle'] as String? ?? '';
+
+  // ---- Accounts
+  /// Saved accounts: [{slot, name, username, unread}] (slot 0 = the first).
+  List<Map<String, dynamic>> get accounts => [
+    for (final e in (x['accounts'] as List? ?? const []))
+      Map<String, dynamic>.from(e as Map),
+  ];
+  int get activeSlot => x['activeSlot'] as int? ?? 0;
+  bool get showAccountSwitcher => x['showAccountSwitcher'] as bool? ?? true;
+
+  // ---- Customization: home
+  /// circle | squircle | square | hidden
+  String get avatarShape => x['avatarShape'] as String? ?? 'circle';
+
+  /// full | nameOnly | compact (name + time) | bubbles
+  String get rowMode => x['rowMode'] as String? ?? 'full';
+  double get avatarSize => (x['avatarSize'] as num?)?.toDouble() ?? 52;
+  bool get homeShowGhost => x['homeShowGhost'] as bool? ?? true;
+  bool get homeShowSearch => x['homeShowSearch'] as bool? ?? true;
+  bool get homeShowUnreadBadge => x['homeShowUnreadBadge'] as bool? ?? true;
+  bool get homeShowTime => x['homeShowTime'] as bool? ?? true;
+  bool get homeShowTicks => x['homeShowTicks'] as bool? ?? true;
+  bool get homeDividers => x['homeDividers'] as bool? ?? false;
+  int get homeLines => x['homeLines'] as int? ?? 1;
+
+  // ---- Customization: chat ("Pro")
+  String get chatAvatarShape => x['chatAvatarShape'] as String? ?? 'circle';
+  bool get chatShowAvatars => x['chatShowAvatars'] as bool? ?? true;
+  bool get chatShowTicks => x['chatShowTicks'] as bool? ?? true;
+  bool get chatShowTime => x['chatShowTime'] as bool? ?? true;
+  bool get chatShowNames => x['chatShowNames'] as bool? ?? true;
+  bool get chatDateChips => x['chatDateChips'] as bool? ?? true;
+  bool get chatTail => x['chatTail'] as bool? ?? true;
+  double get chatSpacing => (x['chatSpacing'] as num?)?.toDouble() ?? 4;
+  double get chatFontScale => (x['chatFontScale'] as num?)?.toDouble() ?? 1.0;
+
+  /// glass | solid | gradient | outline
+  String get bubbleStyle => x['bubbleStyle'] as String? ?? 'glass';
+
+  // ---- Notifications (extended)
+  /// full (name + text) | nameOnly | generic ("you got a message") | senderCount
+  String get notifContent => x['notifContent'] as String? ?? 'full';
+
+  /// chatId -> {sound, vib, mute}
+  Map<String, Map<String, dynamic>> get notifChats => {
+    for (final e in (x['notifChats'] as Map? ?? const {}).entries)
+      e.key as String: Map<String, dynamic>.from(e.value as Map),
+  };
+  bool get notifGroupByChat => x['notifGroupByChat'] as bool? ?? true;
+  bool get notifInApp => x['notifInApp'] as bool? ?? true;
+
+  // ---- App lock (extended)
+  /// biometric | pin | word | pattern(not yet) — methods that unlock the app.
+  Set<String> get lockMethods => {
+    for (final e in (x['lockMethods'] as List? ?? const ['biometric']))
+      e as String,
+  };
+  String get lockPinHash => x['lockPinHash'] as String? ?? '';
+  String get lockPinSalt => x['lockPinSalt'] as String? ?? '';
+  String get lockPinKind => x['lockPinKind'] as String? ?? '4';
+
+  /// Seconds the app may stay in background before it locks (0 = at once).
+  int get lockDelay => x['lockDelay'] as int? ?? 0;
+  bool get lockHidePreview => x['lockHidePreview'] as bool? ?? true;
+  bool get lockBlockScreenshots => x['lockBlockScreenshots'] as bool? ?? false;
+  int get lockMaxFails => x['lockMaxFails'] as int? ?? 5;
+  bool get lockPhotoIntruder => x['lockPhotoIntruder'] as bool? ?? false;
+
   /// Text size multiplier for the whole app.
   double get textScale => (x['textScale'] as num?)?.toDouble() ?? 1.0;
 
@@ -127,11 +225,14 @@ class AppSettings {
   /// Ways to open the hidden chats: search (long-press search), title
   /// (3 taps on the title), ghost (long-press ghost chip), code (type the
   /// secret word in search), settings (long-press the settings button).
-  Set<String> get hiddenMethods =>
-      {for (final e in (x['hiddenMethods'] as List? ?? const ['search'])) e as String};
+  Set<String> get hiddenMethods => {
+    for (final e in (x['hiddenMethods'] as List? ?? const ['search']))
+      e as String,
+  };
   String get hiddenCode => x['hiddenCode'] as String? ?? '';
   bool get hiddenAuth => x['hiddenAuth'] as bool? ?? true;
   bool get hiddenPreview => x['hiddenPreview'] as bool? ?? true;
+
   /// Own passcode for hidden chats (salted hash; kind = 4/6/8/10/text).
   String get hiddenPinHash => x['hiddenPinHash'] as String? ?? '';
   String get hiddenPinSalt => x['hiddenPinSalt'] as String? ?? '';
@@ -145,9 +246,9 @@ class AppSettings {
   /// 0 = generic "New message", 1 = no notification at all.
   int get hiddenNotify => x['hiddenNotify'] as int? ?? 0;
   Map<String, Set<int>> get hiddenFolders => {
-        for (final e in (x['hiddenFolders'] as Map? ?? const {}).entries)
-          e.key as String: {for (final i in e.value as List) i as int}
-      };
+    for (final e in (x['hiddenFolders'] as Map? ?? const {}).entries)
+      e.key as String: {for (final i in e.value as List) i as int},
+  };
 
   AppSettings copyWith({
     bool? ghostGlobal,
@@ -246,20 +347,23 @@ class AppSettings {
     if (raw == null) return out;
     try {
       final j = jsonDecode(raw) as Map<String, dynamic>;
-      out['pinned'] = {for (final e in (j['pinned'] as List? ?? const [])) e as int};
+      out['pinned'] = {
+        for (final e in (j['pinned'] as List? ?? const [])) e as int,
+      };
       out['aliases'] = {
         for (final e in (j['aliases'] as Map? ?? const {}).entries)
-          int.parse(e.key as String): e.value as String
+          int.parse(e.key as String): e.value as String,
       };
       out['folders'] = {
         for (final e in (j['folders'] as Map? ?? const {}).entries)
-          e.key as String: {for (final i in e.value as List) i as int}
+          e.key as String: {for (final i in e.value as List) i as int},
       };
       out['profiles'] = {
         for (final e in (j['profiles'] as Map? ?? const {}).entries)
           e.key as String: {
-            for (final k in (e.value as Map).entries) k.key as String: k.value as bool
-          }
+            for (final k in (e.value as Map).entries)
+              k.key as String: k.value as bool,
+          },
       };
     } catch (_) {}
     return out;
@@ -276,10 +380,9 @@ class AppSettings {
       }),
     );
     await p.setBool(_kGhost, ghostGlobal);
-    await p.setStringList(
-      _kOverrides,
-      [for (final e in ghostOverrides.entries) '${e.key}:${e.value ? 1 : 0}'],
-    );
+    await p.setStringList(_kOverrides, [
+      for (final e in ghostOverrides.entries) '${e.key}:${e.value ? 1 : 0}',
+    ]);
     await p.setStringList(_kHidden, [for (final id in hiddenChats) '$id']);
     await p.setBool(_kPerf, performanceMode);
     await p.setBool(_kNotif, notifications);
@@ -327,9 +430,58 @@ class SettingsController extends Notifier<AppSettings> {
     _set(state.copyWith(x: m));
   }
 
+  // ---- accounts
+  List<Map<String, dynamic>> _accs() {
+    final l = state.accounts;
+    if (l.isEmpty) l.add({'slot': 0, 'name': '', 'username': '', 'unread': 0});
+    return l;
+  }
+
+  /// Registers a new empty slot and makes it the active one.
+  int addAccount() {
+    final l = _accs();
+    final slot =
+        l.map((e) => e['slot'] as int).fold<int>(0, (a, b) => a > b ? a : b) +
+        1;
+    l.add({'slot': slot, 'name': '', 'username': '', 'unread': 0});
+    final m = Map<String, dynamic>.of(state.x)
+      ..['accounts'] = l
+      ..['activeSlot'] = slot;
+    _set(state.copyWith(x: m));
+    return slot;
+  }
+
+  void switchAccount(int slot) => setX('activeSlot', slot);
+
+  void removeAccount(int slot) {
+    final l = _accs()..removeWhere((e) => e['slot'] == slot);
+    final m = Map<String, dynamic>.of(state.x)..['accounts'] = l;
+    if (state.activeSlot == slot) {
+      m['activeSlot'] = l.isEmpty ? 0 : l.first['slot'];
+    }
+    _set(state.copyWith(x: m));
+  }
+
+  void updateAccount(int slot, {String? name, String? username, int? unread}) {
+    final l = _accs();
+    final i = l.indexWhere((e) => e['slot'] == slot);
+    if (i < 0) return;
+    final e = l[i];
+    if ((name == null || e['name'] == name) &&
+        (username == null || e['username'] == username) &&
+        (unread == null || e['unread'] == unread)) {
+      if (state.accounts.isNotEmpty) return;
+    }
+    if (name != null) e['name'] = name;
+    if (username != null) e['username'] = username;
+    if (unread != null) e['unread'] = unread;
+    setX('accounts', l);
+  }
+
   void setChatGhostPart(int chatId, String part, bool? value) {
     final m = Map<String, dynamic>.of(
-        (state.x['ghostParts'] as Map?)?.cast<String, dynamic>() ?? {});
+      (state.x['ghostParts'] as Map?)?.cast<String, dynamic>() ?? {},
+    );
     if (value == null) {
       m.remove('$chatId:$part');
     } else {
@@ -347,16 +499,18 @@ class SettingsController extends Notifier<AppSettings> {
 
   void toggleInHiddenFolder(String name, int chatId) {
     final map = {
-      for (final e in state.hiddenFolders.entries) e.key: Set<int>.of(e.value)
+      for (final e in state.hiddenFolders.entries) e.key: Set<int>.of(e.value),
     };
     final set = map.putIfAbsent(name, () => <int>{});
     set.contains(chatId) ? set.remove(chatId) : set.add(chatId);
-    setX('hiddenFolders', {for (final e in map.entries) e.key: e.value.toList()});
+    setX('hiddenFolders', {
+      for (final e in map.entries) e.key: e.value.toList(),
+    });
   }
 
   void addHiddenFolder(String name) {
     final map = {
-      for (final e in state.hiddenFolders.entries) e.key: e.value.toList()
+      for (final e in state.hiddenFolders.entries) e.key: e.value.toList(),
     };
     map.putIfAbsent(name, () => <int>[]);
     setX('hiddenFolders', map);
@@ -373,7 +527,7 @@ class SettingsController extends Notifier<AppSettings> {
   void deleteHiddenFolder(String name) {
     final map = {
       for (final e in state.hiddenFolders.entries)
-        if (e.key != name) e.key: e.value.toList()
+        if (e.key != name) e.key: e.value.toList(),
     };
     setX('hiddenFolders', map);
   }
@@ -410,14 +564,18 @@ class SettingsController extends Notifier<AppSettings> {
 
   /// Adds or removes [chatId] from folder [name]; empty folders disappear.
   void toggleInFolder(String name, int chatId) {
-    final map = {for (final e in state.folders.entries) e.key: Set<int>.of(e.value)};
+    final map = {
+      for (final e in state.folders.entries) e.key: Set<int>.of(e.value),
+    };
     final set = map.putIfAbsent(name, () => <int>{});
     set.contains(chatId) ? set.remove(chatId) : set.add(chatId);
     _set(state.copyWith(folders: map));
   }
 
   void addFolder(String name) {
-    final map = {for (final e in state.folders.entries) e.key: Set<int>.of(e.value)};
+    final map = {
+      for (final e in state.folders.entries) e.key: Set<int>.of(e.value),
+    };
     map.putIfAbsent(name, () => <int>{});
     _set(state.copyWith(folders: map));
   }
@@ -433,13 +591,16 @@ class SettingsController extends Notifier<AppSettings> {
   void deleteFolder(String name) {
     final map = {
       for (final e in state.folders.entries)
-        if (e.key != name) e.key: Set<int>.of(e.value)
+        if (e.key != name) e.key: Set<int>.of(e.value),
     };
     _set(state.copyWith(folders: map));
   }
 
   void saveProfile(String name) {
-    final map = {for (final e in state.profiles.entries) e.key: Map<String, bool>.of(e.value)};
+    final map = {
+      for (final e in state.profiles.entries)
+        e.key: Map<String, bool>.of(e.value),
+    };
     map[name] = {
       'ghost': state.ghostGlobal,
       'appLock': state.appLock,
@@ -451,11 +612,13 @@ class SettingsController extends Notifier<AppSettings> {
   void applyProfile(String name) {
     final p = state.profiles[name];
     if (p == null) return;
-    _set(state.copyWith(
-      ghostGlobal: p['ghost'],
-      appLock: p['appLock'],
-      performanceMode: p['performance'],
-    ));
+    _set(
+      state.copyWith(
+        ghostGlobal: p['ghost'],
+        appLock: p['appLock'],
+        performanceMode: p['performance'],
+      ),
+    );
   }
 
   void deleteProfile(String name) {
@@ -468,11 +631,12 @@ class SettingsController extends Notifier<AppSettings> {
   void setAccent(Color color) => _set(state.copyWith(accent: color.toARGB32()));
 
   void setLocale(String? code) => _set(
-        code == null
-            ? state.copyWith(clearLocale: true)
-            : state.copyWith(localeCode: code),
-      );
+    code == null
+        ? state.copyWith(clearLocale: true)
+        : state.copyWith(localeCode: code),
+  );
 }
 
-final settingsProvider =
-    NotifierProvider<SettingsController, AppSettings>(SettingsController.new);
+final settingsProvider = NotifierProvider<SettingsController, AppSettings>(
+  SettingsController.new,
+);

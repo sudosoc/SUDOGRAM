@@ -74,6 +74,7 @@ class TdlibGateway implements TelegramGateway {
   Timer? _chatDebounce;
   int? _textLimit;
   final _users = <int, Map<String, String>>{};
+
   /// Messages the user deleted on purpose: they really disappear (the
   /// anti-delete memory only covers deletions made by the other side).
   final _selfDeleted = <int>{};
@@ -103,7 +104,9 @@ class TdlibGateway implements TelegramGateway {
   void _onUpdate(Map<String, dynamic> u) {
     switch (u['@type']) {
       case 'updateAuthorizationState':
-        _onAuthState(Map<String, dynamic>.from(u['authorization_state'] as Map));
+        _onAuthState(
+          Map<String, dynamic>.from(u['authorization_state'] as Map),
+        );
       case 'updateFile':
         _onFile(Map<String, dynamic>.from(u['file'] as Map));
       case 'updateUser':
@@ -134,7 +137,7 @@ class TdlibGateway implements TelegramGateway {
             for (final m in live.value)
               m.outgoing && m.id <= chat.readOutbox && !m.read
                   ? m.copyWith(read: true)
-                  : m
+                  : m,
           ]);
         }
       case 'updateChatAction':
@@ -152,7 +155,8 @@ class TdlibGateway implements TelegramGateway {
         _chat(asInt(u['chat_id'])).unread = asInt(u['unread_count']);
         _scheduleChatEmit();
       case 'updateChatIsMarkedAsUnread':
-        _chat(asInt(u['chat_id'])).markedUnread = u['is_marked_as_unread'] == true;
+        _chat(asInt(u['chat_id'])).markedUnread =
+            u['is_marked_as_unread'] == true;
         _scheduleChatEmit();
       case 'updateChatTitle':
         _chat(asInt(u['chat_id'])).title = (u['title'] ?? '').toString();
@@ -162,8 +166,11 @@ class TdlibGateway implements TelegramGateway {
         _upsertMessage(asInt(m['chat_id']), _parseMessage(m));
       case 'updateMessageInteractionInfo':
         final (counts, mine) = _reactions(u['interaction_info']);
-        _patchMessage(asInt(u['chat_id']), asInt(u['message_id']),
-            (m) => m.copyWith(reactions: counts, myReactions: mine));
+        _patchMessage(
+          asInt(u['chat_id']),
+          asInt(u['message_id']),
+          (m) => m.copyWith(reactions: counts, myReactions: mine),
+        );
       case 'updateMessageContent':
         _onMessageContent(u);
       case 'updateMessageEdited':
@@ -191,7 +198,11 @@ class TdlibGateway implements TelegramGateway {
   Future<void> _loadAllChats(Map<String, dynamic> list) async {
     for (var i = 0; i < 30; i++) {
       try {
-        await _td.request({'@type': 'loadChats', 'chat_list': list, 'limit': 100});
+        await _td.request({
+          '@type': 'loadChats',
+          'chat_list': list,
+          'limit': 100,
+        });
       } on TdError {
         return;
       }
@@ -239,10 +250,10 @@ class TdlibGateway implements TelegramGateway {
 
   @override
   Future<void> cancelDownload(int fileId) async => _td.fire({
-        '@type': 'cancelDownloadFile',
-        'file_id': fileId,
-        'only_if_pending': false,
-      });
+    '@type': 'cancelDownloadFile',
+    'file_id': fileId,
+    'only_if_pending': false,
+  });
 
   @override
   Future<void> sendFile(int chatId, String path, {String caption = ''}) async {
@@ -285,8 +296,11 @@ class TdlibGateway implements TelegramGateway {
   }
 
   @override
-  Future<void> sendMedia(int chatId, List<String> paths,
-      {String caption = ''}) async {
+  Future<void> sendMedia(
+    int chatId,
+    List<String> paths, {
+    String caption = '',
+  }) async {
     if (paths.isEmpty) return;
     if (paths.length == 1) {
       await _td.request({
@@ -297,7 +311,10 @@ class TdlibGateway implements TelegramGateway {
       return;
     }
     for (var i = 0; i < paths.length; i += 10) {
-      final group = paths.sublist(i, i + 10 > paths.length ? paths.length : i + 10);
+      final group = paths.sublist(
+        i,
+        i + 10 > paths.length ? paths.length : i + 10,
+      );
       await _td.request({
         '@type': 'sendMessageAlbum',
         'chat_id': chatId,
@@ -313,10 +330,10 @@ class TdlibGateway implements TelegramGateway {
 
   void _onUser(Map<String, dynamic> u) {
     final id = asInt(u['id']);
-    final names = [u['first_name'], u['last_name']]
-        .map((e) => (e ?? '').toString())
-        .where((e) => e.isNotEmpty)
-        .join(' ');
+    final names = [
+      u['first_name'],
+      u['last_name'],
+    ].map((e) => (e ?? '').toString()).where((e) => e.isNotEmpty).join(' ');
     final usernames = (u['usernames'] as Map?)?['active_usernames'] as List?;
     final now = <String, String>{
       'name': names,
@@ -337,10 +354,12 @@ class TdlibGateway implements TelegramGateway {
     if (names.isNotEmpty) {
       // Messages loaded before we knew the sender's name get it now.
       for (final entry in _messages.entries) {
-        if (entry.value.value.any((m) => m.senderId == id && m.senderName != names)) {
+        if (entry.value.value.any(
+          (m) => m.senderId == id && m.senderName != names,
+        )) {
           _setMessages(entry.key, [
             for (final m in entry.value.value)
-              m.senderId == id ? m.copyWith(senderName: names) : m
+              m.senderId == id ? m.copyWith(senderName: names) : m,
           ]);
         }
       }
@@ -348,14 +367,18 @@ class TdlibGateway implements TelegramGateway {
     if (before == null) return; // first sight: nothing to compare
     for (final f in now.keys) {
       if (before[f] != now[f]) {
-        _contactChanges.add(ContactChange(
-          userId: id,
-          displayName: now['name']!.isNotEmpty ? now['name']! : before['name']!,
-          field: f,
-          oldValue: before[f],
-          newValue: now[f],
-          at: DateTime.now(),
-        ));
+        _contactChanges.add(
+          ContactChange(
+            userId: id,
+            displayName: now['name']!.isNotEmpty
+                ? now['name']!
+                : before['name']!,
+            field: f,
+            oldValue: before[f],
+            newValue: now[f],
+            at: DateTime.now(),
+          ),
+        );
       }
     }
   }
@@ -388,7 +411,18 @@ class TdlibGateway implements TelegramGateway {
       case 'authorizationStateWaitPhoneNumber':
         _auth.value = const AuthState(AuthStep.waitPhone);
       case 'authorizationStateWaitCode':
-        _auth.value = const AuthState(AuthStep.waitCode);
+        final len = asInt(
+          ((s['code_info'] as Map?)?['type'] as Map?)?['length'],
+        );
+        _auth.value = AuthState(
+          AuthStep.waitCode,
+          codeLength: len > 0 ? len : 5,
+        );
+      case 'authorizationStateWaitOtherDeviceConfirmation':
+        _auth.value = AuthState(
+          AuthStep.waitQr,
+          qrLink: (s['link'] ?? '').toString(),
+        );
       case 'authorizationStateWaitPassword':
         _auth.value = const AuthState(AuthStep.waitPassword);
       case 'authorizationStateReady':
@@ -411,8 +445,10 @@ class TdlibGateway implements TelegramGateway {
     final next = newEncryptionKey;
     if (next == null) return;
     try {
-      await _td.request(
-          {'@type': 'setDatabaseEncryptionKey', 'new_encryption_key': next});
+      await _td.request({
+        '@type': 'setDatabaseEncryptionKey',
+        'new_encryption_key': next,
+      });
       await onEncryptionKeyApplied?.call(next);
     } on TdError {
       // Keep the old key; try again on the next start.
@@ -429,21 +465,17 @@ class TdlibGateway implements TelegramGateway {
 
   @override
   Future<void> submitPhone(String phone) => _authCall({
-        '@type': 'setAuthenticationPhoneNumber',
-        'phone_number': phone,
-      });
+    '@type': 'setAuthenticationPhoneNumber',
+    'phone_number': phone,
+  });
 
   @override
-  Future<void> submitCode(String code) => _authCall({
-        '@type': 'checkAuthenticationCode',
-        'code': code,
-      });
+  Future<void> submitCode(String code) =>
+      _authCall({'@type': 'checkAuthenticationCode', 'code': code});
 
   @override
-  Future<void> submitPassword(String password) => _authCall({
-        '@type': 'checkAuthenticationPassword',
-        'password': password,
-      });
+  Future<void> submitPassword(String password) =>
+      _authCall({'@type': 'checkAuthenticationPassword', 'password': password});
 
   // -------------------------------------------------------------- chats
 
@@ -495,8 +527,7 @@ class TdlibGateway implements TelegramGateway {
       case 'chatTypeSupergroup':
         chat.groupId = asInt(t!['supergroup_id']);
         chat.supergroup = true;
-        chat.type =
-            t['is_channel'] == true ? ChatType.channel : ChatType.group;
+        chat.type = t['is_channel'] == true ? ChatType.channel : ChatType.group;
     }
   }
 
@@ -582,7 +613,10 @@ class TdlibGateway implements TelegramGateway {
 
   @override
   Stream<ChatStatus> watchChatStatus(int chatId) {
-    final live = _statuses.putIfAbsent(chatId, () => LiveValue(ChatStatus.none));
+    final live = _statuses.putIfAbsent(
+      chatId,
+      () => LiveValue(ChatStatus.none),
+    );
     _emitStatus(chatId);
     return live.stream;
   }
@@ -607,9 +641,7 @@ class TdlibGateway implements TelegramGateway {
       _chatList.value = [for (final c in listed) _summary(c)];
       final arch = _chats.values.where((c) => c.archiveOrder > 0).toList()
         ..sort((a, b) => b.archiveOrder.compareTo(a.archiveOrder));
-      _archiveList.value = [
-        for (final c in arch) _summary(c, archived: true)
-      ];
+      _archiveList.value = [for (final c in arch) _summary(c, archived: true)];
     });
   }
 
@@ -668,19 +700,25 @@ class TdlibGateway implements TelegramGateway {
         final loc = content['location'] as Map?;
         return (
           kind: MessageKind.other,
-          text: '📍 https://maps.google.com/?q=${loc?['latitude']},${loc?['longitude']}',
+          text:
+              '📍 https://maps.google.com/?q=${loc?['latitude']},${loc?['longitude']}',
         );
       case 'messageContact':
         final c = content['contact'] as Map?;
-        final name = '${c?['first_name'] ?? ''} ${c?['last_name'] ?? ''}'.trim();
-        return (kind: MessageKind.other, text: '👤 $name +${c?['phone_number'] ?? ''}');
+        final name = '${c?['first_name'] ?? ''} ${c?['last_name'] ?? ''}'
+            .trim();
+        return (
+          kind: MessageKind.other,
+          text: '👤 $name +${c?['phone_number'] ?? ''}',
+        );
       case 'messagePoll':
         return (
           kind: MessageKind.poll,
-          text: (((content['poll'] as Map?)?['question'] as Map?)?['text'] ??
-                  (content['poll'] as Map?)?['question'] ??
-                  '')
-              .toString(),
+          text:
+              (((content['poll'] as Map?)?['question'] as Map?)?['text'] ??
+                      (content['poll'] as Map?)?['question'] ??
+                      '')
+                  .toString(),
         );
       default:
         return (kind: MessageKind.other, text: '');
@@ -723,7 +761,8 @@ class TdlibGateway implements TelegramGateway {
           name = 'sticker.webm';
         }
       case 'messagePhoto':
-        final sizes = ((content['photo'] as Map?)?['sizes'] as List?) ?? const [];
+        final sizes =
+            ((content['photo'] as Map?)?['sizes'] as List?) ?? const [];
         if (sizes.isNotEmpty) {
           file = (sizes.last as Map)['photo'] as Map?;
           name = 'photo.jpg';
@@ -772,10 +811,13 @@ class TdlibGateway implements TelegramGateway {
     if (content == null) return (null, '');
     switch (content['@type']) {
       case 'messagePhoto':
-        final sizes = ((content['photo'] as Map?)?['sizes'] as List?) ?? const [];
+        final sizes =
+            ((content['photo'] as Map?)?['sizes'] as List?) ?? const [];
         if (sizes.isEmpty) return (null, '');
-        final pick = sizes.cast<Map>().firstWhere((e) => e['type'] == 'm',
-            orElse: () => sizes[sizes.length > 1 ? 1 : 0] as Map);
+        final pick = sizes.cast<Map>().firstWhere(
+          (e) => e['type'] == 'm',
+          orElse: () => sizes[sizes.length > 1 ? 1 : 0] as Map,
+        );
         final f = pick['photo'] as Map?;
         return (f == null ? null : _fileToAttachment(f, 'thumb.jpg'), '');
       case 'messageSticker':
@@ -783,12 +825,16 @@ class TdlibGateway implements TelegramGateway {
         if (st == null) return (null, '');
         final emoji = (st['emoji'] ?? '').toString();
         final webp = (st['format'] as Map?)?['@type'] == 'stickerFormatWebp';
-        final f = webp ? st['sticker'] as Map? : (st['thumbnail'] as Map?)?['file'] as Map?;
+        final f = webp
+            ? st['sticker'] as Map?
+            : (st['thumbnail'] as Map?)?['file'] as Map?;
         return (f == null ? null : _fileToAttachment(f, 'sticker.webp'), emoji);
       case 'messageVideo':
       case 'messageAnimation':
       case 'messageVideoNote':
-        final v = (content['video'] ?? content['animation'] ?? content['video_note']) as Map?;
+        final v =
+            (content['video'] ?? content['animation'] ?? content['video_note'])
+                as Map?;
         final f = (v?['thumbnail'] as Map?)?['file'] as Map?;
         return (f == null ? null : _fileToAttachment(f, 'thumb.jpg'), '');
     }
@@ -801,7 +847,8 @@ class TdlibGateway implements TelegramGateway {
     final chatId = asInt(m['chat_id']);
     final id = asInt(m['id']);
     if (att != null) _fileOwner[att.fileId] = (chatId, id);
-    if (att != null && (att.name.endsWith('.tgs') || att.name.endsWith('.webm'))) {
+    if (att != null &&
+        (att.name.endsWith('.tgs') || att.name.endsWith('.webm'))) {
       _autoDownload(att);
     }
     final (thumb, emoji) = _preview(m['content'] as Map?);
@@ -853,12 +900,14 @@ class TdlibGateway implements TelegramGateway {
     if (c == null) return null;
     final name = '${c['first_name'] ?? ''} ${c['last_name'] ?? ''}'.trim();
     return ContactCard(
-        name: name,
-        phone: (c['phone_number'] ?? '').toString(),
-        userId: asInt(c['user_id']));
+      name: name,
+      phone: (c['phone_number'] ?? '').toString(),
+      userId: asInt(c['user_id']),
+    );
   }
 
-  String _txt(Object? v) => v is Map ? (v['text'] ?? '').toString() : (v ?? '').toString();
+  String _txt(Object? v) =>
+      v is Map ? (v['text'] ?? '').toString() : (v ?? '').toString();
 
   PollData? _poll(Map? content) {
     if (content?['@type'] != 'messagePoll') return null;
@@ -871,7 +920,11 @@ class TdlibGateway implements TelegramGateway {
       multiple: p['allows_multiple_answers'] == true,
       options: [
         for (final o in (p['options'] as List? ?? const []).whereType<Map>())
-          PollOption(_txt(o['text']), asInt(o['voter_count']), o['is_chosen'] == true)
+          PollOption(
+            _txt(o['text']),
+            asInt(o['voter_count']),
+            o['is_chosen'] == true,
+          ),
       ],
     );
   }
@@ -912,7 +965,10 @@ class TdlibGateway implements TelegramGateway {
         return live;
       });
 
-  Future<void> _loadHistory(int chatId, LiveValue<List<ChatMessage>> live) async {
+  Future<void> _loadHistory(
+    int chatId,
+    LiveValue<List<ChatMessage>> live,
+  ) async {
     for (var attempt = 0; attempt < 2; attempt++) {
       try {
         final r = await _td.request({
@@ -961,12 +1017,14 @@ class TdlibGateway implements TelegramGateway {
   void _removeMessage(int chatId, int messageId) {
     final live = _messages[chatId];
     if (live == null) return;
-    _setMessages(chatId,
-        live.value.where((m) => m.id != messageId).toList());
+    _setMessages(chatId, live.value.where((m) => m.id != messageId).toList());
   }
 
   void _patchMessage(
-      int chatId, int messageId, ChatMessage Function(ChatMessage) patch) {
+    int chatId,
+    int messageId,
+    ChatMessage Function(ChatMessage) patch,
+  ) {
     final live = _messages[chatId];
     if (live == null) return;
     _setMessages(chatId, [
@@ -1099,7 +1157,7 @@ class TdlibGateway implements TelegramGateway {
       });
       return [
         for (final m in (r['messages'] as List? ?? const []).whereType<Map>())
-          _parseMessage(Map<String, dynamic>.from(m))
+          _parseMessage(Map<String, dynamic>.from(m)),
       ];
     } on TdError {
       return const [];
@@ -1120,8 +1178,11 @@ class TdlibGateway implements TelegramGateway {
   }
 
   @override
-  Future<void> deleteMessages(int chatId, List<int> ids,
-      {bool forAll = false}) async {
+  Future<void> deleteMessages(
+    int chatId,
+    List<int> ids, {
+    bool forAll = false,
+  }) async {
     _selfDeleted.addAll(ids);
     await _td.request({
       '@type': 'deleteMessages',
@@ -1135,27 +1196,36 @@ class TdlibGateway implements TelegramGateway {
   Future<List<ChatSummary>> contacts() async {
     try {
       final r = await _td.request({'@type': 'getContacts'});
-      final ids = [for (final x in (r['user_ids'] as List? ?? const [])) asInt(x)];
+      final ids = [
+        for (final x in (r['user_ids'] as List? ?? const [])) asInt(x),
+      ];
       final out = <ChatSummary>[];
       for (final id in ids) {
         if (_users[id] == null) {
           try {
-            _onUser(Map<String, dynamic>.from(
-                await _td.request({'@type': 'getUser', 'user_id': id})));
+            _onUser(
+              Map<String, dynamic>.from(
+                await _td.request({'@type': 'getUser', 'user_id': id}),
+              ),
+            );
           } on TdError {
             continue;
           }
         }
-        out.add(ChatSummary(
-          id: id, // user id; resolve with openPrivateChat
-          title: _users[id]?['name'] ?? '',
-          lastText: _users[id]?['username'] ?? '',
-          lastKind: MessageKind.text,
-          lastTime: null,
-          unread: 0,
-        ));
+        out.add(
+          ChatSummary(
+            id: id, // user id; resolve with openPrivateChat
+            title: _users[id]?['name'] ?? '',
+            lastText: _users[id]?['username'] ?? '',
+            lastKind: MessageKind.text,
+            lastTime: null,
+            unread: 0,
+          ),
+        );
       }
-      out.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+      out.sort(
+        (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
+      );
       return out;
     } on TdError {
       return const [];
@@ -1173,8 +1243,11 @@ class TdlibGateway implements TelegramGateway {
   }
 
   @override
-  Future<ChatSummary?> openPrivateChat(int userId) => _chatFor(
-      {'@type': 'createPrivateChat', 'user_id': userId, 'force': false});
+  Future<ChatSummary?> openPrivateChat(int userId) => _chatFor({
+    '@type': 'createPrivateChat',
+    'user_id': userId,
+    'force': false,
+  });
 
   @override
   Future<ChatSummary?> savedMessages() async {
@@ -1200,7 +1273,7 @@ class TdlibGateway implements TelegramGateway {
       });
       return [
         for (final m in (r['messages'] as List? ?? const []).whereType<Map>())
-          _parseMessage(Map<String, dynamic>.from(m))
+          _parseMessage(Map<String, dynamic>.from(m)),
       ];
     } on TdError {
       return const [];
@@ -1210,8 +1283,10 @@ class TdlibGateway implements TelegramGateway {
   @override
   Future<ChatMessage?> pinnedMessage(int chatId) async {
     try {
-      final r = await _td.request(
-          {'@type': 'getChatPinnedMessage', 'chat_id': chatId});
+      final r = await _td.request({
+        '@type': 'getChatPinnedMessage',
+        'chat_id': chatId,
+      });
       return _parseMessage(Map<String, dynamic>.from(r));
     } on TdError {
       return null;
@@ -1232,7 +1307,7 @@ class TdlibGateway implements TelegramGateway {
       });
       final list = [
         for (final m in (r['messages'] as List? ?? const []).whereType<Map>())
-          _parseMessage(Map<String, dynamic>.from(m))
+          _parseMessage(Map<String, dynamic>.from(m)),
       ]..sort((a, b) => b.id.compareTo(a.id));
       return list;
     } on TdError {
@@ -1250,10 +1325,17 @@ class TdlibGateway implements TelegramGateway {
         'row_size': 8,
       });
       final out = <String>[];
-      for (final key in const ['top_reactions', 'recent_reactions', 'popular_reactions']) {
+      for (final key in const [
+        'top_reactions',
+        'recent_reactions',
+        'popular_reactions',
+      ]) {
         for (final a in (r[key] as List? ?? const []).whereType<Map>()) {
           final t = a['type'] as Map?;
-          if (t?['@type'] != 'reactionTypeEmoji' || a['needs_premium'] == true) continue;
+          if (t?['@type'] != 'reactionTypeEmoji' ||
+              a['needs_premium'] == true) {
+            continue;
+          }
           final e = (t!['emoji'] ?? '').toString();
           if (e.isNotEmpty && !out.contains(e)) out.add(e);
         }
@@ -1265,8 +1347,12 @@ class TdlibGateway implements TelegramGateway {
   }
 
   @override
-  Future<void> toggleReaction(int chatId, int messageId, String emoji,
-      {required bool on}) async {
+  Future<void> toggleReaction(
+    int chatId,
+    int messageId,
+    String emoji, {
+    required bool on,
+  }) async {
     await _td.request({
       '@type': on ? 'addMessageReaction' : 'removeMessageReaction',
       'chat_id': chatId,
@@ -1304,49 +1390,64 @@ class TdlibGateway implements TelegramGateway {
         var common = 0;
         var blocked = false;
         try {
-          final f = await _td.request(
-              {'@type': 'getUserFullInfo', 'user_id': c.userId});
+          final f = await _td.request({
+            '@type': 'getUserFullInfo',
+            'user_id': c.userId,
+          });
           final bio = f['bio'];
-          about = bio is Map ? (bio['text'] ?? '').toString() : (bio ?? '').toString();
+          about = bio is Map
+              ? (bio['text'] ?? '').toString()
+              : (bio ?? '').toString();
           common = asInt(f['group_in_common_count']);
           blocked = f['block_list'] != null || f['is_blocked'] == true;
         } on TdError {
           // optional
         }
         return ChatInfo(
-            username: u?['username'] ?? '',
-            phone: u?['phone'] ?? '',
-            about: about,
-            userId: c.userId,
-            isContact: _userExtra[c.userId]?['contact'] == true,
-            isBot: _userExtra[c.userId]?['bot'] == true,
-            blocked: blocked,
-            commonGroups: common,
-            firstName: (_userExtra[c.userId]?['first'] ?? '').toString(),
-            lastName: (_userExtra[c.userId]?['last'] ?? '').toString());
+          username: u?['username'] ?? '',
+          phone: u?['phone'] ?? '',
+          about: about,
+          userId: c.userId,
+          isContact: _userExtra[c.userId]?['contact'] == true,
+          isBot: _userExtra[c.userId]?['bot'] == true,
+          blocked: blocked,
+          commonGroups: common,
+          firstName: (_userExtra[c.userId]?['first'] ?? '').toString(),
+          lastName: (_userExtra[c.userId]?['last'] ?? '').toString(),
+        );
       }
       if (c.supergroup) {
-        final f = await _td.request(
-            {'@type': 'getSupergroupFullInfo', 'supergroup_id': c.groupId});
+        final f = await _td.request({
+          '@type': 'getSupergroupFullInfo',
+          'supergroup_id': c.groupId,
+        });
         String username = '';
         try {
-          final sg = await _td
-              .request({'@type': 'getSupergroup', 'supergroup_id': c.groupId});
+          final sg = await _td.request({
+            '@type': 'getSupergroup',
+            'supergroup_id': c.groupId,
+          });
           final names = (sg['usernames'] as Map?)?['active_usernames'] as List?;
-          if (names != null && names.isNotEmpty) username = names.first.toString();
+          if (names != null && names.isNotEmpty) {
+            username = names.first.toString();
+          }
         } on TdError {
           // optional
         }
         return ChatInfo(
-            username: username,
-            about: (f['description'] ?? '').toString(),
-            members: asInt(f['member_count']));
-      }
-      final f = await _td.request(
-          {'@type': 'getBasicGroupFullInfo', 'basic_group_id': c.groupId});
-      return ChatInfo(
+          username: username,
           about: (f['description'] ?? '').toString(),
-          members: (f['members'] as List?)?.length ?? 0);
+          members: asInt(f['member_count']),
+        );
+      }
+      final f = await _td.request({
+        '@type': 'getBasicGroupFullInfo',
+        'basic_group_id': c.groupId,
+      });
+      return ChatInfo(
+        about: (f['description'] ?? '').toString(),
+        members: (f['members'] as List?)?.length ?? 0,
+      );
     } on TdError {
       return null;
     }
@@ -1361,9 +1462,7 @@ class TdlibGateway implements TelegramGateway {
       await _td.request({
         '@type': 'addChatToList',
         'chat_id': chatId,
-        'chat_list': {
-          '@type': archived ? 'chatListArchive' : 'chatListMain'
-        },
+        'chat_list': {'@type': archived ? 'chatListArchive' : 'chatListMain'},
       });
     } on TdError {
       // ignored: the list refreshes from server updates
@@ -1392,12 +1491,26 @@ class TdlibGateway implements TelegramGateway {
         for (final x in (r['sessions'] as List? ?? const []).whereType<Map>())
           DeviceSession(
             id: asInt(x['id']),
-            app: '${x['application_name'] ?? ''} ${x['application_version'] ?? ''}'.trim(),
-            device: '${x['device_model'] ?? ''} · ${x['platform'] ?? ''} ${x['system_version'] ?? ''}'.trim(),
+            app:
+                '${x['application_name'] ?? ''} ${x['application_version'] ?? ''}'
+                    .trim(),
+            device:
+                '${x['device_model'] ?? ''} · ${x['platform'] ?? ''} ${x['system_version'] ?? ''}'
+                    .trim(),
             location: '${x['country'] ?? ''} ${x['ip_address'] ?? ''}'.trim(),
             lastActive: _time(x['last_active_date']),
             current: x['is_current'] == true,
-          )
+            ip: '${x['ip_address'] ?? ''}',
+            country: '${x['country'] ?? ''}',
+            region: '${x['region'] ?? ''}',
+            platform: '${x['platform'] ?? ''} ${x['system_version'] ?? ''}'
+                .trim(),
+            official: x['is_official_application'] == true,
+            passwordPending: x['is_password_pending'] == true,
+            canAcceptCalls: x['can_accept_calls'] != false,
+            canAcceptSecret: x['can_accept_secret_chats'] != false,
+            loggedIn: _time(x['log_in_date']),
+          ),
       ];
     } on TdError {
       return const [];
@@ -1406,10 +1519,64 @@ class TdlibGateway implements TelegramGateway {
 
   @override
   Future<void> terminateSession(int id) async {
+    // Errors propagate so the UI can tell the user (e.g. very new session).
+    await _td.request({'@type': 'terminateSession', 'session_id': id});
+  }
+
+  @override
+  Future<void> terminateOtherSessions() =>
+      _td.request({'@type': 'terminateAllOtherSessions'});
+
+  @override
+  Future<int> sessionTtlDays() async {
     try {
-      await _td.request({'@type': 'terminateSession', 'session_id': id});
+      final r = await _td.request({'@type': 'getActiveSessions'});
+      final d = asInt(r['inactive_session_ttl_days']);
+      return d > 0 ? d : 180;
     } on TdError {
-      // not allowed (e.g. a very new session)
+      return 180;
+    }
+  }
+
+  @override
+  Future<void> setSessionTtlDays(int days) => _td.request({
+    '@type': 'setInactiveSessionTtl',
+    'inactive_session_ttl_days': days,
+  });
+
+  @override
+  Future<void> requestQrLogin() async {
+    try {
+      await _td.request({
+        '@type': 'requestQrCodeAuthentication',
+        'other_user_ids': <int>[],
+      });
+    } on TdError catch (e) {
+      _auth.value = AuthState(_auth.value.step, error: e.message);
+    }
+  }
+
+  @override
+  Future<void> confirmQrLink(String link) => _td.request({
+    '@type': 'confirmQrCodeAuthentication',
+    'link': link.trim(),
+  });
+
+  @override
+  Future<ChatSummary?> resolveUsername(String username) async {
+    final name = username.trim().replaceFirst('@', '');
+    if (name.isEmpty) return null;
+    try {
+      final c = await _td.request({
+        '@type': 'searchPublicChat',
+        'username': name,
+      });
+      final type = (c['type'] as Map?)?['@type'];
+      if (type != 'chatTypePrivate' && type != 'chatTypeSecret') return null;
+      _applyChat(Map<String, dynamic>.from(c));
+      return _summary(_chat(asInt(c['id'])));
+    } on TdError {
+      return null;
     }
   }
 
@@ -1449,8 +1616,11 @@ class TdlibGateway implements TelegramGateway {
         if (id == 0) continue;
         if (_users[id] == null) {
           try {
-            _onUser(Map<String, dynamic>.from(
-                await _td.request({'@type': 'getUser', 'user_id': id})));
+            _onUser(
+              Map<String, dynamic>.from(
+                await _td.request({'@type': 'getUser', 'user_id': id}),
+              ),
+            );
           } on TdError {
             continue;
           }
@@ -1515,7 +1685,7 @@ class TdlibGateway implements TelegramGateway {
         'rules': {
           '@type': 'userPrivacySettingRules',
           'rules': [
-            {'@type': rule}
+            {'@type': rule},
           ],
         },
       });
@@ -1548,7 +1718,10 @@ class TdlibGateway implements TelegramGateway {
       final id = asInt(u['id']);
       String bio = '';
       try {
-        final f = await _td.request({'@type': 'getUserFullInfo', 'user_id': id});
+        final f = await _td.request({
+          '@type': 'getUserFullInfo',
+          'user_id': id,
+        });
         final b = f['bio'];
         bio = b is Map ? (b['text'] ?? '').toString() : (b ?? '').toString();
       } on TdError {
@@ -1571,8 +1744,11 @@ class TdlibGateway implements TelegramGateway {
   }
 
   @override
-  Future<void> updateProfile(
-      {String? firstName, String? lastName, String? bio}) async {
+  Future<void> updateProfile({
+    String? firstName,
+    String? lastName,
+    String? bio,
+  }) async {
     if (firstName != null || lastName != null) {
       await _td.request({
         '@type': 'setName',
@@ -1643,7 +1819,8 @@ class TdlibGateway implements TelegramGateway {
   @override
   Future<void> leaveChat(int chatId) async {
     final c = _chats[chatId];
-    final group = c != null && (c.type == ChatType.group || c.type == ChatType.channel);
+    final group =
+        c != null && (c.type == ChatType.group || c.type == ChatType.channel);
     if (group) {
       try {
         await _td.request({'@type': 'leaveChat', 'chat_id': chatId});
@@ -1703,8 +1880,10 @@ class TdlibGateway implements TelegramGateway {
 
   @override
   Future<ChatSummary?> joinByLink(String link) async {
-    final r = await _td.request(
-        {'@type': 'joinChatByInviteLink', 'invite_link': link.trim()});
+    final r = await _td.request({
+      '@type': 'joinChatByInviteLink',
+      'invite_link': link.trim(),
+    });
     final id = asInt(r['chat_id']);
     if (id == 0) return null; // request sent / needs approval
     if (!_chats.containsKey(id)) {
@@ -1730,20 +1909,25 @@ class TdlibGateway implements TelegramGateway {
         if (id == 0) continue;
         if (_users[id] == null) {
           try {
-            _onUser(Map<String, dynamic>.from(
-                await _td.request({'@type': 'getUser', 'user_id': id})));
+            _onUser(
+              Map<String, dynamic>.from(
+                await _td.request({'@type': 'getUser', 'user_id': id}),
+              ),
+            );
           } on TdError {
             continue;
           }
         }
-        out.add(ChatSummary(
-          id: id,
-          title: _users[id]?['name'] ?? '$id',
-          lastText: '',
-          lastKind: MessageKind.text,
-          lastTime: null,
-          unread: 0,
-        ));
+        out.add(
+          ChatSummary(
+            id: id,
+            title: _users[id]?['name'] ?? '$id',
+            lastText: '',
+            lastKind: MessageKind.text,
+            lastTime: null,
+            unread: 0,
+          ),
+        );
       }
       return out;
     } on TdError {
@@ -1766,7 +1950,7 @@ class TdlibGateway implements TelegramGateway {
       });
       return [
         for (final m in (r['messages'] as List? ?? const []).whereType<Map>())
-          _parseMessage(Map<String, dynamic>.from(m))
+          _parseMessage(Map<String, dynamic>.from(m)),
       ];
     } on TdError {
       return const [];
@@ -1784,8 +1968,11 @@ class TdlibGateway implements TelegramGateway {
   }
 
   @override
-  Future<bool> setCloudPassword(
-      {String oldPassword = '', String newPassword = '', String hint = ''}) async {
+  Future<bool> setCloudPassword({
+    String oldPassword = '',
+    String newPassword = '',
+    String hint = '',
+  }) async {
     try {
       await _td.request({
         '@type': 'setPassword',
@@ -1810,7 +1997,7 @@ class TdlibGateway implements TelegramGateway {
       });
       return [
         for (final x in (r['sets'] as List? ?? const []).whereType<Map>())
-          StickerSetInfo(asInt(x['id']), (x['title'] ?? '').toString())
+          StickerSetInfo(asInt(x['id']), (x['title'] ?? '').toString()),
       ];
     } on TdError {
       return const [];
@@ -1827,7 +2014,7 @@ class TdlibGateway implements TelegramGateway {
             asInt((x['sticker'] as Map?)?['id']),
             asInt(((x['thumbnail'] as Map?)?['file'] as Map?)?['id']),
             (x['emoji'] ?? '').toString(),
-          )
+          ),
       ];
     } on TdError {
       return const [];
@@ -1875,8 +2062,11 @@ class TdlibGateway implements TelegramGateway {
   Future<MentionCandidate?> _member(int id) async {
     if (_users[id] == null) {
       try {
-        _onUser(Map<String, dynamic>.from(
-            await _td.request({'@type': 'getUser', 'user_id': id})));
+        _onUser(
+          Map<String, dynamic>.from(
+            await _td.request({'@type': 'getUser', 'user_id': id}),
+          ),
+        );
       } on TdError {
         return null;
       }
@@ -1903,8 +2093,10 @@ class TdlibGateway implements TelegramGateway {
           ids.add(asInt((m['member_id'] as Map?)?['user_id']));
         }
       } else {
-        final r = await _td.request(
-            {'@type': 'getBasicGroupFullInfo', 'basic_group_id': c.groupId});
+        final r = await _td.request({
+          '@type': 'getBasicGroupFullInfo',
+          'basic_group_id': c.groupId,
+        });
         for (final m in (r['members'] as List? ?? const []).whereType<Map>()) {
           ids.add(asInt((m['member_id'] as Map?)?['user_id']));
         }
@@ -1941,7 +2133,11 @@ class TdlibGateway implements TelegramGateway {
   }
 
   @override
-  Future<void> pinMessage(int chatId, int messageId, {required bool pin}) async {
+  Future<void> pinMessage(
+    int chatId,
+    int messageId, {
+    required bool pin,
+  }) async {
     await _td.request({
       '@type': pin ? 'pinChatMessage' : 'unpinChatMessage',
       'chat_id': chatId,
@@ -1952,8 +2148,13 @@ class TdlibGateway implements TelegramGateway {
   }
 
   @override
-  Future<void> sendPoll(int chatId, String question, List<String> options,
-      {bool multiple = false, bool anonymous = true}) async {
+  Future<void> sendPoll(
+    int chatId,
+    String question,
+    List<String> options, {
+    bool multiple = false,
+    bool anonymous = true,
+  }) async {
     await _td.request({
       '@type': 'sendMessage',
       'chat_id': chatId,
@@ -1965,12 +2166,15 @@ class TdlibGateway implements TelegramGateway {
             {
               '@type': 'inputPollOption',
               'text': {'@type': 'formattedText', 'text': o},
-            }
+            },
         ],
         'is_anonymous': anonymous,
         'allows_multiple_answers': multiple,
         'allows_revoting': true,
-        'type': {'@type': 'inputPollTypeRegular', 'allow_adding_options': false},
+        'type': {
+          '@type': 'inputPollTypeRegular',
+          'allow_adding_options': false,
+        },
         'open_period': 0,
         'close_date': 0,
         'is_closed': false,
@@ -2029,7 +2233,7 @@ class TdlibGateway implements TelegramGateway {
             asInt(((x['thumbnail'] as Map?)?['file'] as Map?)?['id']),
             '',
             gif: true,
-          )
+          ),
       ];
     } on TdError {
       return const [];
@@ -2093,11 +2297,13 @@ class TdlibGateway implements TelegramGateway {
   @override
   Future<List<ChatMessage>> scheduledMessages(int chatId) async {
     try {
-      final r = await _td.request(
-          {'@type': 'getChatScheduledMessages', 'chat_id': chatId});
+      final r = await _td.request({
+        '@type': 'getChatScheduledMessages',
+        'chat_id': chatId,
+      });
       return [
         for (final m in (r['messages'] as List? ?? const []).whereType<Map>())
-          _parseMessage(Map<String, dynamic>.from(m))
+          _parseMessage(Map<String, dynamic>.from(m)),
       ];
     } on TdError {
       return const [];
@@ -2106,7 +2312,10 @@ class TdlibGateway implements TelegramGateway {
 
   @override
   Future<void> forwardMessages(
-      int toChatId, int fromChatId, List<int> ids) async {
+    int toChatId,
+    int fromChatId,
+    List<int> ids,
+  ) async {
     await _td.request({
       '@type': 'forwardMessages',
       'chat_id': toChatId,
@@ -2120,8 +2329,10 @@ class TdlibGateway implements TelegramGateway {
     final cached = _textLimit;
     if (cached != null) return cached;
     try {
-      final r = await _td.request(
-          {'@type': 'getOption', 'name': 'message_text_length_max'});
+      final r = await _td.request({
+        '@type': 'getOption',
+        'name': 'message_text_length_max',
+      });
       _textLimit = asInt(r['value'], 4096);
     } on TdError {
       return 4096;
@@ -2148,17 +2359,17 @@ class TdlibGateway implements TelegramGateway {
 
   @override
   Future<void> sendTyping(int chatId) async => _td.fire({
-        '@type': 'sendChatAction',
-        'chat_id': chatId,
-        'action': {'@type': 'chatActionTyping'},
-      });
+    '@type': 'sendChatAction',
+    'chat_id': chatId,
+    'action': {'@type': 'chatActionTyping'},
+  });
 
   @override
   Future<void> setOnline(bool online) async => _td.fire({
-        '@type': 'setOption',
-        'name': 'online',
-        'value': {'@type': 'optionValueBoolean', 'value': online},
-      });
+    '@type': 'setOption',
+    'name': 'online',
+    'value': {'@type': 'optionValueBoolean', 'value': online},
+  });
 
   @override
   Future<void> dispose() async {

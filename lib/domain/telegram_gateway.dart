@@ -86,8 +86,12 @@ abstract class TelegramGateway {
   Future<ChatMessage?> pinnedMessage(int chatId);
 
   /// Adds or removes our emoji reaction on a message.
-  Future<void> toggleReaction(int chatId, int messageId, String emoji,
-      {required bool on});
+  Future<void> toggleReaction(
+    int chatId,
+    int messageId,
+    String emoji, {
+    required bool on,
+  });
 
   /// Profile / group details for the info page.
   Future<ChatInfo?> chatInfo(int chatId);
@@ -101,6 +105,18 @@ abstract class TelegramGateway {
   /// Logged-in devices (Telegram "Devices" page).
   Future<List<DeviceSession>> sessions();
   Future<void> terminateSession(int id);
+  Future<void> terminateOtherSessions();
+  Future<int> sessionTtlDays();
+  Future<void> setSessionTtlDays(int days);
+
+  /// Switch the login screen to QR mode (scan from another device).
+  Future<void> requestQrLogin();
+
+  /// Approve a tg://login?token=… scanned from another device ("add device").
+  Future<void> confirmQrLink(String link);
+
+  /// Resolve an @username to a user (null when not found).
+  Future<ChatSummary?> resolveUsername(String username);
 
   Future<ChatSummary?> createGroup(String title, List<int> userIds);
 
@@ -119,7 +135,11 @@ abstract class TelegramGateway {
   Future<void> setAutoDelete(int chatId, int seconds);
 
   Future<ProfileInfo?> me();
-  Future<void> updateProfile({String? firstName, String? lastName, String? bio});
+  Future<void> updateProfile({
+    String? firstName,
+    String? lastName,
+    String? bio,
+  });
 
   /// Returns false when the username is taken or invalid.
   Future<bool> setUsername(String username);
@@ -149,8 +169,11 @@ abstract class TelegramGateway {
 
   /// Sets, changes or (empty [newPassword]) removes the two-step password.
   /// Returns false when [oldPassword] is wrong or the change is rejected.
-  Future<bool> setCloudPassword(
-      {String oldPassword = '', String newPassword = '', String hint = ''});
+  Future<bool> setCloudPassword({
+    String oldPassword = '',
+    String newPassword = '',
+    String hint = '',
+  });
 
   Future<List<StickerSetInfo>> stickerSets();
   Future<List<StickerItem>> stickerSetItems(int setId);
@@ -164,8 +187,13 @@ abstract class TelegramGateway {
   Future<void> removeMember(int chatId, int userId);
 
   Future<void> pinMessage(int chatId, int messageId, {required bool pin});
-  Future<void> sendPoll(int chatId, String question, List<String> options,
-      {bool multiple = false, bool anonymous = true});
+  Future<void> sendPoll(
+    int chatId,
+    String question,
+    List<String> options, {
+    bool multiple = false,
+    bool anonymous = true,
+  });
   Future<void> sendLocation(int chatId, double lat, double lon);
   Future<void> sendContact(int chatId, int userId);
 

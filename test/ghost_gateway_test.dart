@@ -120,6 +120,24 @@ class _Recorder implements TelegramGateway {
   @override
   Future<void> markReadManual(int chatId, List<int> messageIds) async {}
   @override
+  Future<void> terminateOtherSessions() async {}
+
+  @override
+  Future<int> sessionTtlDays() async => 180;
+
+  @override
+  Future<void> setSessionTtlDays(int days) async {}
+
+  @override
+  Future<void> requestQrLogin() async {}
+
+  @override
+  Future<void> confirmQrLink(String link) async {}
+
+  @override
+  Future<ChatSummary?> resolveUsername(String username) async => null;
+
+  @override
   bool get isDemo => true;
   @override
   Stream<AuthState> get authState => const Stream.empty();

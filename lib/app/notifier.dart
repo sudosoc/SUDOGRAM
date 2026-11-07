@@ -16,12 +16,15 @@ class MessageNotifier {
 
   Future<void> init() async {
     try {
-      await _plugin.initialize(const InitializationSettings(
-        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-      ));
+      await _plugin.initialize(
+        const InitializationSettings(
+          android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        ),
+      );
       await _plugin
           .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>()
+            AndroidFlutterLocalNotificationsPlugin
+          >()
           ?.requestNotificationsPermission();
       _ready = true;
     } catch (e) {
@@ -40,6 +43,10 @@ class MessageNotifier {
     bool sound = true,
     bool vibrate = true,
     bool preview = true,
+    String content = 'full',
+    Map<String, Map<String, dynamic>> perChat = const {},
+    bool locked = false,
+    String Function(int n)? countBody,
   }) {
     final first = _lastUnread.isEmpty;
     for (final c in chats) {
@@ -49,25 +56,89 @@ class MessageNotifier {
       if (c.unread <= before || c.muted || c.lastOutgoing) continue;
       if (c.id == openChat || silentIds.contains(c.id)) continue;
       final hidden = privateIds.contains(c.id);
+      final pc = perChat['${c.id}'] ?? const <String, dynamic>{};
+      if (pc['mute'] == true) continue;
+      var mode = !preview ? 'generic' : content;
+      if (locked) mode = 'generic';
+      if (hidden) mode = 'generic';
+      final title = hidden || mode == 'generic' || mode == 'count'
+          ? 'SUDOGRAM'
+          : c.title;
+      final body = switch (mode) {
+        'nameOnly' => hiddenBody,
+        'count' => (countBody ?? (n) => '$n')(c.unread),
+        'generic' => hiddenBody,
+        _ => c.lastText.isEmpty ? '…' : c.lastText,
+      };
+      final snd = (pc['sound'] as String?) ?? (sound ? 'default' : 'silent');
+      final vib = (pc['vib'] as String?) ?? (vibrate ? 'default' : 'none');
       _plugin.show(
         c.id.abs() % 2000000000,
-        hidden ? 'SUDOGRAM' : c.title,
-        hidden || !preview
-            ? hiddenBody
-            : (c.lastText.isEmpty ? '…' : c.lastText),
+        title,
+        body,
         NotificationDetails(
           android: AndroidNotificationDetails(
             // Channel settings are fixed once created, so each combination
             // of sound / vibration gets its own channel.
-            'sudogram_messages_${sound ? 1 : 0}${vibrate ? 1 : 0}',
-            'Messages',
+            'sudogram_m_${snd}_$vib',
+            'Messages ($snd / $vib)',
             importance: Importance.high,
             priority: Priority.high,
-            playSound: sound,
-            enableVibration: vibrate,
+            playSound: snd != 'silent',
+            sound: _sound(snd),
+            enableVibration: vib != 'none',
+            vibrationPattern: _pattern(vib),
           ),
         ),
       );
     }
+  }
+
+  static AndroidNotificationSound? _sound(String k) => switch (k) {
+    'notification' => const UriAndroidNotificationSound(
+      'content://settings/system/notification_sound',
+    ),
+    'ringtone' => const UriAndroidNotificationSound(
+      'content://settings/system/ringtone',
+    ),
+    'alarm' => const UriAndroidNotificationSound(
+      'content://settings/system/alarm_alert',
+    ),
+    _ => null,
+  };
+
+  static Int64List? _pattern(String k) => switch (k) {
+    'short' => Int64List.fromList([0, 120]),
+    'long' => Int64List.fromList([0, 900]),
+    'double' => Int64List.fromList([0, 150, 120, 150]),
+    'triple' => Int64List.fromList([0, 120, 100, 120, 100, 120]),
+    _ => null,
+  };
+
+  /// Plays a one-off notification so the user can feel/hear a combination.
+  Future<void> preview(
+    String snd,
+    String vib,
+    String title,
+    String body,
+  ) async {
+    if (!_ready) return;
+    await _plugin.show(
+      1999999999,
+      title,
+      body,
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          'sudogram_m_${snd}_$vib',
+          'Messages ($snd / $vib)',
+          importance: Importance.high,
+          priority: Priority.high,
+          playSound: snd != 'silent',
+          sound: _sound(snd),
+          enableVibration: vib != 'none',
+          vibrationPattern: _pattern(vib),
+        ),
+      ),
+    );
   }
 }
