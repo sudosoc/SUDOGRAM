@@ -564,8 +564,13 @@ Country countryByIso(String? iso) => countries.firstWhere(
 );
 
 /// Best-effort guess from the phone's locale (no permission needed).
-Country detectCountry() =>
-    countryByIso(PlatformDispatcher.instance.locale.countryCode);
+Country detectCountry() {
+  final loc = PlatformDispatcher.instance.locale;
+  // Arabic UI with a non-Arab region (e.g. en_GB fallback) -> Egypt.
+  final iso = loc.countryCode;
+  if ((iso == null || iso.isEmpty) && loc.languageCode == 'ar') return countryByIso('EG');
+  return countryByIso(iso);
+}
 
 class PhoneParse {
   const PhoneParse(this.e164, this.valid, this.national);

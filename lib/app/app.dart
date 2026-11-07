@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/settings/app_settings.dart';
+import '../core/i18n/tr.dart';
 import '../core/theme/glass.dart';
 import '../domain/models.dart';
 import '../features/home/home_screen.dart';
@@ -216,9 +219,76 @@ class _Root extends ConsumerWidget {
         step == AuthStep.waitQr) {
       return const LoginScreen();
     }
+    return _ConnectingView(label: l.connecting, step: step.name);
+  }
+}
+
+/// "Connecting…" that offers a way out when it takes too long.
+class _ConnectingView extends ConsumerStatefulWidget {
+  const _ConnectingView({required this.label, required this.step});
+  final String label;
+  final String step;
+
+  @override
+  ConsumerState<_ConnectingView> createState() => _ConnectingViewState();
+}
+
+class _ConnectingViewState extends ConsumerState<_ConnectingView> {
+  bool _slow = false;
+  Timer? _t;
+
+  @override
+  void initState() {
+    super.initState();
+    _t = Timer(const Duration(seconds: 10), () {
+      if (mounted) setState(() => _slow = true);
+    });
+  }
+
+  @override
+  void dispose() {
+    _t?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final st = ref.watch(settingsProvider);
+    final others = st.accounts.where((a) => a['slot'] != st.activeSlot).toList();
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: Center(child: Text(l.connecting)),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Text(widget.label),
+            if (_slow) ...[
+              const SizedBox(height: 8),
+              Text('(${widget.step})',
+                  style: const TextStyle(color: GlassTokens.textTertiary)),
+              const SizedBox(height: 16),
+              FilledButton.tonal(
+                onPressed: () {
+                  ref.invalidate(bootProvider);
+                  setState(() => _slow = false);
+                  _t = Timer(const Duration(seconds: 10), () {
+                    if (mounted) setState(() => _slow = true);
+                  });
+                },
+                child: Text(context.t('Retry', 'إعادة المحاولة')),
+              ),
+              if (others.isNotEmpty)
+                TextButton(
+                  onPressed: () => ref
+                      .read(settingsProvider.notifier)
+                      .switchAccount(others.first['slot'] as int),
+                  child: Text(context.t('Back to another account',
+                      'الرجوع لحساب تاني')),
+                ),
+            ],
+          ]),
+        ),
+      ),
     );
   }
 }

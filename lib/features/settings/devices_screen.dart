@@ -307,6 +307,10 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
     ),
   );
 
+  bool _fresh(DeviceSession d) =>
+      d.loggedIn != null &&
+      DateTime.now().difference(d.loggedIn!) < const Duration(hours: 24);
+
   @override
   Widget build(BuildContext context) {
     final list = _list;
@@ -323,6 +327,14 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
       onTap: () => _details(d),
       trailing: d.current
           ? null
+          : _fresh(d)
+          ? Tooltip(
+              message: context.t(
+                'Telegram lets you end this session after 24 hours',
+                'تليجرام بيسمح بإنهاء الجلسة دي بعد 24 ساعة',
+              ),
+              child: const Icon(Icons.lock_clock, color: GlassTokens.textTertiary),
+            )
           : IconButton(
               icon: const Icon(Icons.close, color: GlassTokens.ringDanger),
               onPressed: () => _terminate(d),
