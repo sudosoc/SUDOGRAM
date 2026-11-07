@@ -256,6 +256,20 @@ class ChatStatus {
   int get hashCode => Object.hash(typing, seen, lastSeen);
 }
 
+/// A Telegram privacy rule: a base audience plus per-user exceptions.
+class PrivacyRule {
+  const PrivacyRule(this.base, {this.allow = const [], this.deny = const []});
+
+  /// everybody | contacts | nobody
+  final String base;
+
+  /// Always allowed even when [base] excludes them.
+  final List<int> allow;
+
+  /// Never allowed even when [base] includes them.
+  final List<int> deny;
+}
+
 enum AuthStep {
   initializing,
   waitPhone,
@@ -267,7 +281,28 @@ enum AuthStep {
 }
 
 class AuthState {
-  const AuthState(this.step, {this.error, this.qrLink, this.codeLength = 5});
+  const AuthState(this.step,
+      {this.error,
+      this.qrLink,
+      this.codeLength = 5,
+      this.codeType = 'telegram',
+      this.nextType,
+      this.resendIn = 0});
+
+  /// telegram | sms | call | flash | missed | fragment | other
+  final String codeType;
+
+  AuthState withError(String e) => AuthState(step,
+      error: e,
+      qrLink: qrLink,
+      codeLength: codeLength,
+      codeType: codeType,
+      nextType: nextType,
+      resendIn: resendIn);
+
+  /// How the code can be re-sent (null = cannot).
+  final String? nextType;
+  final int resendIn;
 
   final AuthStep step;
   final String? error;

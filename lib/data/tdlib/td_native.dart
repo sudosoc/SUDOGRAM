@@ -54,18 +54,12 @@ class TdBindings {
   }
 }
 
-/// Runs in a background isolate: blocks on `td_receive` so the UI isolate
-/// never waits, decodes JSON there and forwards plain maps.
+/// Runs in ONE background isolate for the whole process: `td_receive` is
+/// global (not per client), so several accounts must share a single loop and
+/// route updates by `@client_id`.
 Future<void> _receiveLoop(SendPort toMain) async {
-  final commands = ReceivePort();
-  toMain.send(commands.sendPort);
-  var running = true;
-  commands.listen((message) {
-    if (message == 'stop') running = false;
-  });
-
   final bindings = TdBindings.open();
-  while (running) {
+  while (true) {
     final ptr = bindings.receive(0.5);
     if (ptr.address != 0) {
       final raw = ptr.toDartString(); // copy before the next td_receive call
@@ -74,25 +68,43 @@ Future<void> _receiveLoop(SendPort toMain) async {
       } catch (_) {
         // Ignore a malformed object rather than killing the loop.
       }
+    } else {
+      await Future<void>.delayed(Duration.zero);
     }
-    await Future<void>.delayed(Duration.zero); // let 'stop' be processed
   }
-  commands.close();
+}
+
+class _Hub {
+  _Hub._();
+  static _Hub? _i;
+  final routes = <int, NativeTdTransport>{};
+
+  static Future<_Hub> instance() async {
+    final existing = _i;
+    if (existing != null) return existing;
+    final hub = _Hub._();
+    final port = ReceivePort();
+    await Isolate.spawn(_receiveLoop, port.sendPort);
+    port.listen((m) {
+      if (m is! Map) return;
+      final id = m['@client_id'];
+      if (id is int) hub.routes[id]?._onMessage(m);
+    });
+    _i = hub;
+    return hub;
+  }
 }
 
 /// [TdTransport] backed by the real native library.
 class NativeTdTransport implements TdTransport {
-  NativeTdTransport._(
-      this._bindings, this._clientId, this._isolate, this._fromIsolate);
+  NativeTdTransport._(this._bindings, this._clientId);
 
   final TdBindings _bindings;
   final int _clientId;
-  final Isolate _isolate;
-  final ReceivePort _fromIsolate;
-  SendPort? _commands;
 
   final _updates = StreamController<Map<String, dynamic>>.broadcast();
   final _pending = <int, Completer<Map<String, dynamic>>>{};
+  final _closed = Completer<void>();
   int _nextExtra = 1;
 
   static Future<NativeTdTransport> start() async {
@@ -103,22 +115,16 @@ class NativeTdTransport implements TdTransport {
     bindings.execute(level);
     malloc.free(level);
 
+    final hub = await _Hub.instance();
     final clientId = bindings.createClientId();
-    final fromIsolate = ReceivePort();
-    final isolate = await Isolate.spawn(_receiveLoop, fromIsolate.sendPort);
-    final transport =
-        NativeTdTransport._(bindings, clientId, isolate, fromIsolate);
-    fromIsolate.listen(transport._onMessage);
+    final transport = NativeTdTransport._(bindings, clientId);
+    hub.routes[clientId] = transport;
     // TDLib only starts producing updates after the first request.
     transport.fire({'@type': 'getOption', 'name': 'version'});
     return transport;
   }
 
   void _onMessage(dynamic message) {
-    if (message is SendPort) {
-      _commands = message;
-      return;
-    }
     if (message is! Map) return;
     final map = Map<String, dynamic>.from(message);
     final extra = map['@extra'];
@@ -136,7 +142,13 @@ class NativeTdTransport implements TdTransport {
         return;
       }
     }
-    _updates.add(map);
+    if (map['@type'] == 'updateAuthorizationState' &&
+        (map['authorization_state'] as Map?)?['@type'] ==
+            'authorizationStateClosed' &&
+        !_closed.isCompleted) {
+      _closed.complete();
+    }
+    if (!_updates.isClosed) _updates.add(map);
   }
 
   @override
@@ -167,10 +179,10 @@ class NativeTdTransport implements TdTransport {
   @override
   Future<void> close() async {
     fire({'@type': 'close'});
-    _commands?.send('stop');
-    await Future<void>.delayed(const Duration(milliseconds: 300));
-    _isolate.kill(priority: Isolate.beforeNextEvent);
-    _fromIsolate.close();
+    // Wait until TDLib has released its database before another client may
+    // open the same folder (switching back to this account).
+    await _closed.future.timeout(const Duration(seconds: 4), onTimeout: () {});
+    (await _Hub.instance()).routes.remove(_clientId);
     await _updates.close();
   }
 }

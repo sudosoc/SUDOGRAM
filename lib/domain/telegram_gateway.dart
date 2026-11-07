@@ -105,6 +105,20 @@ abstract class TelegramGateway {
   /// Logged-in devices (Telegram "Devices" page).
   Future<List<DeviceSession>> sessions();
   Future<void> terminateSession(int id);
+
+  /// Resend the login code with the next delivery method (SMS, call…).
+  Future<void> resendCode();
+
+  Future<PrivacyRule> getPrivacyRule(String key);
+  Future<void> setPrivacyRule(String key, PrivacyRule rule);
+  Future<int> accountTtlDays();
+  Future<void> setAccountTtlDays(int days);
+
+  /// Default auto-delete timer for new chats, in seconds (0 = off).
+  Future<int> autoDeleteSeconds();
+  Future<void> setAutoDeleteSeconds(int seconds);
+  Future<bool> archiveNewFromUnknown();
+  Future<void> setArchiveNewFromUnknown(bool on);
   Future<void> terminateOtherSessions();
   Future<int> sessionTtlDays();
   Future<void> setSessionTtlDays(int days);

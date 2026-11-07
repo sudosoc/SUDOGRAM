@@ -54,7 +54,10 @@ Future<void> openHiddenChats(BuildContext context, WidgetRef ref) async {
     vault.open();
   }
   await nav.push(
-    MaterialPageRoute<void>(builder: (_) => const HiddenChatsScreen()),
+    MaterialPageRoute<void>(
+      settings: const RouteSettings(name: 'hidden'),
+      builder: (_) => const HiddenChatsScreen(),
+    ),
   );
 }
 

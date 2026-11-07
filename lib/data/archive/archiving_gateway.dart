@@ -337,6 +337,33 @@ class ArchivingGateway implements TelegramGateway {
       _inner.resolveUsername(username);
 
   @override
+  Future<void> resendCode() => _inner.resendCode();
+
+  @override
+  Future<PrivacyRule> getPrivacyRule(String key) => _inner.getPrivacyRule(key);
+
+  @override
+  Future<void> setPrivacyRule(String key, PrivacyRule rule) => _inner.setPrivacyRule(key, rule);
+
+  @override
+  Future<int> accountTtlDays() => _inner.accountTtlDays();
+
+  @override
+  Future<void> setAccountTtlDays(int days) => _inner.setAccountTtlDays(days);
+
+  @override
+  Future<int> autoDeleteSeconds() => _inner.autoDeleteSeconds();
+
+  @override
+  Future<void> setAutoDeleteSeconds(int seconds) => _inner.setAutoDeleteSeconds(seconds);
+
+  @override
+  Future<bool> archiveNewFromUnknown() => _inner.archiveNewFromUnknown();
+
+  @override
+  Future<void> setArchiveNewFromUnknown(bool on) => _inner.setArchiveNewFromUnknown(on);
+
+  @override
   Future<void> forwardMessages(int toChatId, int fromChatId, List<int> ids) =>
       _inner.forwardMessages(toChatId, fromChatId, ids);
   @override

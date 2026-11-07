@@ -334,6 +334,34 @@ class MockGateway implements TelegramGateway {
   Future<ChatSummary?> resolveUsername(String username) async => null;
 
   @override
+  Future<void> resendCode() async {}
+
+  @override
+  Future<PrivacyRule> getPrivacyRule(String key) async =>
+      const PrivacyRule('everybody');
+
+  @override
+  Future<void> setPrivacyRule(String key, PrivacyRule rule) async {}
+
+  @override
+  Future<int> accountTtlDays() async => 180;
+
+  @override
+  Future<void> setAccountTtlDays(int days) async {}
+
+  @override
+  Future<int> autoDeleteSeconds() async => 0;
+
+  @override
+  Future<void> setAutoDeleteSeconds(int seconds) async {}
+
+  @override
+  Future<bool> archiveNewFromUnknown() async => false;
+
+  @override
+  Future<void> setArchiveNewFromUnknown(bool on) async {}
+
+  @override
   Future<void> forwardMessages(
     int toChatId,
     int fromChatId,

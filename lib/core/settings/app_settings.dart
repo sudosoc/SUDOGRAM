@@ -169,7 +169,7 @@ class AppSettings {
   bool get homeShowTime => x['homeShowTime'] as bool? ?? true;
   bool get homeShowTicks => x['homeShowTicks'] as bool? ?? true;
   bool get homeDividers => x['homeDividers'] as bool? ?? false;
-  int get homeLines => x['homeLines'] as int? ?? 1;
+  int get homeLines => ((x['homeLines'] as num?)?.round() ?? 1).clamp(1, 3);
 
   // ---- Customization: chat ("Pro")
   String get chatAvatarShape => x['chatAvatarShape'] as String? ?? 'circle';

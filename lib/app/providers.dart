@@ -109,7 +109,7 @@ final gatewayProvider = Provider<TelegramGateway>((ref) {
 });
 
 final bootProvider = FutureProvider<void>((ref) async {
-  await ref.read(gatewayProvider).start();
+  await ref.watch(gatewayProvider).start();
 });
 
 final authProvider = StreamProvider<AuthState>(

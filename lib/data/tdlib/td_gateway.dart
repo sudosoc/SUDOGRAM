@@ -411,13 +411,27 @@ class TdlibGateway implements TelegramGateway {
       case 'authorizationStateWaitPhoneNumber':
         _auth.value = const AuthState(AuthStep.waitPhone);
       case 'authorizationStateWaitCode':
-        final len = asInt(
-          ((s['code_info'] as Map?)?['type'] as Map?)?['length'],
-        );
-        _auth.value = AuthState(
-          AuthStep.waitCode,
-          codeLength: len > 0 ? len : 5,
-        );
+        final info = s['code_info'] as Map?;
+        final type = info?['type'] as Map?;
+        final len = asInt(type?['length']);
+        String kind(Map? t) => switch (t?['@type']) {
+              'authenticationCodeTypeTelegramMessage' => 'telegram',
+              'authenticationCodeTypeSms' ||
+              'authenticationCodeTypeSmsWord' ||
+              'authenticationCodeTypeSmsPhrase' =>
+                'sms',
+              'authenticationCodeTypeCall' => 'call',
+              'authenticationCodeTypeFlashCall' => 'flash',
+              'authenticationCodeTypeMissedCall' => 'missed',
+              'authenticationCodeTypeFragment' => 'fragment',
+              _ => 'other',
+            };
+        final next = info?['next_type'] as Map?;
+        _auth.value = AuthState(AuthStep.waitCode,
+            codeLength: len > 0 ? len : 5,
+            codeType: kind(type),
+            nextType: next == null ? null : kind(next),
+            resendIn: asInt(info?['timeout']));
       case 'authorizationStateWaitOtherDeviceConfirmation':
         _auth.value = AuthState(
           AuthStep.waitQr,
@@ -459,7 +473,7 @@ class TdlibGateway implements TelegramGateway {
     try {
       await _td.request(req);
     } on TdError catch (e) {
-      _auth.value = AuthState(_auth.value.step, error: e.message);
+      _auth.value = _auth.value.withError(e.message);
     }
   }
 
@@ -1552,7 +1566,7 @@ class TdlibGateway implements TelegramGateway {
         'other_user_ids': <int>[],
       });
     } on TdError catch (e) {
-      _auth.value = AuthState(_auth.value.step, error: e.message);
+      _auth.value = _auth.value.withError(e.message);
     }
   }
 
@@ -1635,12 +1649,147 @@ class TdlibGateway implements TelegramGateway {
     }
   }
 
+  static const _ruleKinds = {
+    'phone': 'userPrivacySettingShowPhoneNumber',
+    'find': 'userPrivacySettingAllowFindingByPhoneNumber',
+    'seen': 'userPrivacySettingShowStatus',
+    'photo': 'userPrivacySettingShowProfilePhoto',
+    'bio': 'userPrivacySettingShowBio',
+    'birthday': 'userPrivacySettingShowBirthdate',
+    'forwards': 'userPrivacySettingShowLinkInForwardedMessages',
+    'calls': 'userPrivacySettingAllowCalls',
+    'p2p': 'userPrivacySettingAllowPeerToPeerCalls',
+    'invites': 'userPrivacySettingAllowChatInvites',
+    'voice': 'userPrivacySettingAllowPrivateVoiceAndVideoNoteMessages',
+  };
+
+  @override
+  Future<PrivacyRule> getPrivacyRule(String key) async {
+    final type = _ruleKinds[key];
+    if (type == null) return const PrivacyRule('everybody');
+    final r = await _td.request({
+      '@type': 'getUserPrivacySettingRules',
+      'setting': {'@type': type},
+    });
+    var base = 'nobody';
+    final allow = <int>[];
+    final deny = <int>[];
+    for (final rule in (r['rules'] as List? ?? const []).whereType<Map>()) {
+      switch (rule['@type']) {
+        case 'userPrivacySettingRuleAllowAll':
+          base = 'everybody';
+        case 'userPrivacySettingRuleAllowContacts':
+          base = 'contacts';
+        case 'userPrivacySettingRuleAllowUsers':
+          allow.addAll(
+              (rule['user_ids'] as List? ?? const []).map((e) => asInt(e)));
+        case 'userPrivacySettingRuleRestrictUsers':
+          deny.addAll(
+              (rule['user_ids'] as List? ?? const []).map((e) => asInt(e)));
+      }
+    }
+    return PrivacyRule(base, allow: allow, deny: deny);
+  }
+
+  @override
+  Future<void> setPrivacyRule(String key, PrivacyRule rule) async {
+    final type = _ruleKinds[key];
+    if (type == null) return;
+    final base = switch (rule.base) {
+      'contacts' => 'userPrivacySettingRuleAllowContacts',
+      'nobody' => 'userPrivacySettingRuleRestrictAll',
+      _ => 'userPrivacySettingRuleAllowAll',
+    };
+    await _td.request({
+      '@type': 'setUserPrivacySettingRules',
+      'setting': {'@type': type},
+      'rules': {
+        '@type': 'userPrivacySettingRules',
+        'rules': [
+          if (rule.deny.isNotEmpty)
+            {
+              '@type': 'userPrivacySettingRuleRestrictUsers',
+              'user_ids': rule.deny
+            },
+          if (rule.allow.isNotEmpty)
+            {
+              '@type': 'userPrivacySettingRuleAllowUsers',
+              'user_ids': rule.allow
+            },
+          {'@type': base},
+        ],
+      },
+    });
+  }
+
+  @override
+  Future<int> accountTtlDays() async {
+    final r = await _td.request({'@type': 'getAccountTtl'});
+    final d = asInt(r['days']);
+    return d > 0 ? d : 365;
+  }
+
+  @override
+  Future<void> setAccountTtlDays(int days) => _td.request({
+        '@type': 'setAccountTtl',
+        'ttl': {'@type': 'accountTtl', 'days': days},
+      });
+
+  @override
+  Future<int> autoDeleteSeconds() async {
+    final r = await _td.request({'@type': 'getDefaultMessageAutoDeleteTime'});
+    return asInt(r['time']);
+  }
+
+  @override
+  Future<void> setAutoDeleteSeconds(int seconds) => _td.request({
+        '@type': 'setDefaultMessageAutoDeleteTime',
+        'message_auto_delete_time': {
+          '@type': 'messageAutoDeleteTime',
+          'time': seconds,
+        },
+      });
+
+  Future<Map<String, dynamic>> _archiveSettings() =>
+      _td.request({'@type': 'getArchiveChatListSettings'});
+
+  @override
+  Future<bool> archiveNewFromUnknown() async {
+    final r = await _archiveSettings();
+    return r['archive_and_mute_new_chats_from_unknown_users'] == true;
+  }
+
+  @override
+  Future<void> setArchiveNewFromUnknown(bool on) async {
+    final r = await _archiveSettings();
+    await _td.request({
+      '@type': 'setArchiveChatListSettings',
+      'settings': {
+        '@type': 'archiveChatListSettings',
+        'archive_and_mute_new_chats_from_unknown_users': on,
+        'keep_unmuted_chats_archived':
+            r['keep_unmuted_chats_archived'] == true,
+        'keep_chats_from_folders_archived':
+            r['keep_chats_from_folders_archived'] == true,
+      },
+    });
+  }
+
+  @override
+  Future<void> resendCode() async {
+    try {
+      await _td.request({'@type': 'resendAuthenticationCode'});
+    } on TdError catch (e) {
+      _auth.value = _auth.value.withError(e.message);
+    }
+  }
+
   static const _privacyKinds = {
     'phone': 'userPrivacySettingShowPhoneNumber',
     'seen': 'userPrivacySettingShowStatus',
-    'photo': 'userPrivacySettingShowProfilePicture',
+    'photo': 'userPrivacySettingShowProfilePhoto',
     'calls': 'userPrivacySettingAllowCalls',
-    'invites': 'userPrivacySettingAllowChatInvitations',
+    'invites': 'userPrivacySettingAllowChatInvites',
     'forwards': 'userPrivacySettingShowLinkInForwardedMessages',
   };
 

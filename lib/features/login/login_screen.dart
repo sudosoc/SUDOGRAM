@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -27,9 +29,44 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _showPass = false;
   String? _localError;
   AuthStep? _lastStep;
+  bool _forcePhone = false;
+  int _resendLeft = 0;
+  Timer? _tick;
+
+  AuthStep _view(AuthState a) =>
+      _forcePhone &&
+          (a.step == AuthStep.waitCode ||
+              a.step == AuthStep.waitPassword ||
+              a.step == AuthStep.waitQr)
+      ? AuthStep.waitPhone
+      : a.step;
+
+  void _goBack(AuthState a) {
+    if (_forcePhone) {
+      setState(() => _forcePhone = false);
+    } else if (a.step == AuthStep.waitCode ||
+        a.step == AuthStep.waitPassword ||
+        a.step == AuthStep.waitQr) {
+      setState(() => _forcePhone = true);
+    } else if (ref.read(settingsProvider).accounts.length > 1) {
+      final slot = ref.read(settingsProvider).activeSlot;
+      ref.read(settingsProvider.notifier).removeAccount(slot);
+      wipeSlot(slot);
+    } else {
+      SystemNavigator.pop();
+    }
+  }
+
+  bool _canGoBack(AuthState a) =>
+      _forcePhone ||
+      a.step == AuthStep.waitCode ||
+      a.step == AuthStep.waitPassword ||
+      a.step == AuthStep.waitQr ||
+      ref.read(settingsProvider).accounts.length > 1;
 
   @override
   void dispose() {
+    _tick?.cancel();
     _phone.dispose();
     _code.dispose();
     _pass.dispose();
@@ -57,7 +94,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       );
       return;
     }
-    setState(() => _localError = null);
+    setState(() {
+      _localError = null;
+      _forcePhone = false;
+    });
     await _run(() => ref.read(gatewayProvider).submitPhone(p.e164));
   }
 
@@ -90,6 +130,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (_lastStep != auth.step) {
       _lastStep = auth.step;
       _localError = null;
+      _forcePhone = false;
+      if (auth.step == AuthStep.waitCode) {
+        _resendLeft = auth.resendIn;
+        _tick?.cancel();
+        _tick = Timer.periodic(const Duration(seconds: 1), (t) {
+          if (!mounted || _resendLeft <= 0) {
+            t.cancel();
+            return;
+          }
+          setState(() => _resendLeft--);
+        });
+      }
       if (auth.step == AuthStep.waitCode) {
         WidgetsBinding.instance.addPostFrameCallback(
           (_) => _codeFocus.requestFocus(),
@@ -97,75 +149,108 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
     }
     final pal = _country.palette;
-    final bgColors =
-        auth.step == AuthStep.waitPhone || auth.step == AuthStep.waitQr
+    final view = _view(auth);
+    final bgColors = view == AuthStep.waitPhone || view == AuthStep.waitQr
         ? pal
         : [
             GlassTokens.accentDefault,
             GlassTokens.accentDefault.withValues(alpha: .4),
           ];
     final err = _localError ?? auth.error;
-    return Scaffold(
-      backgroundColor: Colors.transparent,
-      body: AnimatedContainer(
-        duration: const Duration(milliseconds: 600),
-        curve: Curves.easeOut,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              for (final c
-                  in (bgColors.length < 2
-                      ? [...bgColors, bgColors.first]
-                      : bgColors))
-                c.withValues(alpha: .28),
-            ],
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _goBack(auth);
+      },
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: AnimatedContainer(
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeOut,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                for (final c
+                    in (bgColors.length < 2
+                        ? [...bgColors, bgColors.first]
+                        : bgColors))
+                  c.withValues(alpha: .28),
+              ],
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: GlassSurface(
-                blur: true,
-                radius: 28,
-                shadow: true,
+          child: SafeArea(
+            child: Center(
+              child: SingleChildScrollView(
                 padding: const EdgeInsets.all(24),
-                child: AnimatedSize(
-                  duration: const Duration(milliseconds: 250),
-                  alignment: Alignment.topCenter,
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 280),
-                    child: KeyedSubtree(
-                      key: ValueKey(auth.step),
-                      child: switch (auth.step) {
-                        AuthStep.waitCode => _codeView(auth),
-                        AuthStep.waitPassword => _passView(),
-                        AuthStep.waitQr => _qrView(auth),
-                        _ => _phoneView(),
-                      },
-                    ),
+                child: GlassSurface(
+                  blur: true,
+                  radius: 28,
+                  shadow: true,
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_canGoBack(auth))
+                        Align(
+                          alignment: AlignmentDirectional.centerStart,
+                          child: TextButton.icon(
+                            icon: const Icon(Icons.arrow_back, size: 18),
+                            label: Text(
+                              _forcePhone
+                                  ? context.t('Back', 'رجوع')
+                                  : (auth.step == AuthStep.waitPhone ||
+                                            auth.step == AuthStep.initializing
+                                        ? context.t(
+                                            'Back to my account',
+                                            'رجوع لحسابي',
+                                          )
+                                        : context.t(
+                                            'Change number / method',
+                                            'تغيير الرقم / الطريقة',
+                                          )),
+                            ),
+                            onPressed: () => _goBack(auth),
+                          ),
+                        ),
+                      AnimatedSize(
+                        duration: const Duration(milliseconds: 250),
+                        alignment: Alignment.topCenter,
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 280),
+                          child: KeyedSubtree(
+                            key: ValueKey(view),
+                            child: switch (view) {
+                              AuthStep.waitCode => _codeView(auth),
+                              AuthStep.waitPassword => _passView(),
+                              AuthStep.waitQr => _qrView(auth),
+                              _ => _phoneView(),
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
             ),
           ),
         ),
-      ),
-      // error banner shared by every step
-      bottomNavigationBar: err == null
-          ? null
-          : SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Text(
-                  err,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: GlassTokens.ringDanger),
+        // error banner shared by every step
+        bottomNavigationBar: err == null
+            ? null
+            : SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Text(
+                    err,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: GlassTokens.ringDanger),
+                  ),
                 ),
               ),
-            ),
+      ),
     );
   }
 
@@ -269,7 +354,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         if (ref.watch(settingsProvider).accounts.length > 1)
           TextButton.icon(
             icon: const Icon(Icons.arrow_back),
-            label: Text(context.t('Back to my other account', 'رجوع لحسابي التاني')),
+            label: Text(
+              context.t('Back to my other account', 'رجوع لحسابي التاني'),
+            ),
             onPressed: () {
               final slot = ref.read(settingsProvider).activeSlot;
               ref.read(settingsProvider.notifier).removeAccount(slot);
@@ -281,13 +368,51 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           label: Text(context.t('Log in with QR code', 'الدخول بكود QR')),
           onPressed: _busy
               ? null
-              : () => _run(() => ref.read(gatewayProvider).requestQrLogin()),
+              : () {
+                  setState(() => _forcePhone = false);
+                  _run(() => ref.read(gatewayProvider).requestQrLogin());
+                },
         ),
       ],
     );
   }
 
   // ------------------------------------------------------------ code
+
+  String _kindName(String k) => switch (k) {
+    'telegram' => context.t('a Telegram message', 'رسالة تليجرام'),
+    'sms' => context.t('an SMS', 'رسالة SMS'),
+    'call' => context.t('a phone call', 'مكالمة هاتفية'),
+    'flash' || 'missed' => context.t('a missed call', 'مكالمة فائتة'),
+    'fragment' => 'Fragment',
+    _ => context.t('another method', 'طريقة تانية'),
+  };
+
+  String _codeHint(AuthState a) {
+    final n = a.codeLength;
+    return switch (a.codeType) {
+      'telegram' => context.t(
+        'We sent a $n-digit code to your Telegram account (open Telegram on another device).',
+        'بعتنالك كود من $n أرقام على حساب تليجرام بتاعك (افتح تليجرام على جهازك التاني).',
+      ),
+      'sms' => context.t(
+        'We sent a $n-digit code by SMS to your phone.',
+        'بعتنالك كود من $n أرقام برسالة SMS على رقمك.',
+      ),
+      'call' => context.t(
+        'We are calling you: listen for the $n-digit code.',
+        'هنكلمك: اسمع الكود المكون من $n أرقام.',
+      ),
+      'flash' || 'missed' => context.t(
+        'You will get a missed call: the last $n digits of its number are the code.',
+        'هتجيلك مكالمة فائتة: آخر $n أرقام من رقمها هما الكود.',
+      ),
+      _ => context.t(
+        'A $n-digit code was sent to you.',
+        'اتبعتلك كود من $n أرقام.',
+      ),
+    };
+  }
 
   Widget _codeView(AuthState auth) {
     final len = auth.codeLength;
@@ -310,10 +435,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                context.t(
-                  'We sent a $len-digit code to your Telegram account on another device.',
-                  'بعتنالك كود من $len أرقام على حساب تليجرام بتاعك في جهازك التاني.',
-                ),
+                _codeHint(auth),
                 style: const TextStyle(
                   fontSize: 12.5,
                   color: GlassTokens.textSecondary,
@@ -374,7 +496,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: CircularProgressIndicator(strokeWidth: 2.4),
             ),
           )
-        else
+        else ...[
+          if (auth.nextType != null)
+            TextButton(
+              onPressed: _resendLeft > 0
+                  ? null
+                  : () => _run(() => ref.read(gatewayProvider).resendCode()),
+              child: Text(
+                _resendLeft > 0
+                    ? context.t(
+                        'Send by ${_kindName(auth.nextType!)} in ${_resendLeft}s',
+                        'إرسال عن طريق ${_kindName(auth.nextType!)} بعد $_resendLeft ث',
+                      )
+                    : context.t(
+                        "Didn't get it? Send by ${_kindName(auth.nextType!)}",
+                        'ماوصلش؟ ابعتها عن طريق ${_kindName(auth.nextType!)}',
+                      ),
+              ),
+            ),
           Text(
             context.t(
               'It verifies automatically.',
@@ -383,6 +522,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             textAlign: TextAlign.center,
             style: const TextStyle(color: GlassTokens.textSecondary),
           ),
+        ],
       ],
     );
   }
@@ -537,35 +677,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           label: Text(
             context.t('Use phone number instead', 'استخدم رقم الهاتف'),
           ),
-          onPressed: () => setState(() => _lastStep = null),
+          onPressed: () => setState(() => _forcePhone = true),
         ),
-        const SizedBox(height: 4),
-        _phoneInline(),
       ],
     );
   }
-
-  Widget _phoneInline() => Row(
-    textDirection: TextDirection.ltr,
-    children: [
-      InkWell(
-        onTap: _pickCountry,
-        child: Text('${_country.flag} +${_country.dial}  '),
-      ),
-      Expanded(
-        child: TextField(
-          controller: _phone,
-          keyboardType: TextInputType.phone,
-          textDirection: TextDirection.ltr,
-          decoration: InputDecoration(
-            hintText: context.t('Phone number', 'رقم الهاتف'),
-          ),
-          onSubmitted: (_) => _sendPhone(),
-        ),
-      ),
-      IconButton(icon: const Icon(Icons.arrow_forward), onPressed: _sendPhone),
-    ],
-  );
 }
 
 /// One animated cell of the verification code.

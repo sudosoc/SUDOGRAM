@@ -15,6 +15,28 @@ import 'providers.dart';
 import '../features/home/hidden_gate.dart';
 
 /// Lets the lock overlay pop everything back to the home screen.
+/// Locks the hidden area the instant its screen is left (back button, swipe
+/// or any pop), so re-entering always asks for the fingerprint / passcode.
+class _HiddenExitObserver extends NavigatorObserver {
+  _HiddenExitObserver(this.ref);
+  final WidgetRef ref;
+
+  void _check(Route<dynamic>? r) {
+    if (r?.settings.name == 'hidden' &&
+        ref.read(settingsProvider).hiddenLockOnExit) {
+      ref.read(vaultUnlockProvider.notifier).lock();
+    }
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _check(route);
+
+  @override
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _check(route);
+}
+
 final rootNavKey = GlobalKey<NavigatorState>();
 
 class SudogramApp extends ConsumerStatefulWidget {
@@ -145,6 +167,7 @@ class _SudogramAppState extends ConsumerState<SudogramApp>
     });
     return MaterialApp(
       navigatorKey: rootNavKey,
+      navigatorObservers: [_HiddenExitObserver(ref)],
       onGenerateTitle: (c) => AppLocalizations.of(c).appTitle,
       debugShowCheckedModeBanner: false,
       theme: buildGlassTheme(Brightness.dark),
