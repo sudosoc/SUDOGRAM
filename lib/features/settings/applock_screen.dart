@@ -9,6 +9,7 @@ import '../../core/settings/app_settings.dart';
 import '../../core/theme/glass.dart';
 import '../home/hidden_gate.dart';
 import '../vault/intruder_camera.dart';
+import '../vault/intruder_vault_screen.dart';
 import 'widgets.dart';
 
 class AppLockScreen extends ConsumerWidget {
@@ -387,6 +388,13 @@ class _Security extends ConsumerWidget {
                     .read(settingsProvider.notifier)
                     .setX('lockPhotoIntruder', v);
               },
+            ),
+            ListTile(
+              leading: const SIcon(Icons.photo_library_outlined),
+              title: Text(context.t('Intruder photos', 'صور المتطفلين')),
+              subtitle: Text(context.t('Opens with fingerprint / app password', 'بتتفتح بالبصمة / باسورد التطبيق')),
+              trailing: const SIcon(Icons.chevron_right),
+              onTap: () => openIntruderVault(context, ref),
             ),
             SwitchRow(
               icon: Icons.notifications_off_outlined,

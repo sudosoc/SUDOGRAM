@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -62,10 +63,7 @@ class LocationCard extends ConsumerWidget {
     final accent = GlassScope.of(context).accent;
     final ar = context.isAr;
     return GestureDetector(
-      onTap: () => launchUrl(
-        Uri.parse('https://www.openstreetmap.org/?mlat=${loc.lat}&mlon=${loc.lon}#map=17/${loc.lat}/${loc.lon}'),
-        mode: LaunchMode.externalApplication,
-      ),
+      onTap: () => _openWith(context, loc),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(14),
         child: SizedBox(
@@ -159,6 +157,54 @@ class LocationCard extends ConsumerWidget {
       ),
     );
   }
+}
+
+Future<void> _go(BuildContext c, String url) async {
+  Navigator.of(c).pop();
+  final ok = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+  if (!ok && c.mounted) {
+    notice(c, c.t('No app could open this', 'مفيش تطبيق قدر يفتحه'), kind: NoticeKind.error);
+  }
+}
+
+/// WhatsApp-style "open this place in…" sheet.
+void _openWith(BuildContext context, LocationData l) {
+  final ll = '${l.lat},${l.lon}';
+  Widget row(IconData i, String t, VoidCallback f) => ListTile(
+        leading: SIcon(i),
+        title: Text(t),
+        onTap: f,
+      );
+  showModalBottomSheet<void>(
+    context: context,
+    builder: (sheet) => SafeArea(
+      child: SingleChildScrollView(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          ListTile(
+            title: Text(context.t('Open location in…', 'فتح الموقع في…'),
+                style: const TextStyle(fontWeight: FontWeight.w700)),
+            subtitle: Text(ll),
+          ),
+          row(Icons.map_outlined, 'Google Maps',
+              () => _go(sheet, 'https://www.google.com/maps/search/?api=1&query=$ll')),
+          row(Icons.navigation_outlined, 'Waze',
+              () => _go(sheet, 'https://waze.com/ul?ll=$ll&navigate=yes')),
+          row(Icons.local_taxi_outlined, 'Uber',
+              () => _go(sheet,
+                  'https://m.uber.com/ul/?action=setPickup&pickup=my_location&dropoff[latitude]=${l.lat}&dropoff[longitude]=${l.lon}')),
+          row(Icons.apps, context.t('Other map apps…', 'تطبيقات خرائط تانية…'),
+              () => _go(sheet, 'geo:$ll?q=$ll')),
+          row(Icons.public, 'OpenStreetMap',
+              () => _go(sheet, 'https://www.openstreetmap.org/?mlat=${l.lat}&mlon=${l.lon}#map=17/${l.lat}/${l.lon}')),
+          row(Icons.copy, context.t('Copy coordinates', 'نسخ الإحداثيات'), () {
+            Clipboard.setData(ClipboardData(text: ll));
+            Navigator.of(sheet).pop();
+            notice(context, context.t('Copied', 'تم النسخ'), kind: NoticeKind.success);
+          }),
+        ]),
+      ),
+    ),
+  );
 }
 
 /// Reads "📍 https://maps.google.com/?q=lat,lon" (archived copies).

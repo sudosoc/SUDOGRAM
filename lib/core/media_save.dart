@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:file_picker/file_picker.dart';
+import 'package:flutter/services.dart';
 import 'package:gal/gal.dart';
 
 import '../domain/models.dart';
@@ -8,28 +8,74 @@ import 'settings/app_settings.dart';
 
 final Set<int> _autoSaved = {};
 
-/// Saves a downloaded attachment: photos / videos go to the gallery, other
-/// files through the system "save as" picker. Returns false when nothing
-/// was saved.
-Future<bool> saveToDevice(ChatMessage m) async {
+const _ch = MethodChannel('sudogram/window');
+
+String _folderFor(ChatMessage m, String name) {
+  switch (m.kind) {
+    case MessageKind.photo:
+      return 'Images';
+    case MessageKind.video:
+      return 'Videos';
+    case MessageKind.voice:
+      return 'Voice';
+    default:
+      final e = name.contains('.') ? name.split('.').last.toLowerCase() : '';
+      if (const {'mp3', 'm4a', 'ogg', 'opus', 'wav', 'flac', 'aac'}.contains(e)) return 'Audio';
+      const docs = {'pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv', 'rtf', 'odt'};
+      return docs.contains(e) ? 'Documents' : 'Files';
+  }
+}
+
+String _mimeFor(String name) {
+  final e = name.contains('.') ? name.split('.').last.toLowerCase() : '';
+  return switch (e) {
+    'jpg' || 'jpeg' => 'image/jpeg',
+    'png' => 'image/png',
+    'webp' => 'image/webp',
+    'gif' => 'image/gif',
+    'mp4' => 'video/mp4',
+    'mov' => 'video/quicktime',
+    'mp3' => 'audio/mpeg',
+    'm4a' => 'audio/mp4',
+    'ogg' || 'oga' || 'opus' => 'audio/ogg',
+    'pdf' => 'application/pdf',
+    'txt' => 'text/plain',
+    'zip' => 'application/zip',
+    _ => 'application/octet-stream',
+  };
+}
+
+/// Saves a downloaded attachment silently into
+/// Downloads/SUDOGRAM/(Images, Videos, Voice, Audio, Documents, Files).
+/// Returns false when nothing was saved.
+Future<bool> saveToDevice(ChatMessage m, {bool gallery = false}) async {
   final f = m.file ?? m.thumb;
   final path = f?.localPath;
   if (f == null || path == null || !File(path).existsSync()) return false;
-  switch (m.kind) {
-    case MessageKind.photo:
+  if (gallery) {
+    if (m.kind == MessageKind.photo) {
       await Gal.putImage(path, album: 'SUDOGRAM');
       return true;
-    case MessageKind.video:
+    }
+    if (m.kind == MessageKind.video) {
       await Gal.putVideo(path, album: 'SUDOGRAM');
       return true;
-    default:
-      final name = f.name.isEmpty ? path.split('/').last : f.name;
-      final r = await FilePicker.saveFile(
-        fileName: name,
-        bytes: await File(path).readAsBytes(),
-      );
-      return r != null;
+    }
   }
+  var name = f.name.isEmpty ? path.split('/').last : f.name;
+  if (!name.contains('.') && path.contains('.')) name = '$name.${path.split('.').last}';
+  final stamp = DateTime.now().millisecondsSinceEpoch;
+  final dot = name.lastIndexOf('.');
+  final unique = dot > 0
+      ? '${name.substring(0, dot)}_$stamp${name.substring(dot)}'
+      : '${name}_$stamp';
+  await _ch.invokeMethod('saveFile', {
+    'src': path,
+    'dir': _folderFor(m, name),
+    'name': unique,
+    'mime': _mimeFor(name),
+  });
+  return true;
 }
 
 /// The rule "does this chat's incoming media go to the gallery?".
@@ -51,7 +97,7 @@ Future<void> autoSaveIfWanted(AppSettings s, ChatMessage m) async {
   if (id == null || _autoSaved.contains(id) || !shouldAutoSave(s, m)) return;
   _autoSaved.add(id);
   try {
-    await saveToDevice(m);
+    await saveToDevice(m, gallery: true);
   } catch (_) {
     _autoSaved.remove(id);
   }

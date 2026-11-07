@@ -73,8 +73,7 @@ class _VaultScreenState extends ConsumerState<VaultScreen> {
       final db = ref.read(archiveProvider);
       setState(() => _error = l.vaultWrong);
       IntruderCamera.capture(ref.read(intruderDirProvider)).then((path) {
-        db.logIntruder(path == null ? 'vault passcode' : 'vault passcode|$path');
-        if (mounted) setState(() {});
+        db.logIntruder(path == null ? 'Vault' : 'Vault|$path');
       });
     } else {
       setState(() {
@@ -103,7 +102,6 @@ class _VaultScreenState extends ConsumerState<VaultScreen> {
     if (session != null) return _page(context, l.vault, _items(session, l));
 
     final setUp = svc.isSetUp;
-    final intruders = setUp ? ref.read(archiveProvider).intruders() : const [];
     return _page(
       context,
       setUp ? l.vault : l.vaultSetupTitle,
@@ -125,26 +123,6 @@ class _VaultScreenState extends ConsumerState<VaultScreen> {
             onPressed: () => setUp ? _unlock(l) : _setup(l),
             child: Text(setUp ? l.unlock : l.vaultSave),
           ),
-          if (intruders.isNotEmpty) ...[
-            const SizedBox(height: 24),
-            Text(l.intruderLog,
-                style: const TextStyle(color: GlassTokens.textSecondary)),
-            for (final (t, w) in intruders.take(10))
-              Row(children: [
-                if (w.contains('|') && File(w.split('|').last).existsSync())
-                  Padding(
-                    padding: const EdgeInsetsDirectional.only(end: 8, top: 4),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.file(File(w.split('|').last),
-                          width: 48, height: 48, fit: BoxFit.cover),
-                    ),
-                  ),
-                Text('${t.toLocal().toString().substring(0, 16)}  ${w.split('|').first}',
-                    style: const TextStyle(
-                        fontSize: 12, color: GlassTokens.textTertiary)),
-              ]),
-          ],
         ],
       ),
     );

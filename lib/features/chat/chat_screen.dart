@@ -2811,10 +2811,14 @@ class _Bubble extends StatelessWidget {
         m.kind == MessageKind.photo ||
         m.kind == MessageKind.sticker ||
         m.kind == MessageKind.video;
-    final preview = m.thumb ?? (m.kind == MessageKind.photo ? m.file : null);
-    final previewPath = preview != null && preview.downloaded
-        ? preview.localPath
-        : null;
+    String? previewPath;
+    for (final a in [m.thumb, if (m.kind == MessageKind.photo) m.file]) {
+      final lp = a?.localPath;
+      if (a != null && lp != null && lp.isNotEmpty && (a.downloaded || File(lp).existsSync() && File(lp).lengthSync() > 0)) {
+        previewPath = lp;
+        break;
+      }
+    }
     final contact = contactOf(m);
     final locData = m.loc ?? (m.kind == MessageKind.other ? parseLocation(m.text) : null);
     final showText = contact == null &&

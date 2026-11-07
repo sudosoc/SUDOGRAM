@@ -171,9 +171,10 @@ class SIcon extends StatelessWidget {
     final base = color ?? IconTheme.of(context).color ?? Colors.white;
     final sz = size ?? IconTheme.of(context).size ?? 24;
     if (style == 'neon') {
-      w = Icon(d, size: size, color: color ?? accent, semanticLabel: semanticLabel, shadows: [
-        Shadow(color: (color ?? accent).withValues(alpha: 0.95), blurRadius: 6),
-        Shadow(color: (color ?? accent).withValues(alpha: 0.6), blurRadius: 16),
+      final nc = color ?? IconTheme.of(context).color ?? accent;
+      w = Icon(d, size: size, color: color, semanticLabel: semanticLabel, shadows: [
+        Shadow(color: nc.withValues(alpha: 0.9), blurRadius: 5),
+        Shadow(color: nc.withValues(alpha: 0.5), blurRadius: 12),
       ]);
     } else if (style == 'duotone' && icon != null) {
       final fill = restyle(icon!, 'filled');

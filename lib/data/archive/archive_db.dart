@@ -289,6 +289,8 @@ class ArchiveDb {
   void logIntruder(String what) => _db.execute(
       'INSERT INTO intruder_log(at,what) VALUES(?,?)', [_now(), what]);
 
+  void clearIntruders() => _db.execute('DELETE FROM intruder_log');
+
   List<(DateTime, String)> intruders() => [
         for (final r in _db.select('SELECT * FROM intruder_log ORDER BY at DESC'))
           (DateTime.fromMillisecondsSinceEpoch(r['at'] as int), r['what'] as String),

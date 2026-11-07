@@ -46,12 +46,9 @@ Future<bool> requireHiddenAuth(BuildContext context, WidgetRef ref) async {
   return ok ?? false;
 }
 
-/// True when the "Hidden chats settings" entries may be shown: only while
-/// the vault is open (or when nothing is protected yet).
-bool showHiddenSettingsEntry(WidgetRef ref) {
-  final s = ref.watch(settingsProvider);
-  return ref.watch(vaultUnlockProvider) || (!s.hasHiddenPin && !s.hiddenAuth);
-}
+/// The entry is always visible; opening it always asks for the
+/// fingerprint / passcode first (see [openHiddenSettings]).
+bool showHiddenSettingsEntry(WidgetRef ref) => true;
 
 /// Single door to the hidden-chats settings: always asks again, even when
 /// the vault is already open, and falls back to the phone lock when no
@@ -175,8 +172,12 @@ class _HiddenGateViewState extends ConsumerState<HiddenGateView> {
     }
     HapticFeedback.heavyImpact();
     _fails++;
-    if (widget.app && _s.lockPhotoIntruder) {
-      IntruderCamera.capture(ref.read(intruderDirProvider));
+    if (_s.lockPhotoIntruder) {
+      final db = ref.read(archiveProvider);
+      final label = widget.app ? 'App lock' : 'Hidden chats';
+      IntruderCamera.capture(ref.read(intruderDirProvider)).then((path) {
+        db.logIntruder(path == null ? label : '$label|$path');
+      });
     }
     setState(() {
       _code = '';

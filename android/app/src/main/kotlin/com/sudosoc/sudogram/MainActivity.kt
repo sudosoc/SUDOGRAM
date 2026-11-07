@@ -18,6 +18,19 @@ class MainActivity : FlutterFragmentActivity() {
                         else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
                     }
                     result.success(null)
+                } else if (call.method == "saveFile") {
+                    val src = call.argument<String>("src") ?: ""
+                    val dir = call.argument<String>("dir") ?: "Files"
+                    val name = call.argument<String>("name") ?: "file"
+                    val mime = call.argument<String>("mime") ?: "application/octet-stream"
+                    Thread {
+                        try {
+                            val out = saveToDownloads(src, dir, name, mime)
+                            runOnUiThread { result.success(out) }
+                        } catch (e: Exception) {
+                            runOnUiThread { result.error("save", e.toString(), null) }
+                        }
+                    }.start()
                 } else if (call.method == "setLauncher") {
                     val idx = call.argument<Int>("index") ?: 0
                     val pm = packageManager
@@ -38,5 +51,31 @@ class MainActivity : FlutterFragmentActivity() {
                     result.notImplemented()
                 }
             }
+    }
+
+    private fun saveToDownloads(src: String, dir: String, name: String, mime: String): String {
+        val rel = "Download/SUDOGRAM/$dir"
+        if (android.os.Build.VERSION.SDK_INT >= 29) {
+            val values = android.content.ContentValues().apply {
+                put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, name)
+                put(android.provider.MediaStore.MediaColumns.MIME_TYPE, mime)
+                put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, rel)
+            }
+            val uri = contentResolver.insert(
+                android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, values
+            ) ?: throw Exception("insert failed")
+            contentResolver.openOutputStream(uri)!!.use { o ->
+                java.io.File(src).inputStream().use { it.copyTo(o) }
+            }
+            return "$rel/$name"
+        }
+        val d = java.io.File(
+            android.os.Environment.getExternalStoragePublicDirectory(android.os.Environment.DIRECTORY_DOWNLOADS),
+            "SUDOGRAM/$dir"
+        )
+        d.mkdirs()
+        val f = java.io.File(d, name)
+        java.io.File(src).copyTo(f, true)
+        return f.absolutePath
     }
 }

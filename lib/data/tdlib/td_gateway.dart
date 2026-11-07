@@ -819,8 +819,9 @@ class TdlibGateway implements TelegramGateway {
       downloaded:
           local['is_downloading_completed'] == true ||
           (path.isNotEmpty &&
-              ((file['remote'] as Map?)?['id'] ?? '').toString().isEmpty &&
-              File(path).existsSync()),
+              size > 0 &&
+              File(path).existsSync() &&
+              File(path).lengthSync() >= size),
       downloading: local['is_downloading_active'] == true,
       downloadedBytes: asInt(local['downloaded_size']),
     );
