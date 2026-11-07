@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/settings/app_settings.dart';
 import '../core/i18n/tr.dart';
 import '../core/theme/glass.dart';
+import '../core/theme/presets.dart';
 import '../domain/models.dart';
 import '../features/home/home_screen.dart';
 import '../features/login/login_screen.dart';
@@ -188,6 +189,14 @@ class _SudogramAppState extends ConsumerState<SudogramApp>
         child: GlassScope(
           performanceMode: s.performanceMode,
           accent: s.accentColor,
+          base: presetById(s.themeId).base,
+          c2: presetById(s.themeId).c2,
+          c3: presetById(s.themeId).c3,
+          intensity: s.bgIntensity,
+          fillScale: s.glassFill,
+          blurSigma: s.glassBlur,
+          radiusScale: s.cornerScale,
+          showBlobs: s.bgBlobs,
           child: GlassBackdrop(child: _LockGate(child: child)),
         ),
       ),

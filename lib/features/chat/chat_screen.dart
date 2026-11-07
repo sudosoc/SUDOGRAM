@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
+import '../../core/i18n/tr.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/theme/glass.dart';
 import '../../domain/models.dart';
@@ -1336,6 +1337,26 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           case 'unread':
             _gateway.markUnread(chat.id, true);
             if (mounted) Navigator.of(context).pop();
+          case 'read':
+            _gateway.markChatRead(chat.id);
+          case 'options':
+            showChatActions(context, ref, chat);
+          case 'ghost':
+            _ghostSheet();
+          case 'top':
+            if (_scroll.hasClients) {
+              _scroll.animateTo(_scroll.position.maxScrollExtent,
+                  duration: const Duration(milliseconds: 400),
+                  curve: Curves.easeOut);
+            }
+          case 'bottom':
+            if (_scroll.hasClients) {
+              _scroll.animateTo(0,
+                  duration: const Duration(milliseconds: 400),
+                  curve: Curves.easeOut);
+            }
+          case 'copyid':
+            await Clipboard.setData(ClipboardData(text: '${chat.id}'));
           case 'clear':
             runChatDanger(context, ref, chat, ChatDanger.clear);
           case 'block':
@@ -1373,7 +1394,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           hidden ? Icons.lock_open : Icons.lock_outline,
           hidden ? l.unhideChat : l.hideChat,
         ),
+        item('read', Icons.done_all, context.t('Mark all as read', 'تعليم الكل كمقروء')),
         item('unread', Icons.mark_chat_unread_outlined, l.markUnread),
+        item('top', Icons.vertical_align_top, context.t('Jump to oldest', 'الرجوع لأقدم رسالة')),
+        item('bottom', Icons.vertical_align_bottom, context.t('Jump to latest', 'النزول لآخر رسالة')),
+        item('ghost', Icons.visibility_off_outlined, context.t('Ghost for this chat', 'الشبح للشات ده')),
+        item('options', Icons.tune, context.t('Chat options', 'خيارات الشات')),
+        item('copyid', Icons.tag, context.t('Copy chat ID', 'نسخ معرّف الشات')),
         item('archive', Icons.archive_outlined, l.archiveChat),
         const PopupMenuDivider(),
         item(
@@ -1658,6 +1685,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                   AvatarCircle(
                                     title: widget.chat.title,
                                     photo: widget.chat.avatar,
+                                    chatId: widget.chat.id,
                                     shape: ref
                                         .watch(settingsProvider)
                                         .chatAvatarShape,

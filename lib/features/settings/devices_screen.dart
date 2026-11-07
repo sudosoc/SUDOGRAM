@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../app/providers.dart';
 import '../../core/i18n/tr.dart';
 import '../../core/theme/glass.dart';
 import '../../domain/models.dart';
+import 'qr_tools.dart';
 
 class DevicesScreen extends ConsumerStatefulWidget {
   const DevicesScreen({super.key});
@@ -107,49 +110,12 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
     await _load();
   }
 
-  Future<void> _addDevice() async {
-    final c = TextEditingController();
-    final link = await showDialog<String>(
-      context: context,
-      builder: (dc) => AlertDialog(
-        title: Text(context.t('Link a device', 'ربط جهاز')),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              context.t(
-                'On the new device choose "Log in by QR", then paste the link that its QR code contains (tg://login?token=…).',
-                'على الجهاز الجديد اختار "الدخول بـ QR" والصق هنا اللينك اللي جوه الكود (tg://login?token=…).',
-              ),
-            ),
-            const SizedBox(height: 10),
-            TextField(
-              controller: c,
-              decoration: const InputDecoration(hintText: 'tg://login?token=…'),
-            ),
-            TextButton.icon(
-              icon: const Icon(Icons.paste),
-              label: Text(context.t('Paste', 'لصق')),
-              onPressed: () async {
-                final d = await Clipboard.getData('text/plain');
-                c.text = d?.text ?? '';
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dc),
-            child: Text(context.t('Cancel', 'إلغاء')),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(dc, c.text.trim()),
-            child: Text(context.t('Link', 'ربط')),
-          ),
-        ],
-      ),
-    );
-    if (link == null || link.isEmpty || !mounted) return;
+  Future<void> _link(String raw) async {
+    final link = extractLoginLink(raw);
+    if (link == null) {
+      _toast(context.t('That is not a Telegram login QR', 'ده مش كود دخول تليجرام'));
+      return;
+    }
     final okMsg = context.t('Device linked', 'تم ربط الجهاز');
     final failMsg = context.t('Could not link', 'مقدرش يربط');
     try {
@@ -158,6 +124,70 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
       await _load();
     } catch (e) {
       _toast('$failMsg: $e');
+    }
+  }
+
+  Future<void> _addDevice() async {
+    final pick = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (dc) => GlassSurface(
+        radius: 24,
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          for (final (k, ic, en, ar, hen, har) in [
+            ('cam', Icons.qr_code_scanner, 'Scan QR with camera', 'مسح QR بالكاميرا',
+                'Point at the QR on the new device (Log in by QR).',
+                'وجّه الكاميرا على كود QR في الجهاز الجديد.'),
+            ('gal', Icons.photo_library_outlined, 'Read QR from a photo', 'قراءة QR من صورة',
+                'Pick a screenshot or photo that contains the code.',
+                'اختار لقطة شاشة أو صورة فيها الكود.'),
+            ('paste', Icons.link, 'Paste login link', 'لصق لينك الدخول',
+                'tg://login?token=… copied from the new device.',
+                'لينك tg://login?token=… منسوخ من الجهاز الجديد.'),
+            ('mine', Icons.qr_code_2, 'Show my profile QR', 'عرض QR الملف الشخصي',
+                'Let someone scan it to open your profile.',
+                'خلّي حد يمسحه عشان يفتح بروفايلك.'),
+          ])
+            ListTile(
+              leading: Icon(ic),
+              title: Text(context.t(en, ar)),
+              subtitle: Text(context.t(hen, har),
+                  style: const TextStyle(color: GlassTokens.textSecondary)),
+              onTap: () => Navigator.pop(dc, k),
+            ),
+        ]),
+      ),
+    );
+    if (pick == null || !mounted) return;
+    switch (pick) {
+      case 'cam':
+        final r = await Navigator.of(context)
+            .push<String>(MaterialPageRoute(builder: (_) => const ScanQrScreen()));
+        if (r != null) await _link(r);
+      case 'gal':
+        final f = await ImagePicker().pickImage(source: ImageSource.gallery);
+        if (f == null) return;
+        final cap = await MobileScannerController().analyzeImage(f.path);
+        final v = cap?.barcodes.map((b) => b.rawValue).whereType<String>().firstOrNull;
+        if (!mounted) return;
+        if (v == null) {
+          _toast(context.t('No QR code found in that image', 'مفيش كود QR في الصورة دي'));
+        } else {
+          await _link(v);
+        }
+      case 'paste':
+        final d = await Clipboard.getData('text/plain');
+        await _link(d?.text ?? '');
+      case 'mine':
+        final me = await ref.read(meProvider.future);
+        if (!mounted) return;
+        if (me == null || me.username.isEmpty) {
+          _toast(context.t('Set a username first', 'اعمل يوزرنيم الأول'));
+        } else {
+          await showQrSheet(context, context.t('My profile', 'بروفايلي'),
+              'https://t.me/${me.username}');
+        }
     }
   }
 

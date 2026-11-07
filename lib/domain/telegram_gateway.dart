@@ -231,6 +231,15 @@ abstract class TelegramGateway {
   Future<List<ChatMessage>> sharedMedia(int chatId, String filter);
 
   /// Marks messages read on purpose (works even while Ghost is on).
+  /// Marks the whole chat as read (even in Ghost mode: it is a manual action).
+  Future<void> markChatRead(int chatId);
+
+  /// Full-size profile photo path (downloads it), or null when none.
+  Future<String?> bigProfilePhoto(int chatId);
+
+  /// Groups both you and [userId] are members of.
+  Future<List<ChatSummary>> commonGroups(int userId);
+
   Future<void> markReadManual(int chatId, List<int> messageIds);
 
   /// All pinned messages of the chat, newest first.

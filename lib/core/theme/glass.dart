@@ -34,7 +34,28 @@ class GlassScope extends InheritedWidget {
     required this.performanceMode,
     required this.accent,
     required super.child,
+    this.base = GlassTokens.base,
+    this.c2 = GlassTokens.cyan,
+    this.c3 = GlassTokens.violet,
+    this.intensity = 1,
+    this.fillScale = 1,
+    this.blurSigma = GlassTokens.blurSigma,
+    this.radiusScale = 1,
+    this.showBlobs = true,
   });
+
+  final Color base;
+  final Color c2;
+  final Color c3;
+
+  /// Strength of the coloured light behind everything (0 = flat colour).
+  final double intensity;
+
+  /// Multiplies the glass fill opacity (higher = more solid panels).
+  final double fillScale;
+  final double blurSigma;
+  final double radiusScale;
+  final bool showBlobs;
 
   /// When true, real backdrop blur is disabled everywhere (cheap translucent
   /// fills only). Meant for weak devices.
@@ -53,7 +74,16 @@ class GlassScope extends InheritedWidget {
 
   @override
   bool updateShouldNotify(GlassScope old) =>
-      old.performanceMode != performanceMode || old.accent != accent;
+      old.performanceMode != performanceMode ||
+      old.accent != accent ||
+      old.base != base ||
+      old.c2 != c2 ||
+      old.c3 != c3 ||
+      old.intensity != intensity ||
+      old.fillScale != fillScale ||
+      old.blurSigma != blurSigma ||
+      old.radiusScale != radiusScale ||
+      old.showBlobs != showBlobs;
 }
 
 /// Soft colored light blobs on a dark base. Uses radial gradients instead of
@@ -65,14 +95,17 @@ class GlassBackdrop extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = GlassScope.of(context).accent;
+    final sc = GlassScope.of(context);
+    final k = sc.intensity;
     return Stack(
       fit: StackFit.expand,
       children: [
-        const ColoredBox(color: GlassTokens.base),
-        _Blob(color: accent, alpha: 0.55, size: 520, top: -190, end: -200),
-        _Blob(color: GlassTokens.cyan, alpha: 0.32, size: 560, top: 260, start: -280),
-        _Blob(color: GlassTokens.violet, alpha: 0.45, size: 500, bottom: -230, end: -150),
+        ColoredBox(color: sc.base),
+        if (sc.showBlobs && k > 0) ...[
+          _Blob(color: sc.accent, alpha: (0.55 * k).clamp(0, 1), size: 520, top: -190, end: -200),
+          _Blob(color: sc.c2, alpha: (0.32 * k).clamp(0, 1), size: 560, top: 260, start: -280),
+          _Blob(color: sc.c3, alpha: (0.45 * k).clamp(0, 1), size: 500, bottom: -230, end: -150),
+        ],
         ?child,
       ],
     );
@@ -153,13 +186,13 @@ class GlassSurface extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scope = GlassScope.of(context);
-    final borderRadius = BorderRadius.circular(radius);
+    final borderRadius = BorderRadius.circular(radius * scope.radiusScale);
     final base = tint ?? Colors.white;
     final decorated = Container(
       padding: padding,
       decoration: BoxDecoration(
         borderRadius: borderRadius,
-        color: base.withValues(alpha: fill),
+        color: base.withValues(alpha: (fill * scope.fillScale).clamp(0.0, 0.9)),
         border: Border.all(
           color: borderColor ?? Colors.white.withValues(alpha: border),
         ),
@@ -182,8 +215,8 @@ class GlassSurface extends StatelessWidget {
       borderRadius: borderRadius,
       child: BackdropFilter(
         filter: ImageFilter.blur(
-          sigmaX: GlassTokens.blurSigma,
-          sigmaY: GlassTokens.blurSigma,
+          sigmaX: scope.blurSigma,
+          sigmaY: scope.blurSigma,
         ),
         child: decorated,
       ),

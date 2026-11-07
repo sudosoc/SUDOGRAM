@@ -391,6 +391,16 @@ class GhostGateway implements TelegramGateway {
   Future<void> setArchiveNewFromUnknown(bool on) => _inner.setArchiveNewFromUnknown(on);
 
   @override
+  Future<void> markChatRead(int chatId) => _inner.markChatRead(chatId);
+
+  @override
+  Future<String?> bigProfilePhoto(int chatId) => _inner.bigProfilePhoto(chatId);
+
+  @override
+  Future<List<ChatSummary>> commonGroups(int userId) =>
+      _inner.commonGroups(userId);
+
+  @override
   Future<void> forwardMessages(int toChatId, int fromChatId, List<int> ids) =>
       _inner.forwardMessages(toChatId, fromChatId, ids);
   @override

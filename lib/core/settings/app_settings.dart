@@ -156,6 +156,37 @@ class AppSettings {
   int get activeSlot => x['activeSlot'] as int? ?? 0;
   bool get showAccountSwitcher => x['showAccountSwitcher'] as bool? ?? true;
 
+  // ---- Theme
+  String get themeId => x['themeId'] as String? ?? 'aurora';
+  double get bgIntensity => ((x['bgIntensity'] as num?) ?? 1).toDouble();
+  double get glassFill => ((x['glassFill'] as num?) ?? 1).toDouble();
+  double get glassBlur => ((x['glassBlur'] as num?) ?? 28).toDouble();
+  double get cornerScale => ((x['cornerScale'] as num?) ?? 1).toDouble();
+  bool get bgBlobs => x['bgBlobs'] as bool? ?? true;
+
+  // ---- Bottom bar
+  bool get barOn => x['barOn'] as bool? ?? true;
+  List<String> get barItems => [
+    for (final e in (x['barItems'] as List? ?? const ['chats', 'contacts', 'tools', 'settings']))
+      e.toString(),
+  ];
+
+  /// outlined | rounded | sharp | filled
+  String get barIcons => x['barIcons'] as String? ?? 'rounded';
+
+  /// floating | docked | compact
+  String get barStyle => x['barStyle'] as String? ?? 'floating';
+
+  /// always | active | never
+  String get barLabels => x['barLabels'] as String? ?? 'active';
+
+  /// pill | underline | glow | none
+  String get barIndicator => x['barIndicator'] as String? ?? 'pill';
+  double get barHeight => ((x['barHeight'] as num?) ?? 64).toDouble();
+  double get barOpacity => ((x['barOpacity'] as num?) ?? 1).toDouble();
+  bool get barHaptic => x['barHaptic'] as bool? ?? true;
+  bool get barBadge => x['barBadge'] as bool? ?? true;
+
   // ---- Customization: home
   /// circle | squircle | square | hidden
   String get avatarShape => x['avatarShape'] as String? ?? 'circle';

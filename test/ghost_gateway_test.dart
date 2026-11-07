@@ -166,6 +166,15 @@ class _Recorder implements TelegramGateway {
   Future<void> setArchiveNewFromUnknown(bool on) async {}
 
   @override
+  Future<void> markChatRead(int chatId) async {}
+
+  @override
+  Future<String?> bigProfilePhoto(int chatId) async => null;
+
+  @override
+  Future<List<ChatSummary>> commonGroups(int userId) async => const [];
+
+  @override
   bool get isDemo => true;
   @override
   Stream<AuthState> get authState => const Stream.empty();

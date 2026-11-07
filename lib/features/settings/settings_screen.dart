@@ -15,6 +15,8 @@ import 'account_screens.dart';
 import 'accounts_screen.dart';
 import 'applock_screen.dart';
 import 'chats_settings.dart';
+import '../tools/tools_hub.dart';
+import 'appearance_screen.dart';
 import 'customize_screen.dart';
 import 'notif_screen.dart';
 import 'devices_screen.dart';
@@ -177,6 +179,13 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
             nav(
+              Icons.palette_outlined,
+              context.t('Themes & look', 'الثيمات والمظهر'),
+              (_) => const AppearanceScreen(),
+              sub: context.t('12 themes, glass, bottom bar',
+                  '12 ثيم، زجاج، شريط سفلي'),
+            ),
+            nav(
               Icons.dashboard_customize_outlined,
               context.t('Customization', 'التخصيص'),
               (_) => const CustomizeScreen(),
@@ -195,6 +204,13 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ]),
           group(l.settingsTools, [
+            nav(
+              Icons.handyman_outlined,
+              context.t('All tools', 'كل الأدوات'),
+              (_) => const ToolsHubScreen(),
+              sub: context.t('QR, passwords, hashes, encoders…',
+                  'QR وباسوردات وهاش وترميز…'),
+            ),
             nav(Icons.history, l.timeMachine, (_) => const TimeMachineScreen()),
             nav(
               Icons.person_search_outlined,

@@ -12,6 +12,8 @@ import '../../domain/models.dart';
 import '../../l10n/app_localizations.dart';
 import '../home/chat_actions.dart';
 import 'avatar.dart';
+import 'common_groups.dart';
+import 'photo_viewer.dart';
 import 'chat_screen.dart';
 import 'members_screen.dart';
 import 'status_text.dart';
@@ -116,7 +118,11 @@ class _ChatInfoScreenState extends ConsumerState<ChatInfoScreen> {
           return ListView(padding: const EdgeInsets.only(bottom: 32), children: [
             const SizedBox(height: 8),
             Center(
-                child: AvatarCircle(title: chat.title, photo: chat.avatar, size: 104)),
+                child: GestureDetector(
+                    onTap: () =>
+                        openProfilePhoto(context, chat.id, chat.title, chat.avatar),
+                    child: AvatarCircle(
+                        title: chat.title, photo: chat.avatar, size: 104))),
             const SizedBox(height: 12),
             Center(
                 child: Text(name,
@@ -203,6 +209,8 @@ class _ChatInfoScreenState extends ConsumerState<ChatInfoScreen> {
                   leading: const Icon(Icons.groups_2_outlined),
                   title: Text(l.commonGroups),
                   trailing: Text('${i.commonGroups}'),
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                      builder: (_) => CommonGroupsScreen(userId: chat.id))),
                 ),
             ],
             const Divider(),

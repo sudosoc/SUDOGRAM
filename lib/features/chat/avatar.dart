@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 
 import '../../domain/models.dart';
+import 'photo_viewer.dart';
 
 /// Round avatar: the profile photo when downloaded, otherwise the first
 /// letter on a colour derived from the name.
@@ -14,7 +15,11 @@ class AvatarCircle extends StatelessWidget {
     this.size = 48,
     this.ring,
     this.shape = 'circle',
+    this.chatId,
   });
+
+  /// When set, a long press opens the full-size profile photo.
+  final int? chatId;
 
   /// circle | squircle | square
   final String shape;
@@ -39,7 +44,7 @@ class AvatarCircle extends StatelessWidget {
     final path = photo != null && photo!.downloaded ? photo!.localPath : null;
     final color =
         _palette[title.runes.fold<int>(0, (a, b) => a + b) % _palette.length];
-    return Container(
+    final box = Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
@@ -62,6 +67,12 @@ class AvatarCircle extends StatelessWidget {
               style: TextStyle(fontSize: size * 0.4),
             )
           : null,
+    );
+    final id = chatId;
+    if (id == null) return box;
+    return GestureDetector(
+      onLongPress: () => openProfilePhoto(context, id, title, photo),
+      child: box,
     );
   }
 }

@@ -2503,6 +2503,76 @@ class TdlibGateway implements TelegramGateway {
   }
 
   @override
+  Future<void> markChatRead(int chatId) async {
+    try {
+      final c = await _td.request({'@type': 'getChat', 'chat_id': chatId});
+      final last = asInt((c['last_message'] as Map?)?['id']);
+      if (last != 0) {
+        await _td.request({
+          '@type': 'viewMessages',
+          'chat_id': chatId,
+          'message_ids': [last],
+          'force_read': true,
+        });
+      }
+      await _td.request({
+        '@type': 'toggleChatIsMarkedAsUnread',
+        'chat_id': chatId,
+        'is_marked_as_unread': false,
+      });
+    } on TdError {
+      // Leaves the badge as it was.
+    }
+  }
+
+  @override
+  Future<String?> bigProfilePhoto(int chatId) async {
+    try {
+      final c = await _td.request({'@type': 'getChat', 'chat_id': chatId});
+      final big = (c['photo'] as Map?)?['big'] as Map?;
+      if (big == null) return null;
+      final f = await _td.request({
+        '@type': 'downloadFile',
+        'file_id': asInt(big['id']),
+        'priority': 32,
+        'offset': 0,
+        'limit': 0,
+        'synchronous': true,
+      });
+      final p = ((f['local'] as Map?)?['path'] ?? '').toString();
+      return p.isEmpty ? null : p;
+    } on TdError {
+      return null;
+    }
+  }
+
+  @override
+  Future<List<ChatSummary>> commonGroups(int userId) async {
+    try {
+      final r = await _td.request({
+        '@type': 'getGroupsInCommon',
+        'user_id': userId,
+        'offset_chat_id': 0,
+        'limit': 100,
+      });
+      final out = <ChatSummary>[];
+      for (final id in (r['chat_ids'] as List? ?? const [])) {
+        final cid = asInt(id);
+        try {
+          final c = await _td.request({'@type': 'getChat', 'chat_id': cid});
+          _applyChat(Map<String, dynamic>.from(c));
+          out.add(_summary(_chat(cid)));
+        } on TdError {
+          continue;
+        }
+      }
+      return out;
+    } on TdError {
+      return const [];
+    }
+  }
+
+  @override
   Future<void> markReadManual(int chatId, List<int> messageIds) =>
       markRead(chatId, messageIds);
 

@@ -5,6 +5,7 @@ import '../downloads/keep_alive.dart';
 import '../../core/drafts.dart';
 import '../chat/avatar.dart';
 import 'archive_screen.dart';
+import 'bottom_bar.dart';
 import '../chat/contacts_screen.dart';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -225,6 +226,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 child: const Icon(Icons.edit_outlined),
               ),
             ),
+      bottomNavigationBar: const AppBottomBar(),
       body: SafeArea(
         child: Column(
           children: [
@@ -680,6 +682,7 @@ class ChatRow extends ConsumerWidget {
                   AvatarCircle(
                     title: chat.title,
                     photo: chat.avatar,
+                    chatId: chat.id,
                     ring: _ring,
                     shape: st.avatarShape,
                     size: mode == 'compact'

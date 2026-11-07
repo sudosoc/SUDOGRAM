@@ -31,6 +31,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   AuthStep? _lastStep;
   bool _forcePhone = false;
   int _resendLeft = 0;
+  Timer? _qrTimer;
   Timer? _tick;
 
   AuthStep _view(AuthState a) =>
@@ -67,6 +68,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   void dispose() {
     _tick?.cancel();
+    _qrTimer?.cancel();
     _phone.dispose();
     _code.dispose();
     _pass.dispose();
@@ -131,6 +133,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _lastStep = auth.step;
       _localError = null;
       _forcePhone = false;
+      _qrTimer?.cancel();
+      if (auth.step == AuthStep.waitQr) {
+        // QR tokens live ~30 s: ask for a fresh one before it dies.
+        _qrTimer = Timer.periodic(const Duration(seconds: 20), (_) {
+          if (mounted && !_forcePhone) {
+            ref.read(gatewayProvider).requestQrLogin();
+          }
+        });
+      }
       if (auth.step == AuthStep.waitCode) {
         _resendLeft = auth.resendIn;
         _tick?.cancel();
@@ -671,7 +682,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
           style: const TextStyle(color: GlassTokens.textSecondary),
         ),
-        const SizedBox(height: 10),
+        TextButton.icon(
+          icon: const Icon(Icons.refresh),
+          label: Text(context.t('Refresh code', 'تحديث الكود')),
+          onPressed: () => ref.read(gatewayProvider).requestQrLogin(),
+        ),
         TextButton.icon(
           icon: const Icon(Icons.phone_android),
           label: Text(
