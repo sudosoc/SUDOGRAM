@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../core/ui/icon_styles.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -61,7 +62,7 @@ class ContactCardView extends ConsumerWidget {
         Wrap(spacing: 4, children: [
           if (card.userId != 0)
             TextButton.icon(
-              icon: const Icon(Icons.chat_bubble_outline, size: 16),
+              icon: const SIcon(Icons.chat_bubble_outline, size: 16),
               label: Text(l.contactMessage),
               onPressed: () async {
                 final nav = Navigator.of(context);
@@ -73,19 +74,19 @@ class ContactCardView extends ConsumerWidget {
             ),
           if (phone.isNotEmpty)
             TextButton.icon(
-              icon: const Icon(Icons.copy, size: 16),
+              icon: const SIcon(Icons.copy, size: 16),
               label: Text(l.contactCopyPhone),
               onPressed: () => copy(phone),
             ),
           if (card.name.isNotEmpty)
             TextButton.icon(
-              icon: const Icon(Icons.person_outline, size: 16),
+              icon: const SIcon(Icons.person_outline, size: 16),
               label: Text(l.contactCopyName),
               onPressed: () => copy(card.name),
             ),
           if (phone.isNotEmpty)
             TextButton.icon(
-              icon: const Icon(Icons.call_outlined, size: 16),
+              icon: const SIcon(Icons.call_outlined, size: 16),
               label: Text(l.contactCall),
               onPressed: () => launchUrl(Uri.parse('tel:$phone')),
             ),

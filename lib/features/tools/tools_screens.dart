@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import '../../core/ui/icon_styles.dart';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -178,7 +179,7 @@ class _VaultScreenState extends ConsumerState<VaultScreen> {
                               ),
                             ),
                             IconButton(
-                              icon: const Icon(Icons.delete_outline),
+                              icon: const SIcon(Icons.delete_outline),
                               onPressed: () => setState(() => s.remove(i.id)),
                             ),
                           ]),
@@ -190,7 +191,7 @@ class _VaultScreenState extends ConsumerState<VaultScreen> {
         Padding(
           padding: const EdgeInsets.all(12),
           child: FilledButton.icon(
-            icon: const Icon(Icons.add),
+            icon: const SIcon(Icons.add),
             label: Text(l.vaultAdd),
             onPressed: () => _addDialog(s, l),
           ),

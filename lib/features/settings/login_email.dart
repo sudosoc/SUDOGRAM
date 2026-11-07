@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/ui/icon_styles.dart';
 
 import '../../app/providers.dart';
 import '../../core/i18n/tr.dart';
@@ -77,7 +78,7 @@ class _LoginEmailScreenState extends ConsumerState<LoginEmailScreen> {
         children: [
           SGroup(children: [
             ListTile(
-              leading: const Icon(Icons.alternate_email),
+              leading: const SIcon(Icons.alternate_email),
               title: Text(!_loaded
                   ? '…'
                   : (_pattern == null || _pattern!.isEmpty)
@@ -88,7 +89,7 @@ class _LoginEmailScreenState extends ConsumerState<LoginEmailScreen> {
                   'تليجرام ممكن يبعت كود الدخول على الإيميل ده بدل جهاز تاني أو SMS.')),
             ),
             ListTile(
-              leading: const Icon(Icons.edit_outlined),
+              leading: const SIcon(Icons.edit_outlined),
               title: Text(context.t('Change e-mail', 'تغيير الإيميل')),
               onTap: _change,
             ),

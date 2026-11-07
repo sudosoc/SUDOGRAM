@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../core/ui/icon_styles.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -155,7 +156,7 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
                 'خلّي حد يمسحه عشان يفتح بروفايلك.'),
           ])
             ListTile(
-              leading: Icon(ic),
+              leading: SIcon(ic),
               title: Text(context.t(en, ar)),
               subtitle: Text(context.t(hen, har),
                   style: const TextStyle(color: GlassTokens.textSecondary)),
@@ -316,7 +317,7 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
                 style: FilledButton.styleFrom(
                   backgroundColor: GlassTokens.ringDanger,
                 ),
-                icon: const Icon(Icons.logout),
+                icon: const SIcon(Icons.logout),
                 label: Text(context.t('Terminate session', 'إنهاء الجلسة')),
                 onPressed: () {
                   Navigator.pop(context);
@@ -363,7 +364,7 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
     final cur = list?.where((d) => d.current).toList() ?? const [];
     final others = list?.where((d) => !d.current).toList() ?? const [];
     Widget tile(DeviceSession d) => ListTile(
-      leading: Icon(_icon(d)),
+      leading: SIcon(_icon(d)),
       title: Text(d.app.isEmpty ? d.device : d.app),
       subtitle: Text(
         '${d.device}\n${d.country} ${d.ip} · ${_ago(d.lastActive)}',
@@ -379,10 +380,10 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
                 'Locked until this app is 24 h old',
                 'مقفول لحد ما التطبيق ده يكمّل 24 ساعة',
               ),
-              child: const Icon(Icons.lock_clock, color: GlassTokens.textTertiary),
+              child: const SIcon(Icons.lock_clock, color: GlassTokens.textTertiary),
             )
           : IconButton(
-              icon: const Icon(Icons.close, color: GlassTokens.ringDanger),
+              icon: const SIcon(Icons.close, color: GlassTokens.ringDanger),
               onPressed: () => _terminate(d),
             ),
     );
@@ -394,7 +395,7 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _addDevice,
-        icon: const Icon(Icons.add_to_queue),
+        icon: const SIcon(Icons.add_to_queue),
         label: Text(context.t('Link device', 'ربط جهاز')),
       ),
       body: list == null
@@ -412,7 +413,7 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
                         radius: 16,
                         padding: const EdgeInsets.all(12),
                         child: Row(children: [
-                          const Icon(Icons.lock_clock),
+                          const SIcon(Icons.lock_clock),
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(context.t(
@@ -427,7 +428,7 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
                   for (final d in cur) tile(d),
                   if (others.isNotEmpty) ...[
                     ListTile(
-                      leading: const Icon(
+                      leading: const SIcon(
                         Icons.logout,
                         color: GlassTokens.ringDanger,
                       ),
@@ -445,7 +446,7 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
                   ],
                   _head(context.t('Auto-terminate', 'إنهاء تلقائي')),
                   ListTile(
-                    leading: const Icon(Icons.timer_outlined),
+                    leading: const SIcon(Icons.timer_outlined),
                     title: Text(context.t('If inactive for', 'لو خاملة لمدة')),
                     subtitle: Text(
                       _ttl >= 365

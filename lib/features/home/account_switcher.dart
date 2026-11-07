@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/ui/icon_styles.dart';
 
 import '../../app/app.dart' show rootNavKey;
 import '../../core/i18n/tr.dart';
@@ -91,7 +92,7 @@ class AccountSwitcherButton extends ConsumerWidget {
                       ),
                     ),
                     if (a['slot'] == s.activeSlot)
-                      const Icon(
+                      const SIcon(
                         Icons.check_circle,
                         size: 18,
                         color: GlassTokens.ringSafe,
@@ -107,7 +108,7 @@ class AccountSwitcherButton extends ConsumerWidget {
             value: -1,
             child: Row(
               children: [
-                const Icon(Icons.person_add_alt_1, size: 20),
+                const SIcon(Icons.person_add_alt_1, size: 20),
                 const SizedBox(width: 10),
                 Text(context.t('Add account', 'إضافة حساب')),
               ],
@@ -120,7 +121,7 @@ class AccountSwitcherButton extends ConsumerWidget {
           child: GlassSurface(
             radius: 22,
             padding: const EdgeInsets.all(10),
-            child: const Icon(Icons.switch_account_outlined, size: 20),
+            child: const SIcon(Icons.switch_account_outlined, size: 20),
           ),
         ),
       ),

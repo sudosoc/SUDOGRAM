@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/ui/icon_styles.dart';
 
 import '../../app/providers.dart';
 import '../../core/i18n/tr.dart';
@@ -74,7 +75,7 @@ class PrivacyScreen extends ConsumerWidget {
       ]),
       SGroup(title: context.t('Security', 'الأمان'), children: [
         ListTile(
-          leading: const Icon(Icons.lock_outline),
+          leading: const SIcon(Icons.lock_outline),
           title: Text(context.t('App passcode & lock', 'باسكود وقفل التطبيق')),
           subtitle: Text(context.t('Fingerprint, passcode, auto-lock.',
               'بصمة، باسكود، قفل تلقائي.')),
@@ -82,21 +83,21 @@ class PrivacyScreen extends ConsumerWidget {
           onTap: () => _go(context, const AppLockScreen()),
         ),
         ListTile(
-          leading: const Icon(Icons.password),
+          leading: const SIcon(Icons.password),
           title: Text(context.t('Two-step verification', 'التحقق بخطوتين')),
           subtitle: Text(context.t('An extra password when signing in on a new device.',
               'باسورد إضافي لما تسجل دخول من جهاز جديد.')),
           onTap: () => _go(context, const TwoStepScreen()),
         ),
         ListTile(
-          leading: const Icon(Icons.devices_other),
+          leading: const SIcon(Icons.devices_other),
           title: Text(context.t('Active sessions', 'الجلسات النشطة')),
           subtitle: Text(context.t('See and end sessions on other devices.',
               'شوف وأنهي الجلسات على الأجهزة التانية.')),
           onTap: () => _go(context, const DevicesScreen()),
         ),
         ListTile(
-          leading: const Icon(Icons.block),
+          leading: const SIcon(Icons.block),
           title: Text(context.t('Blocked users', 'المحظورين')),
           subtitle: Text(context.t('People who cannot message or call you.',
               'ناس مايقدروش يراسلوك أو يكلموك.')),
@@ -118,7 +119,7 @@ class PrivacyScreen extends ConsumerWidget {
           value: s.lockBlockScreenshots,
         ),
         SwitchListTile(
-          secondary: const Icon(Icons.notifications_off_outlined),
+          secondary: const SIcon(Icons.notifications_off_outlined),
           title: Text(context.t('Hide message text in notifications', 'إخفاء نص الرسائل في الإشعارات')),
           subtitle: Text(context.t('Notifications only say you got a message.',
               'الإشعارات بتقول جاتلك رسالة بس.')),
@@ -128,14 +129,14 @@ class PrivacyScreen extends ConsumerWidget {
               .setX('notifContent', v ? 'generic' : 'full'),
         ),
         ListTile(
-          leading: const Icon(Icons.visibility_off_outlined),
+          leading: const SIcon(Icons.visibility_off_outlined),
           title: const Text('Ghost'),
           subtitle: Text(context.t('Hide read receipts, typing and online status.',
               'إخفاء القراءة والكتابة والاتصال.')),
           onTap: () => _go(context, const GhostScreen()),
         ),
         ListTile(
-          leading: const Icon(Icons.lock_person_outlined),
+          leading: const SIcon(Icons.lock_person_outlined),
           title: Text(context.t('Hidden chats', 'الشاتات المخفية')),
           subtitle: Text(context.t('Open methods, sections, lock options.',
               'طرق الفتح، الأقسام، خيارات القفل.')),
@@ -190,12 +191,12 @@ class _RuleTileState extends ConsumerState<_RuleTile> {
   Widget build(BuildContext context) {
     final i = widget.item;
     return ListTile(
-      leading: Icon(i.icon),
+      leading: SIcon(i.icon),
       title: Text(context.t(i.en, i.ar)),
       subtitle: Text(context.t(i.hintEn, i.hintAr),
           style: const TextStyle(fontSize: 12, color: GlassTokens.textSecondary)),
       trailing: _failed
-          ? const Icon(Icons.error_outline, color: GlassTokens.ringCaution)
+          ? const SIcon(Icons.error_outline, color: GlassTokens.ringCaution)
           : _rule == null
               ? const SizedBox(
                   width: 18,
@@ -288,7 +289,7 @@ class _PrivacyRuleScreenState extends ConsumerState<PrivacyRuleScreen> {
                   Expanded(
                     child: TextField(
                       decoration: InputDecoration(
-                          prefixIcon: const Icon(Icons.search),
+                          prefixIcon: const SIcon(Icons.search),
                           hintText: sc.t('Search contacts', 'ابحث في جهات الاتصال')),
                       onChanged: (v) => setS(() => q = v),
                     ),
@@ -381,7 +382,7 @@ class _PrivacyRuleScreenState extends ConsumerState<PrivacyRuleScreen> {
         SGroup(title: context.t('Exceptions', 'استثناءات'), children: [
           if (_base != 'everybody')
             ListTile(
-              leading: const Icon(Icons.person_add_alt),
+              leading: const SIcon(Icons.person_add_alt),
               title: Text(context.t('Always allow', 'اسمح دايمًا')),
               subtitle: Text(_allow.isEmpty
                   ? context.t('Add users', 'أضف أشخاص')
@@ -391,7 +392,7 @@ class _PrivacyRuleScreenState extends ConsumerState<PrivacyRuleScreen> {
             ),
           if (_base != 'nobody')
             ListTile(
-              leading: const Icon(Icons.person_off_outlined),
+              leading: const SIcon(Icons.person_off_outlined),
               title: Text(context.t('Never allow', 'ماتسمحش أبدًا')),
               subtitle: Text(_deny.isEmpty
                   ? context.t('Add users', 'أضف أشخاص')
@@ -443,7 +444,7 @@ class _AutoDeleteTileState extends ConsumerState<_AutoDeleteTile> {
 
   @override
   Widget build(BuildContext context) => ListTile(
-        leading: const Icon(Icons.auto_delete_outlined),
+        leading: const SIcon(Icons.auto_delete_outlined),
         title: Text(context.t('Auto-delete messages', 'حذف الرسائل تلقائيًا')),
         subtitle: Text(context.t(
             'Default timer for new chats. Messages vanish after this time.',
@@ -507,7 +508,7 @@ class _TtlTileState extends ConsumerState<_TtlTile> {
 
   @override
   Widget build(BuildContext context) => ListTile(
-        leading: const Icon(Icons.timer_off_outlined),
+        leading: const SIcon(Icons.timer_off_outlined),
         title: Text(context.t('Delete my account if away for', 'احذف حسابي لو غبت')),
         subtitle: Text(context.t(
             'If you never open Telegram for this long, the account is deleted.',
@@ -562,7 +563,7 @@ class _ArchiveTileState extends ConsumerState<_ArchiveTile> {
 
   @override
   Widget build(BuildContext context) => SwitchListTile(
-        secondary: const Icon(Icons.archive_outlined),
+        secondary: const SIcon(Icons.archive_outlined),
         title: Text(context.t('Archive & mute new chats from strangers',
             'أرشفة وكتم الشاتات الجديدة من الغرباء')),
         subtitle: Text(context.t(

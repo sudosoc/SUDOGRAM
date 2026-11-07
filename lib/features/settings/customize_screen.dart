@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/ui/icon_styles.dart';
 
 import '../../core/i18n/tr.dart';
 import '../../core/settings/app_settings.dart';
@@ -129,23 +130,23 @@ class _HomePreview extends ConsumerWidget {
           if (s.showAccountSwitcher)
             const Padding(
                 padding: EdgeInsets.only(left: 8),
-                child: Icon(Icons.switch_account_outlined, size: 20)),
+                child: SIcon(Icons.switch_account_outlined, size: 20)),
           if (s.homeShowGhost)
             const Padding(
                 padding: EdgeInsets.only(left: 8),
-                child: Icon(Icons.visibility_off_outlined, size: 20)),
+                child: SIcon(Icons.visibility_off_outlined, size: 20)),
           if (s.homeShowSearch)
             const Padding(
                 padding: EdgeInsets.only(left: 8),
-                child: Icon(Icons.search, size: 20)),
+                child: SIcon(Icons.search, size: 20)),
           if (s.homeShowTools)
             const Padding(
                 padding: EdgeInsets.only(left: 8),
-                child: Icon(Icons.handyman_outlined, size: 20)),
+                child: SIcon(Icons.handyman_outlined, size: 20)),
           if (s.homeShowSettings)
             const Padding(
                 padding: EdgeInsets.only(left: 8),
-                child: Icon(Icons.tune, size: 20)),
+                child: SIcon(Icons.tune, size: 20)),
         ]),
         if (s.homeSections)
           Padding(
@@ -212,7 +213,7 @@ class ChatPreviewMock extends ConsumerWidget {
                       if (out && s.chatShowTicks)
                         const Padding(
                             padding: EdgeInsets.only(left: 4),
-                            child: Icon(Icons.done_all, size: 13, color: Colors.lightBlueAccent)),
+                            child: SIcon(Icons.done_all, size: 13, color: Colors.lightBlueAccent)),
                     ]),
                 ]),
           ),
@@ -228,7 +229,7 @@ class ChatPreviewMock extends ConsumerWidget {
           Text(context.t('Sudo Friend', 'صاحبي'),
               style: const TextStyle(fontWeight: FontWeight.w600)),
           const Spacer(),
-          const Icon(Icons.more_vert, size: 18),
+          const SIcon(Icons.more_vert, size: 18),
         ]),
         if (s.chatDateChips)
           Container(
@@ -259,7 +260,7 @@ class _BarTab extends ConsumerWidget {
     return Column(children: [
       SGroup(children: [
         ListTile(
-          leading: const Icon(Icons.title),
+          leading: const SIcon(Icons.title),
           title: Text(context.t('Title', 'العنوان')),
           subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             SHint(context.t('What is written at the top-left of the home screen.',
@@ -592,8 +593,8 @@ class _HeaderPreview extends ConsumerWidget {
                 ]),
           ),
           if (s.hdrGhost)
-            const Icon(Icons.visibility_off_outlined, color: GlassTokens.ghost),
-          const IconButton(onPressed: null, icon: Icon(Icons.more_vert)),
+            const SIcon(Icons.visibility_off_outlined, color: GlassTokens.ghost),
+          const IconButton(onPressed: null, icon: SIcon(Icons.more_vert)),
         ]),
       ),
     );

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/ui/icon_styles.dart';
 
 import '../../app/providers.dart';
 import '../../core/i18n/tr.dart';
@@ -63,7 +64,7 @@ class _General extends ConsumerWidget {
         SGroup(
           children: [
             SwitchListTile(
-              secondary: const Icon(Icons.notifications_outlined),
+              secondary: const SIcon(Icons.notifications_outlined),
               title: Text(
                 context.t('Message notifications', 'إشعارات الرسائل'),
               ),
@@ -99,7 +100,7 @@ class _General extends ConsumerWidget {
           title: context.t('Default tone', 'النغمة الافتراضية'),
           children: [
             ListTile(
-              leading: const Icon(Icons.play_circle_outline),
+              leading: const SIcon(Icons.play_circle_outline),
               title: Text(
                 context.t('Send a test notification', 'ابعت إشعار تجريبي'),
               ),
@@ -182,7 +183,7 @@ class _Content extends ConsumerWidget {
         SGroup(
           children: [
             SwitchListTile(
-              secondary: const Icon(Icons.visibility_off_outlined),
+              secondary: const SIcon(Icons.visibility_off_outlined),
               title: Text(context.t('Never show text', 'مفيش نص أبدًا')),
               subtitle: Text(
                 context.t(
@@ -349,7 +350,7 @@ class _PerChat extends ConsumerWidget {
             for (final ch
                 in list.where((x) => !s.hiddenChats.contains(x.id)).take(80))
               ListTile(
-                leading: Icon(
+                leading: SIcon(
                   per.containsKey('${ch.id}')
                       ? Icons.music_note
                       : Icons.music_note_outlined,

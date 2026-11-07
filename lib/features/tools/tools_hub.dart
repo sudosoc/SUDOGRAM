@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
+import '../../core/ui/icon_styles.dart';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
@@ -23,10 +24,10 @@ class ToolsHubScreen extends ConsumerWidget {
   Widget _t(BuildContext c, IconData i, String en, String ar, String hen,
           String har, Widget Function() w) =>
       ListTile(
-        leading: Icon(i),
+        leading: SIcon(i),
         title: Text(c.t(en, ar)),
         subtitle: SHint(c.t(hen, har)),
-        trailing: const Icon(Icons.chevron_right, size: 20),
+        trailing: const SIcon(Icons.chevron_right, size: 20),
         onTap: () => Navigator.of(c)
             .push(MaterialPageRoute<void>(builder: (_) => w())),
       );
@@ -41,7 +42,7 @@ class ToolsHubScreen extends ConsumerWidget {
                 'بروكسي وتخزين وتحميل تلقائي وتصدير شات وأدوات جماعية وأكتر.',
                 () => const PremiumHubScreen()),
             ListTile(
-              leading: const Icon(Icons.done_all),
+              leading: const SIcon(Icons.done_all),
               title: Text(context.t('Mark all chats as read', 'تعليم كل الشاتات كمقروءة')),
               subtitle: SHint(context.t(
                   'Clears every unread badge in one go (works even in Ghost mode).',
@@ -123,7 +124,7 @@ Widget _result(BuildContext c, String text) => GlassSurface(
       child: Row(children: [
         Expanded(child: SelectableText(text)),
         IconButton(
-          icon: const Icon(Icons.copy, size: 18),
+          icon: const SIcon(Icons.copy, size: 18),
           onPressed: () => Clipboard.setData(ClipboardData(text: text)),
         ),
       ]),
@@ -158,12 +159,12 @@ class _QrReaderState extends State<_QrReader> {
       _page(context, context.t('QR reader', 'قارئ QR'), [
         FilledButton.icon(
             onPressed: _cam,
-            icon: const Icon(Icons.qr_code_scanner),
+            icon: const SIcon(Icons.qr_code_scanner),
             label: Text(context.t('Scan with camera', 'مسح بالكاميرا'))),
         const SizedBox(height: 8),
         FilledButton.tonalIcon(
             onPressed: _gal,
-            icon: const Icon(Icons.photo_library_outlined),
+            icon: const SIcon(Icons.photo_library_outlined),
             label: Text(context.t('Read from a photo', 'قراءة من صورة'))),
         const SizedBox(height: 14),
         if (_text != null) _result(context, _text!),

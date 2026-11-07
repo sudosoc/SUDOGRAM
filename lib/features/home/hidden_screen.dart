@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../core/ui/icon_styles.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
@@ -75,12 +76,12 @@ class _HiddenChatsScreenState extends ConsumerState<HiddenChatsScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(Icons.edit_outlined),
+                leading: const SIcon(Icons.edit_outlined),
                 title: Text(l.renameSection),
                 onTap: () => Navigator.pop(sctx, 'rename'),
               ),
               ListTile(
-                leading: const Icon(
+                leading: const SIcon(
                   Icons.delete_outline,
                   color: GlassTokens.ringDanger,
                 ),
@@ -186,7 +187,7 @@ class _HiddenChatsScreenState extends ConsumerState<HiddenChatsScreen> {
               )
             : Row(
                 children: [
-                  const Icon(
+                  const SIcon(
                     Icons.lock_outline,
                     size: 18,
                     color: GlassTokens.ghost,
@@ -201,7 +202,7 @@ class _HiddenChatsScreenState extends ConsumerState<HiddenChatsScreen> {
               ),
         actions: [
           IconButton(
-            icon: Icon(_searching ? Icons.close : Icons.search),
+            icon: SIcon(_searching ? Icons.close : Icons.search),
             onPressed: () => setState(() {
               _searching = !_searching;
               _q = '';
@@ -209,12 +210,12 @@ class _HiddenChatsScreenState extends ConsumerState<HiddenChatsScreen> {
           ),
           IconButton(
             tooltip: l.lockNow,
-            icon: const Icon(Icons.lock_clock_outlined),
+            icon: const SIcon(Icons.lock_clock_outlined),
             onPressed: () => ref.read(vaultUnlockProvider.notifier).lock(),
           ),
           IconButton(
             tooltip: l.hiddenSettings,
-            icon: const Icon(Icons.settings_outlined),
+            icon: const SIcon(Icons.settings_outlined),
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute<void>(
                 builder: (_) => const HiddenSettingsScreen(),
@@ -254,7 +255,7 @@ class _HiddenChatsScreenState extends ConsumerState<HiddenChatsScreen> {
                     vertical: 6,
                   ),
                   child: ActionChip(
-                    avatar: const Icon(Icons.add, size: 16),
+                    avatar: const SIcon(Icons.add, size: 16),
                     label: Text(l.newSection),
                     onPressed: () async {
                       final n = await askText(
@@ -319,7 +320,7 @@ class HiddenSettingsScreen extends ConsumerWidget {
 
     Widget method(String id, IconData icon, String title, {String? sub}) =>
         SwitchListTile(
-          secondary: Icon(icon),
+          secondary: SIcon(icon),
           title: Text(title),
           subtitle: sub == null ? null : Text(sub),
           value: methods.contains(id),
@@ -365,7 +366,7 @@ class HiddenSettingsScreen extends ConsumerWidget {
                 ),
                 if (methods.contains('code'))
                   ListTile(
-                    leading: const Icon(Icons.edit_outlined),
+                    leading: const SIcon(Icons.edit_outlined),
                     title: Text(l.hiddenCodeChange),
                     onTap: () => _askCode(context, ref),
                   ),
@@ -379,7 +380,7 @@ class HiddenSettingsScreen extends ConsumerWidget {
             child: Column(
               children: [
                 SwitchListTile(
-                  secondary: const Icon(Icons.fingerprint),
+                  secondary: const SIcon(Icons.fingerprint),
                   title: Text(l.hiddenRequireAuth),
                   value: s.hiddenAuth,
                   onChanged: (v) {
@@ -392,7 +393,7 @@ class HiddenSettingsScreen extends ConsumerWidget {
                   },
                 ),
                 ListTile(
-                  leading: const Icon(Icons.pin_outlined),
+                  leading: const SIcon(Icons.pin_outlined),
                   title: Text(l.hiddenPin),
                   subtitle: Text(
                     s.hasHiddenPin
@@ -403,7 +404,7 @@ class HiddenSettingsScreen extends ConsumerWidget {
                   ),
                   trailing: s.hasHiddenPin
                       ? IconButton(
-                          icon: const Icon(Icons.delete_outline),
+                          icon: const SIcon(Icons.delete_outline),
                           onPressed: () {
                             c.setX('hiddenPinHash', null);
                             c.setX('hiddenPinSalt', null);
@@ -413,26 +414,26 @@ class HiddenSettingsScreen extends ConsumerWidget {
                   onTap: () => _setPin(context, ref),
                 ),
                 SwitchListTile(
-                  secondary: const Icon(Icons.lock_clock_outlined),
+                  secondary: const SIcon(Icons.lock_clock_outlined),
                   title: Text(l.hiddenLockExit),
                   subtitle: Text(l.hiddenLockExitHint),
                   value: s.hiddenLockOnExit,
                   onChanged: (v) => c.setX('hiddenLockOnExit', v),
                 ),
                 SwitchListTile(
-                  secondary: const Icon(Icons.subject),
+                  secondary: const SIcon(Icons.subject),
                   title: Text(l.hiddenShowPreview),
                   value: s.hiddenPreview,
                   onChanged: (v) => c.setX('hiddenPreview', v),
                 ),
                 SwitchListTile(
-                  secondary: const Icon(Icons.dashboard_customize_outlined),
+                  secondary: const SIcon(Icons.dashboard_customize_outlined),
                   title: Text(l.hiddenSectionsT),
                   value: s.hiddenSections,
                   onChanged: (v) => c.setX('hiddenSections', v),
                 ),
                 SwitchListTile(
-                  secondary: const Icon(Icons.screenshot_monitor),
+                  secondary: const SIcon(Icons.screenshot_monitor),
                   title: Text(
                     context.t(
                       'Block screenshots inside',
@@ -449,7 +450,7 @@ class HiddenSettingsScreen extends ConsumerWidget {
                   onChanged: (v) => c.setX('hiddenSecure', v),
                 ),
                 ListTile(
-                  leading: const Icon(Icons.badge_outlined),
+                  leading: const SIcon(Icons.badge_outlined),
                   title: Text(context.t('Custom title', 'عنوان مخصص')),
                   subtitle: Text(
                     s.hiddenTitle.isEmpty
@@ -472,7 +473,7 @@ class HiddenSettingsScreen extends ConsumerWidget {
                   },
                 ),
                 SwitchListTile(
-                  secondary: const Icon(Icons.visibility_off_outlined),
+                  secondary: const SIcon(Icons.visibility_off_outlined),
                   title: Text(l.ghostForceHidden),
                   subtitle: Text(l.ghostForceHint),
                   value: s.ghostForceHidden,
@@ -500,7 +501,7 @@ class HiddenSettingsScreen extends ConsumerWidget {
           GlassSurface(
             radius: 20,
             child: ListTile(
-              leading: const Icon(
+              leading: const SIcon(
                 Icons.lock_open,
                 color: GlassTokens.ringDanger,
               ),

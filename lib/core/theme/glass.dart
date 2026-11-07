@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import '../ui/icon_styles.dart';
 
 /// Design tokens for the glass look. Change values here to restyle the app.
 class GlassTokens {
@@ -42,6 +43,7 @@ class GlassScope extends InheritedWidget {
     this.blurSigma = GlassTokens.blurSigma,
     this.radiusScale = 1,
     this.showBlobs = true,
+    this.iconStyle = 'default',
   });
 
   final Color base;
@@ -56,6 +58,7 @@ class GlassScope extends InheritedWidget {
   final double blurSigma;
   final double radiusScale;
   final bool showBlobs;
+  final String iconStyle;
 
   /// When true, real backdrop blur is disabled everywhere (cheap translucent
   /// fills only). Meant for weak devices.
@@ -83,7 +86,8 @@ class GlassScope extends InheritedWidget {
       old.fillScale != fillScale ||
       old.blurSigma != blurSigma ||
       old.radiusScale != radiusScale ||
-      old.showBlobs != showBlobs;
+      old.showBlobs != showBlobs ||
+      old.iconStyle != iconStyle;
 }
 
 /// Soft colored light blobs on a dark base. Uses radial gradients instead of
@@ -260,7 +264,7 @@ class GlassIconButton extends StatelessWidget {
               fill: 0.10,
               border: GlassTokens.borderStrong,
               child: Center(
-                child: Icon(icon, size: 20, color: Colors.white),
+                child: SIcon(icon, size: 20, color: Colors.white),
               ),
             ),
           ),
@@ -282,6 +286,16 @@ ThemeData buildGlassTheme(Brightness _) {
     textTheme: Typography.whiteMountainView.apply(
       bodyColor: Colors.white,
       displayColor: Colors.white,
+    ),
+    snackBarTheme: SnackBarThemeData(
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: const Color(0xEE24242C),
+      contentTextStyle: const TextStyle(color: Colors.white, fontSize: 14),
+      insetPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: Colors.white24),
+      ),
     ),
   );
 }

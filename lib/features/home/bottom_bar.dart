@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../core/ui/icon_styles.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
@@ -144,7 +145,7 @@ class AppBottomBar extends ConsumerWidget {
       final active = b.id == 'chats';
       final color = active ? accent : GlassTokens.textSecondary;
       final label = context.isAr ? b.ar : b.en;
-      Widget icon = Icon(b.icon(s.barIcons), color: color, size: compact ? 22 : 24);
+      Widget icon = SIcon(b.icon(s.barIcons), color: color, size: compact ? 22 : 24);
       if (s.barBadge && b.id == 'chats' && unread > 0) {
         icon = Badge(label: Text('$unread'), child: icon);
       }

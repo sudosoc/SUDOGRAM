@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../core/ui/icon_styles.dart';
 
 import '../downloads/keep_alive.dart';
 import '../../core/drafts.dart';
@@ -12,6 +13,7 @@ import '../chat/contacts_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
+import '../../core/device_perms.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/theme/glass.dart';
 import '../../data/archive/archive_db.dart';
@@ -82,12 +84,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(Icons.edit_outlined),
+                leading: const SIcon(Icons.edit_outlined),
                 title: Text(l.renameSection),
                 onTap: () => Navigator.pop(sctx, 'rename'),
               ),
               ListTile(
-                leading: const Icon(
+                leading: const SIcon(
                   Icons.delete_outline,
                   color: GlassTokens.ringDanger,
                 ),
@@ -151,7 +153,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _askBackground());
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _askBackground();
+      await _askDevicePerms();
+    });
+  }
+
+  /// First launch only: location (country, sharing) and contacts (sync).
+  Future<void> _askDevicePerms() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool('asked_device_perms') ?? false) return;
+    await prefs.setBool('asked_device_perms', true);
+    await ensureLocationPermission();
+    if (!mounted) return;
+    try {
+      await syncPhoneContacts(ref.read(gatewayProvider));
+    } catch (_) {}
   }
 
   /// Once, explain why background activity is needed, then ask Android.
@@ -224,7 +241,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     builder: (_) => const ContactsScreen(),
                   ),
                 ),
-                child: const Icon(Icons.edit_outlined),
+                child: const SIcon(Icons.edit_outlined),
               ),
             ),
       bottomNavigationBar: const AppBottomBar(),
@@ -319,7 +336,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
+                            SIcon(
                               Icons.visibility_off_outlined,
                               size: 16,
                               color: settings.ghostGlobal
@@ -452,7 +469,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             vertical: 6,
                           ),
                           child: ActionChip(
-                            avatar: const Icon(Icons.add, size: 16),
+                            avatar: const SIcon(Icons.add, size: 16),
                             label: Text(l.newSection),
                             onPressed: () async {
                               final n = await askText(
@@ -520,7 +537,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               data: (a) => a.isEmpty
                                   ? const SizedBox.shrink()
                                   : ListTile(
-                                      leading: const Icon(
+                                      leading: const SIcon(
                                         Icons.archive_outlined,
                                       ),
                                       title: Text(l.archive),
@@ -633,7 +650,7 @@ class ChatRow extends ConsumerWidget {
         color: c.withValues(alpha: 0.35),
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Icon(i),
+      child: SIcon(i),
     );
     return Dismissible(
       key: ValueKey('row_${chat.id}_$inHidden'),
@@ -726,7 +743,7 @@ class ChatRow extends ConsumerWidget {
                           if (chat.type == ChatType.secret)
                             const Padding(
                               padding: EdgeInsets.symmetric(horizontal: 4),
-                              child: Icon(
+                              child: SIcon(
                                 Icons.lock,
                                 size: 13,
                                 color: Color(0xFF22C55E),
@@ -735,7 +752,7 @@ class ChatRow extends ConsumerWidget {
                           if (chat.type == ChatType.group)
                             const Padding(
                               padding: EdgeInsets.symmetric(horizontal: 4),
-                              child: Icon(
+                              child: SIcon(
                                 Icons.group_outlined,
                                 size: 14,
                                 color: GlassTokens.textSecondary,
@@ -744,7 +761,7 @@ class ChatRow extends ConsumerWidget {
                           if (chat.type == ChatType.channel)
                             const Padding(
                               padding: EdgeInsets.symmetric(horizontal: 4),
-                              child: Icon(
+                              child: SIcon(
                                 Icons.campaign_outlined,
                                 size: 14,
                                 color: GlassTokens.textSecondary,
@@ -753,7 +770,7 @@ class ChatRow extends ConsumerWidget {
                           if (chat.muted)
                             const Padding(
                               padding: EdgeInsets.symmetric(horizontal: 4),
-                              child: Icon(
+                              child: SIcon(
                                 Icons.volume_off,
                                 size: 13,
                                 color: GlassTokens.textSecondary,
@@ -762,7 +779,7 @@ class ChatRow extends ConsumerWidget {
                           if (pinned)
                             const Padding(
                               padding: EdgeInsets.symmetric(horizontal: 6),
-                              child: Icon(
+                              child: SIcon(
                                 Icons.push_pin,
                                 size: 13,
                                 color: GlassTokens.textSecondary,
@@ -771,7 +788,7 @@ class ChatRow extends ConsumerWidget {
                           if (hidden)
                             const Padding(
                               padding: EdgeInsets.symmetric(horizontal: 6),
-                              child: Icon(
+                              child: SIcon(
                                 Icons.lock_outline,
                                 size: 14,
                                 color: GlassTokens.ghost,

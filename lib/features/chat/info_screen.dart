@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import '../../core/ui/icon_styles.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -12,6 +13,9 @@ import '../../domain/models.dart';
 import '../../l10n/app_localizations.dart';
 import '../home/chat_actions.dart';
 import 'avatar.dart';
+import 'media_viewer.dart';
+import '../../core/i18n/tr.dart';
+import '../../core/ui/notice.dart';
 import 'common_groups.dart';
 import 'photo_viewer.dart';
 import 'chat_screen.dart';
@@ -78,7 +82,7 @@ class _ChatInfoScreenState extends ConsumerState<ChatInfoScreen> {
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 10),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
-              Icon(i, color: color ?? GlassScope.of(context).accent),
+              SIcon(i, color: color ?? GlassScope.of(context).accent),
               const SizedBox(height: 4),
               Text(label,
                   maxLines: 1,
@@ -91,7 +95,7 @@ class _ChatInfoScreenState extends ConsumerState<ChatInfoScreen> {
 
   Widget _row(IconData i, String label, String v) =>
       ListTile(
-        leading: Icon(i),
+        leading: SIcon(i),
         title: Text(v),
         subtitle: Text(label,
             style: const TextStyle(color: GlassTokens.textSecondary)),
@@ -194,7 +198,7 @@ class _ChatInfoScreenState extends ConsumerState<ChatInfoScreen> {
               if (i.username.isNotEmpty) ...[
                 _row(Icons.alternate_email, l.username, '@${i.username}'),
                 ListTile(
-                  leading: const Icon(Icons.link),
+                  leading: const SIcon(Icons.link),
                   title: Text('t.me/${i.username}'),
                   subtitle: Text(l.copyLink,
                       style: const TextStyle(color: GlassTokens.textSecondary)),
@@ -206,7 +210,7 @@ class _ChatInfoScreenState extends ConsumerState<ChatInfoScreen> {
               if (i.about.isNotEmpty) _row(Icons.info_outline, l.about, i.about),
               if (i.commonGroups > 0)
                 ListTile(
-                  leading: const Icon(Icons.groups_2_outlined),
+                  leading: const SIcon(Icons.groups_2_outlined),
                   title: Text(l.commonGroups),
                   trailing: Text('${i.commonGroups}'),
                   onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
@@ -215,19 +219,19 @@ class _ChatInfoScreenState extends ConsumerState<ChatInfoScreen> {
             ],
             const Divider(),
             SwitchListTile(
-              secondary: const Icon(Icons.visibility_off_outlined),
+              secondary: const SIcon(Icons.visibility_off_outlined),
               title: Text(l.ghostOnForChat),
               value: s.ghostFor(chat.id),
               onChanged: (v) => sc.setGhostOverride(chat.id, v),
             ),
             SwitchListTile(
-              secondary: const Icon(Icons.push_pin_outlined),
+              secondary: const SIcon(Icons.push_pin_outlined),
               title: Text(l.pin),
               value: s.pinned.contains(chat.id),
               onChanged: (_) => sc.togglePin(chat.id),
             ),
             ListTile(
-              leading: const Icon(Icons.edit_outlined),
+              leading: const SIcon(Icons.edit_outlined),
               title: Text(l.rename),
               subtitle: s.aliases[chat.id] == null ? null : Text(s.aliases[chat.id]!),
               onTap: () async {
@@ -238,7 +242,7 @@ class _ChatInfoScreenState extends ConsumerState<ChatInfoScreen> {
             ),
             if (chat.type == ChatType.secret)
               ListTile(
-                leading: const Icon(Icons.timer_outlined),
+                leading: const SIcon(Icons.timer_outlined),
                 title: Text(l.selfDestruct),
                 trailing: PopupMenuButton<int>(
                   onSelected: (v) =>
@@ -294,7 +298,8 @@ class _ChatInfoScreenState extends ConsumerState<ChatInfoScreen> {
                     children: [
                       for (final x in list)
                         GestureDetector(
-                          onTap: () => Navigator.of(context).pop(InfoJump(x.id)),
+                          onTap: () => _openMedia(x),
+                          onLongPress: () => _mediaMenu(x),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(8),
                             child: _thumb(x),
@@ -307,7 +312,7 @@ class _ChatInfoScreenState extends ConsumerState<ChatInfoScreen> {
                   for (final x in list)
                     ListTile(
                       dense: true,
-                      leading: Icon(_tab == 'link'
+                      leading: SIcon(_tab == 'link'
                           ? Icons.link
                           : _tab == 'voice'
                               ? Icons.mic_none
@@ -320,7 +325,8 @@ class _ChatInfoScreenState extends ConsumerState<ChatInfoScreen> {
                           overflow: TextOverflow.ellipsis),
                       subtitle: Text(
                           '${x.time.day}/${x.time.month}/${x.time.year}'),
-                      onTap: () => Navigator.of(context).pop(InfoJump(x.id)),
+                      onTap: () => _openMedia(x),
+                      onLongPress: () => _mediaMenu(x),
                     ),
                 ]);
               },
@@ -328,7 +334,7 @@ class _ChatInfoScreenState extends ConsumerState<ChatInfoScreen> {
             const Divider(),
             if (isPrivate && chat.type == ChatType.private)
               ListTile(
-                leading: Icon(i?.blocked == true ? Icons.lock_open : Icons.block,
+                leading: SIcon(i?.blocked == true ? Icons.lock_open : Icons.block,
                     color: GlassTokens.ringDanger),
                 title: Text(i?.blocked == true ? l.unblock : l.blockUser,
                     style: const TextStyle(color: GlassTokens.ringDanger)),
@@ -339,7 +345,7 @@ class _ChatInfoScreenState extends ConsumerState<ChatInfoScreen> {
                 },
               ),
             ListTile(
-              leading: const Icon(Icons.cleaning_services_outlined,
+              leading: const SIcon(Icons.cleaning_services_outlined,
                   color: GlassTokens.ringDanger),
               title: Text(l.clearHistory,
                   style: const TextStyle(color: GlassTokens.ringDanger)),
@@ -347,7 +353,7 @@ class _ChatInfoScreenState extends ConsumerState<ChatInfoScreen> {
             ),
             ListTile(
               leading:
-                  const Icon(Icons.delete_outline, color: GlassTokens.ringDanger),
+                  const SIcon(Icons.delete_outline, color: GlassTokens.ringDanger),
               title: Text(isPrivate ? l.deleteChat : l.leaveChat,
                   style: const TextStyle(color: GlassTokens.ringDanger)),
               onTap: () async {
@@ -370,6 +376,59 @@ class _ChatInfoScreenState extends ConsumerState<ChatInfoScreen> {
         _ => l.kindOther,
       };
 
+  Future<void> _openMedia(ChatMessage x) async {
+    final r = await Navigator.of(context).push<InfoJump>(MaterialPageRoute(
+        builder: (_) => MediaViewerScreen(chatId: widget.chat.id, message: x)));
+    if (r != null && mounted) Navigator.of(context).pop(r);
+  }
+
+  void _mediaMenu(ChatMessage x) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          ListTile(
+            leading: const SIcon(Icons.open_in_full),
+            title: Text(context.t('Open', 'فتح')),
+            onTap: () {
+              Navigator.pop(context);
+              _openMedia(x);
+            },
+          ),
+          ListTile(
+            leading: const SIcon(Icons.chat_bubble_outline),
+            title: Text(context.t('Go to message', 'الذهاب للرسالة')),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.of(context).pop(InfoJump(x.id));
+            },
+          ),
+          ListTile(
+            leading: const SIcon(Icons.push_pin_outlined),
+            title: Text(context.t('Pin message', 'تثبيت الرسالة')),
+            onTap: () async {
+              Navigator.pop(context);
+              try {
+                await ref
+                    .read(gatewayProvider)
+                    .pinMessage(widget.chat.id, x.id, pin: true);
+                if (mounted) {
+                  notice(context, context.t('Message pinned', 'تم تثبيت الرسالة'),
+                      kind: NoticeKind.success);
+                }
+              } catch (e) {
+                if (mounted) {
+                  notice(context, friendlyError(e, ar: context.isAr),
+                      kind: NoticeKind.error);
+                }
+              }
+            },
+          ),
+        ]),
+      ),
+    );
+  }
+
   Widget _thumb(ChatMessage x) {
     final a = x.thumb ?? x.file;
     final path = a != null && a.downloaded ? a.localPath : null;
@@ -377,7 +436,7 @@ class _ChatInfoScreenState extends ConsumerState<ChatInfoScreen> {
       return Container(
           color: Colors.white10,
           child: Center(
-              child: Icon(x.kind == MessageKind.video
+              child: SIcon(x.kind == MessageKind.video
                   ? Icons.play_circle_outline
                   : Icons.image_outlined)));
     }
@@ -385,7 +444,7 @@ class _ChatInfoScreenState extends ConsumerState<ChatInfoScreen> {
       Image.file(File(path), fit: BoxFit.cover,
           errorBuilder: (_, _, _) => Container(color: Colors.white10)),
       if (x.kind == MessageKind.video)
-        const Center(child: Icon(Icons.play_circle_fill, color: Colors.white70)),
+        const Center(child: SIcon(Icons.play_circle_fill, color: Colors.white70)),
     ]);
   }
 }

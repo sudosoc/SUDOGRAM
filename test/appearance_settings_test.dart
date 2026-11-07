@@ -5,8 +5,7 @@ import 'package:sudogram/core/theme/presets.dart';
 void main() {
   dndTests();
   test('settings sliders deliver doubles safely', () {
-    const s = AppSettings(x: {'sendDelay': 3.0, 'homeLines': 2.0, 'barHeight': 60});
-    expect(s.sendDelay, 3);
+    const s = AppSettings(x: {'homeLines': 2.0, 'barHeight': 60});
     expect(s.homeLines, 2);
     expect(s.barHeight, 60.0);
   });

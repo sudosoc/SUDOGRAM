@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../core/ui/icon_styles.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/models.dart';
@@ -32,7 +33,7 @@ class RulesScreen extends ConsumerWidget {
         actions: [
           IconButton(
             tooltip: l.ruleExport,
-            icon: const Icon(Icons.copy),
+            icon: const SIcon(Icons.copy),
             onPressed: rules.isEmpty
                 ? null
                 : () async {
@@ -46,7 +47,7 @@ class RulesScreen extends ConsumerWidget {
           ),
           IconButton(
             tooltip: l.ruleImport,
-            icon: const Icon(Icons.paste),
+            icon: const SIcon(Icons.paste),
             onPressed: () => _import(context, ref, l),
           ),
         ],
@@ -54,7 +55,7 @@ class RulesScreen extends ConsumerWidget {
       floatingActionButton: FloatingActionButton(
         tooltip: l.ruleAdd,
         onPressed: () => _add(context, ref, l),
-        child: const Icon(Icons.add),
+        child: const SIcon(Icons.add),
       ),
       body: SafeArea(
         child: rules.isEmpty
@@ -73,7 +74,7 @@ class RulesScreen extends ConsumerWidget {
                     value: r.enabled,
                     onChanged: (_) => c.toggle(r.id),
                     secondary: IconButton(
-                      icon: const Icon(Icons.delete_outline),
+                      icon: const SIcon(Icons.delete_outline),
                       onPressed: () => c.remove(r.id),
                     ),
                   ),

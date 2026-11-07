@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/ui/icon_styles.dart';
 
 import '../../app/providers.dart';
 import '../../core/settings/app_settings.dart';
@@ -42,7 +43,7 @@ class GhostScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                Icon(
+                SIcon(
                   on ? Icons.visibility_off : Icons.visibility,
                   size: 40,
                   color: on ? GlassTokens.ghost : Colors.white54,
@@ -108,7 +109,7 @@ class GhostScreen extends ConsumerWidget {
                       ),
                     if (s.ghostPaused)
                       ActionChip(
-                        avatar: const Icon(Icons.play_arrow, size: 16),
+                        avatar: const SIcon(Icons.play_arrow, size: 16),
                         label: Text(l.ghostResume),
                         onPressed: () => c.setX('ghostPauseUntil', null),
                       ),
@@ -124,28 +125,28 @@ class GhostScreen extends ConsumerWidget {
             child: Column(
               children: [
                 SwitchListTile(
-                  secondary: const Icon(Icons.done_all),
+                  secondary: const SIcon(Icons.done_all),
                   title: Text(l.ghostReadReceipts),
                   subtitle: Text(l.ghostReadHint),
                   value: s.ghostRead,
                   onChanged: (v) => c.setX('ghostRead', v),
                 ),
                 SwitchListTile(
-                  secondary: const Icon(Icons.keyboard_outlined),
+                  secondary: const SIcon(Icons.keyboard_outlined),
                   title: Text(l.ghostTypingT),
                   subtitle: Text(l.ghostTypingHint),
                   value: s.ghostTyping,
                   onChanged: (v) => c.setX('ghostTyping', v),
                 ),
                 SwitchListTile(
-                  secondary: const Icon(Icons.circle_outlined),
+                  secondary: const SIcon(Icons.circle_outlined),
                   title: Text(l.ghostOnlineStatus),
                   subtitle: Text(l.ghostOnlineHint),
                   value: s.ghostOnline,
                   onChanged: (v) => c.setX('ghostOnline', v),
                 ),
                 SwitchListTile(
-                  secondary: const Icon(Icons.lock_outline),
+                  secondary: const SIcon(Icons.lock_outline),
                   title: Text(l.ghostForceHidden),
                   subtitle: Text(l.ghostForceHint),
                   value: s.ghostForceHidden,
@@ -161,7 +162,7 @@ class GhostScreen extends ConsumerWidget {
             child: Column(
               children: [
                 SwitchListTile(
-                  secondary: const Icon(Icons.reply),
+                  secondary: const SIcon(Icons.reply),
                   title: Text(
                     context.t('Read on reply', 'اعتبرها مقروءة عند الرد'),
                   ),
@@ -175,7 +176,7 @@ class GhostScreen extends ConsumerWidget {
                   onChanged: (v) => c.setX('ghostReadOnReply', v),
                 ),
                 SwitchListTile(
-                  secondary: const Icon(Icons.notifications_paused_outlined),
+                  secondary: const SIcon(Icons.notifications_paused_outlined),
                   title: Text(
                     context.t(
                       'Generic notifications for ghosted chats',
@@ -192,7 +193,7 @@ class GhostScreen extends ConsumerWidget {
                   onChanged: (v) => c.setX('ghostNotifGeneric', v),
                 ),
                 SwitchListTile(
-                  secondary: const Icon(Icons.bedtime_outlined),
+                  secondary: const SIcon(Icons.bedtime_outlined),
                   title: Text(context.t('Night schedule', 'جدول ليلي')),
                   subtitle: Text(
                     context.t(
@@ -236,7 +237,7 @@ class GhostScreen extends ConsumerWidget {
                   ),
                 if (s.scheduleActive)
                   ListTile(
-                    leading: const Icon(
+                    leading: const SIcon(
                       Icons.nightlight_round,
                       color: GlassTokens.ghost,
                     ),
@@ -300,7 +301,7 @@ class GhostScreen extends ConsumerWidget {
                         ].join(' · '),
                       ),
                       trailing: IconButton(
-                        icon: const Icon(Icons.restart_alt),
+                        icon: const SIcon(Icons.restart_alt),
                         tooltip: l.ghostResetChat,
                         onPressed: () {
                           c.setGhostOverride(ch.id, null);

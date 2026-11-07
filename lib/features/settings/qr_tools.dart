@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../core/ui/icon_styles.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -61,11 +62,11 @@ class _ScanQrScreenState extends State<ScanQrScreen> {
           title: Text(context.t('Scan QR code', 'مسح كود QR')),
           actions: [
             IconButton(
-              icon: const Icon(Icons.flashlight_on_outlined),
+              icon: const SIcon(Icons.flashlight_on_outlined),
               onPressed: () => _ctl.toggleTorch(),
             ),
             IconButton(
-              icon: const Icon(Icons.cameraswitch_outlined),
+              icon: const SIcon(Icons.cameraswitch_outlined),
               onPressed: () => _ctl.switchCamera(),
             ),
           ],
@@ -100,7 +101,7 @@ class _ScanQrScreenState extends State<ScanQrScreen> {
             right: 0,
             child: Center(
               child: FilledButton.tonalIcon(
-                icon: const Icon(Icons.photo_library_outlined),
+                icon: const SIcon(Icons.photo_library_outlined),
                 label: Text(context.t('Pick from gallery', 'اختار من المعرض')),
                 onPressed: _fromGallery,
               ),
@@ -131,7 +132,7 @@ Future<void> showQrSheet(BuildContext context, String title, String data) =>
           SelectableText(data,
               style: const TextStyle(color: GlassTokens.textSecondary)),
           TextButton.icon(
-            icon: const Icon(Icons.copy),
+            icon: const SIcon(Icons.copy),
             label: Text(c.t('Copy', 'نسخ')),
             onPressed: () => Clipboard.setData(ClipboardData(text: data)),
           ),

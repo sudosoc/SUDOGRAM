@@ -66,7 +66,7 @@ jobs:
       - run: flutter pub get
       - name: Build APK (debug-signed, private use)
         run: |
-          flutter build apk --release --target-platform android-arm64 \
+          flutter build apk --release --no-tree-shake-icons --target-platform android-arm64 \
             --dart-define=TG_API_ID=${{ secrets.TG_API_ID }} \
             --dart-define=TG_API_HASH=${{ secrets.TG_API_HASH }}
       - uses: actions/upload-artifact@v4

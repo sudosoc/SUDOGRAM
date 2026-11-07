@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/ui/icon_styles.dart';
 
 import '../../app/providers.dart';
 import '../../core/i18n/tr.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/theme/glass.dart';
+import '../../core/device_perms.dart';
+import '../../core/live_location.dart';
+import '../../core/ui/notice.dart';
 import '../../domain/models.dart';
 import '../../l10n/app_localizations.dart';
 import '../home/home_screen.dart' show kindLabel;
@@ -72,42 +76,32 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final Map<int, GlobalKey> _keys = {};
   int? _highlight;
 
-  /// Scrolls to [id], loading older history first when it isn't loaded yet.
+  /// Scrolls to [id], loading history around it first when it isn't loaded.
   Future<void> _jumpTo(int id) async {
-    for (var tries = 0; tries < 12; tries++) {
+    var loaded = false;
+    for (var tries = 0; tries < 60; tries++) {
+      if (!mounted) return;
       final list =
           ref.read(messagesProvider(widget.chat.id)).value ??
           const <ChatMessage>[];
       final idx = list.indexWhere((m) => m.id == id);
-      if (idx >= 0) {
-        final ctx = _keys[id]?.currentContext;
-        if (ctx != null) {
-          // ignore: use_build_context_synchronously
-          await Scrollable.ensureVisible(
-            // ignore: use_build_context_synchronously
-            ctx,
-            duration: const Duration(milliseconds: 300),
-            alignment: 0.5,
-          );
-        } else if (_scroll.hasClients) {
-          // not built yet: move close, then retry once the item exists
-          await _scroll.animateTo(
-            (idx * 90.0).clamp(0, _scroll.position.maxScrollExtent),
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeOut,
-          );
-          await Future<void>.delayed(const Duration(milliseconds: 60));
-          final c2 = _keys[id]?.currentContext;
-          if (c2 != null) {
-            // ignore: use_build_context_synchronously
-            await Scrollable.ensureVisible(
-              // ignore: use_build_context_synchronously
-              c2,
-              duration: const Duration(milliseconds: 200),
-              alignment: 0.5,
-            );
-          }
+      if (idx < 0) {
+        if (!loaded) {
+          loaded = true;
+          await _gateway.loadAround(widget.chat.id, id);
+        } else {
+          await _gateway.loadOlder(widget.chat.id);
         }
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+        continue;
+      }
+      final ctx = _keys[id]?.currentContext;
+      if (ctx != null && ctx.mounted) {
+        await Scrollable.ensureVisible(
+          ctx,
+          duration: const Duration(milliseconds: 300),
+          alignment: 0.5,
+        );
         if (!mounted) return;
         setState(() => _highlight = id);
         Future<void>.delayed(const Duration(seconds: 2), () {
@@ -115,13 +109,30 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         });
         return;
       }
-      if (tries == 0) {
-        await _gateway.loadAround(widget.chat.id, id);
-        await Future<void>.delayed(const Duration(milliseconds: 150));
+      if (!_scroll.hasClients) {
+        await Future<void>.delayed(const Duration(milliseconds: 80));
         continue;
       }
-      await _gateway.loadOlder(widget.chat.id);
-      await Future<void>.delayed(const Duration(milliseconds: 120));
+      // Not built yet: find which built rows bracket the target and move
+      // towards it until the row appears.
+      var lo = list.length, hi = -1;
+      for (var i = 0; i < list.length; i++) {
+        if (_keys[list[i].id]?.currentContext != null) {
+          if (i < lo) lo = i;
+          if (i > hi) hi = i;
+        }
+      }
+      final pos = _scroll.position;
+      double target;
+      if (hi < 0) {
+        target = pos.maxScrollExtent * idx / list.length;
+      } else if (idx > hi) {
+        target = pos.pixels + 700; // older messages are further up
+      } else {
+        target = pos.pixels - 700;
+      }
+      _scroll.jumpTo(target.clamp(0.0, pos.maxScrollExtent));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
     }
   }
 
@@ -187,7 +198,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             value: 'jump:${m.id}',
             child: Row(
               children: [
-                const Icon(Icons.push_pin_outlined, size: 18),
+                const SIcon(Icons.push_pin_outlined, size: 18),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
@@ -199,7 +210,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 if (widget.chat.canSend || widget.chat.type == ChatType.private)
                   IconButton(
                     tooltip: l.unpin,
-                    icon: const Icon(Icons.close, size: 18),
+                    icon: const SIcon(Icons.close, size: 18),
                     onPressed: () => Navigator.of(context).pop('unpin:${m.id}'),
                   ),
               ],
@@ -211,7 +222,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             value: 'unpinall',
             child: Row(
               children: [
-                const Icon(
+                const SIcon(
                   Icons.layers_clear_outlined,
                   size: 18,
                   color: GlassTokens.ringDanger,
@@ -396,9 +407,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       await f();
     } catch (e) {
       if (!mounted) return;
-      final l = AppLocalizations.of(context);
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l.sendFailed('$e'))));
+      notice(context, friendlyError(e, ar: context.isAr),
+          kind: NoticeKind.error);
     }
   }
 
@@ -476,7 +486,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           ),
                         ),
                         trailing: IconButton(
-                          icon: const Icon(Icons.delete_outline),
+                          icon: const SIcon(Icons.delete_outline),
                           onPressed: () async {
                             await _gateway.deleteMessages(widget.chat.id, [
                               m.id,
@@ -520,7 +530,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   ),
                 if (opts.length < 10)
                   TextButton.icon(
-                    icon: const Icon(Icons.add),
+                    icon: const SIcon(Icons.add),
                     label: Text(l.pollOption('${opts.length + 1}')),
                     onPressed: () =>
                         set(() => opts.add(TextEditingController())),
@@ -565,14 +575,57 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
     if (perm == LocationPermission.denied ||
         perm == LocationPermission.deniedForever) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(l.locationDenied)));
-      }
+      if (mounted) notice(context, l.locationDenied, kind: NoticeKind.error);
       return;
     }
     final pos = await Geolocator.getCurrentPosition();
     await _gateway.sendLocation(widget.chat.id, pos.latitude, pos.longitude);
+  }
+
+  Future<void> _liveLocation() async {
+    if (!await ensureLocationPermission()) {
+      if (mounted) {
+        notice(context, AppLocalizations.of(context).locationDenied,
+            kind: NoticeKind.error);
+      }
+      return;
+    }
+    if (!mounted) return;
+    final mins = await showModalBottomSheet<int>(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          ListTile(
+              title: Text(context.t('Share live location for…', 'مشاركة الموقع المباشر لمدة…'))),
+          for (final (m, label) in [
+            (15, context.t('15 minutes', '15 دقيقة')),
+            (60, context.t('1 hour', 'ساعة')),
+            (480, context.t('8 hours', '8 ساعات')),
+          ])
+            ListTile(
+              leading: const SIcon(Icons.share_location),
+              title: Text(label),
+              onTap: () => Navigator.pop(context, m),
+            ),
+          if (LiveLocation.isActive(widget.chat.id))
+            ListTile(
+              leading: const SIcon(Icons.location_off, color: GlassTokens.ringDanger),
+              title: Text(context.t('Stop sharing', 'إيقاف المشاركة')),
+              onTap: () => Navigator.pop(context, 0),
+            ),
+        ]),
+      ),
+    );
+    if (mins == null) return;
+    if (mins == 0) {
+      await LiveLocation.stop(widget.chat.id);
+      return;
+    }
+    await _safe(() => LiveLocation.start(_gateway, widget.chat.id, mins));
+    if (mounted) {
+      notice(context, context.t('Live location started', 'بدأت مشاركة الموقع المباشر'),
+          kind: NoticeKind.success);
+    }
   }
 
   Future<void> _shareContact() async {
@@ -608,7 +661,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   void _attachSheet() {
     final l = AppLocalizations.of(context);
     Widget item(IconData i, String t, VoidCallback f) => ListTile(
-      leading: Icon(i),
+      leading: SIcon(i),
       title: Text(t),
       onTap: () {
         Navigator.of(context).pop();
@@ -649,6 +702,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 Icons.location_on_outlined,
                 l.location,
                 () => _safe(_shareLocation),
+              ),
+              item(
+                Icons.share_location,
+                context.t('Live location', 'الموقع المباشر'),
+                _liveLocation,
               ),
               item(Icons.contact_page_outlined, l.contactLabel, _shareContact),
             ],
@@ -728,7 +786,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       });
       setState(() => _recording = true);
     } catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(l.sendFailed('$e'))));
+      messenger.showSnackBar(SnackBar(content: Text(friendlyError(e, ar: l.localeName == 'ar'))));
     }
   }
 
@@ -775,24 +833,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       await _gateway.editText(widget.chat.id, editing.id, text);
       return;
     }
-    final delay = ref.read(settingsProvider).sendDelay;
-    if (delay > 0) {
-      // Undo-send window: the message only leaves after [delay] seconds.
-      var undone = false;
-      final ctl = ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        duration: Duration(seconds: delay),
-        content: Text(context.t('Sending in ${delay}s…', 'هيتبعت بعد $delay ث…')),
-        action: SnackBarAction(
-          label: context.t('Undo', 'تراجع'),
-          onPressed: () {
-            undone = true;
-            if (mounted && _c.text.isEmpty) _c.text = text;
-          },
-        ),
-      ));
-      await ctl.closed;
-      if (undone) return;
-    }
     final parts = SmartSplitter.split(text, SplitOptions(maxLength: _limit));
     for (var i = 0; i < parts.length; i++) {
       // strictly in order; only the first part carries the reply
@@ -832,6 +872,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   /// Adds / removes a reaction; the reason is shown if the server refuses.
   Future<void> _react(ChatMessage m, String e) async {
+    // Only react with what the server says this message accepts.
+    if (!(await _gateway.availableReactions(widget.chat.id, m.id))
+        .contains(e)) {
+      if (mounted) {
+        notice(context, friendlyError('reaction not available', ar: context.isAr),
+            kind: NoticeKind.error);
+      }
+      return;
+    }
     final live =
         (ref.read(messagesProvider(widget.chat.id)).value ??
                 const <ChatMessage>[])
@@ -867,7 +916,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               .showSnackBar(SnackBar(content: Text(l.copied)));
         }
       case 'react':
-        _react(m, '👍');
+        _react(m, ref.read(settingsProvider).quickReaction);
       case 'heart':
         _react(m, '❤️');
       case 'pin':
@@ -906,7 +955,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final l = AppLocalizations.of(context);
     final chats = ref.read(chatsProvider).value ?? const <ChatSummary>[];
     Widget item(IconData i, String t, VoidCallback f, {Color? c}) => ListTile(
-      leading: Icon(i, color: c),
+      leading: SIcon(i, color: c),
       title: Text(t, style: TextStyle(color: c)),
       onTap: () {
         Navigator.of(context).pop();
@@ -915,6 +964,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
     showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (_) => Padding(
         padding: const EdgeInsets.all(12),
@@ -922,7 +973,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           blur: true,
           radius: 24,
           padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Column(
+          child: SingleChildScrollView(
+           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               if (!m.deletedByPeer)
@@ -931,9 +983,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   child: FutureBuilder<List<String>>(
                     future: _gateway.availableReactions(widget.chat.id, m.id),
                     builder: (_, snap) {
-                      final list = (snap.data?.isNotEmpty ?? false)
-                          ? snap.data!
-                          : const ['👍', '❤️', '😂', '😮', '😢', '🙏', '🔥'];
+                      final list = snap.data ?? const <String>[];
+                      if (list.isEmpty) return const SizedBox.shrink();
                       return ListView(
                         scrollDirection: Axis.horizontal,
                         padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -1035,6 +1086,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   l.saveToSaved,
                   () => _saveToSaved([m]),
                 ),
+              item(
+                _isStarred(m.id) ? Icons.star : Icons.star_border,
+                _isStarred(m.id)
+                    ? context.t('Remove star', 'إزالة النجمة')
+                    : context.t('Star message', 'تمييز بنجمة'),
+                () => _toggleStar(m),
+              ),
+              if (m.text.isNotEmpty)
+                item(Icons.format_quote, context.t('Copy as quote', 'نسخ كاقتباس'), () {
+                  Clipboard.setData(ClipboardData(
+                      text: m.text.split('\n').map((x) => '> $x').join('\n')));
+                  notice(context, l.copied, kind: NoticeKind.success);
+                }),
+              item(Icons.link, context.t('Copy message link', 'نسخ رابط الرسالة'),
+                  () => _copyLink(m)),
+              item(Icons.info_outline, context.t('Message info', 'تفاصيل الرسالة'),
+                  () => _msgInfo(m)),
               if (!m.outgoing &&
                   ref.read(settingsProvider).blocksRead(widget.chat.id))
                 item(Icons.done_all, l.markReadHere, () {
@@ -1060,10 +1128,216 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   c: GlassTokens.ringDanger,
                 ),
             ],
+           ),
           ),
         ),
       ),
     );
+  }
+
+  // ---- stars (kept on this phone)
+  List<String> get _starRows =>
+      ((ref.read(settingsProvider).x['stars'] as List?) ?? const [])
+          .map((e) => '$e')
+          .toList();
+
+  bool _isStarred(int id) =>
+      _starRows.any((r) => r.startsWith('${widget.chat.id}:$id:'));
+
+  void _toggleStar(ChatMessage m) {
+    final rows = _starRows;
+    final key = '${widget.chat.id}:${m.id}:';
+    if (rows.any((r) => r.startsWith(key))) {
+      rows.removeWhere((r) => r.startsWith(key));
+      notice(context, context.t('Star removed', 'تمت إزالة النجمة'));
+    } else {
+      final t = m.text.isEmpty ? kindLabel(AppLocalizations.of(context), m.kind) : m.text;
+      rows.add('$key${t.replaceAll('\n', ' ').substring(0, t.replaceAll('\n', ' ').length.clamp(0, 80))}');
+      notice(context, context.t('Message starred', 'تم تمييز الرسالة'),
+          kind: NoticeKind.premium);
+    }
+    ref.read(settingsProvider.notifier).setX('stars', rows);
+  }
+
+  void _showStars() {
+    final mine = _starRows.where((r) => r.startsWith('${widget.chat.id}:')).toList();
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => SafeArea(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.7),
+          child: mine.isEmpty
+              ? Padding(
+                  padding: const EdgeInsets.all(32),
+                  child: Text(context.t('No starred messages in this chat',
+                      'مفيش رسايل مميزة بنجمة في الشات ده')),
+                )
+              : ListView(shrinkWrap: true, children: [
+                  for (final r in mine)
+                    ListTile(
+                      leading: const SIcon(Icons.star, color: Color(0xFFFFC53D)),
+                      title: Text(r.split(':').skip(2).join(':'),
+                          maxLines: 2, overflow: TextOverflow.ellipsis),
+                      onTap: () {
+                        Navigator.pop(context);
+                        _jumpTo(int.parse(r.split(':')[1]));
+                      },
+                    ),
+                ]),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _copyLink(ChatMessage m) async {
+    try {
+      final r = await _gateway.tdRaw({
+        '@type': 'getMessageLink',
+        'chat_id': widget.chat.id,
+        'message_id': m.id,
+        'media_timestamp': 0,
+        'for_album': false,
+        'in_message_thread': false,
+      });
+      await Clipboard.setData(ClipboardData(text: '${r['link']}'));
+      if (mounted) {
+        notice(context, context.t('Link copied', 'تم نسخ الرابط'), kind: NoticeKind.success);
+      }
+    } catch (e) {
+      if (mounted) {
+        notice(
+            context,
+            context.t('Links only work for groups and channels with a username',
+                'الروابط بتشتغل بس مع الجروبات والقنوات اللي ليها يوزر'),
+            kind: NoticeKind.error);
+      }
+    }
+  }
+
+  void _msgInfo(ChatMessage m) {
+    final t = m.time;
+    String two(int v) => v.toString().padLeft(2, '0');
+    final rows = <(String, String)>[
+      (context.t('Sent', 'اتبعتت'),
+          '${t.year}-${two(t.month)}-${two(t.day)} ${two(t.hour)}:${two(t.minute)}:${two(t.second)}'),
+      (context.t('Message ID', 'رقم الرسالة'), '${m.id}'),
+      (context.t('Direction', 'الاتجاه'),
+          m.outgoing ? context.t('Outgoing', 'صادرة') : context.t('Incoming', 'واردة')),
+      if (m.edited) (context.t('Edited', 'معدّلة'), context.t('Yes', 'نعم')),
+      if (m.file != null) (context.t('File size', 'حجم الملف'), '${m.file!.size} B'),
+      if (m.text.isNotEmpty) (context.t('Characters', 'عدد الحروف'), '${m.text.length}'),
+    ];
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          for (final (k, v) in rows)
+            ListTile(dense: true, title: Text(k), trailing: Text(v)),
+        ]),
+      ),
+    );
+  }
+
+  Future<void> _jumpToDate() async {
+    final d = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2013),
+      lastDate: DateTime.now(),
+    );
+    if (d == null) return;
+    await _safe(() async {
+      final r = await _gateway.tdRaw({
+        '@type': 'getChatMessageByDate',
+        'chat_id': widget.chat.id,
+        'date': d.millisecondsSinceEpoch ~/ 1000,
+      });
+      await _jumpTo((r['id'] as num).toInt());
+    });
+  }
+
+  Future<void> _autoDelete() async {
+    final secs = await showModalBottomSheet<int>(
+      context: context,
+      builder: (_) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          ListTile(
+              title: Text(context.t('Auto-delete messages', 'حذف الرسايل تلقائيًا'))),
+          for (final (v, label) in [
+            (0, context.t('Off', 'مقفول')),
+            (86400, context.t('After 1 day', 'بعد يوم')),
+            (604800, context.t('After 1 week', 'بعد أسبوع')),
+            (2678400, context.t('After 1 month', 'بعد شهر')),
+          ])
+            ListTile(title: Text(label), onTap: () => Navigator.pop(context, v)),
+        ]),
+      ),
+    );
+    if (secs == null) return;
+    await _safe(() async {
+      await _gateway.tdRaw({
+        '@type': 'setChatMessageAutoDeleteTime',
+        'chat_id': widget.chat.id,
+        'message_auto_delete_time': secs,
+      });
+      if (mounted) {
+        notice(context, context.t('Timer updated', 'تم تحديث المؤقت'), kind: NoticeKind.success);
+      }
+    });
+  }
+
+  Future<void> _deleteMine() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text(context.t('Delete all my messages?', 'حذف كل رسايلي؟')),
+        content: Text(context.t(
+            'Every message you sent in this chat will be deleted for everyone where possible.',
+            'كل الرسايل اللي بعتّها في الشات ده هتتحذف للجميع لو متاح.')),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(context.t('Cancel', 'إلغاء'))),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(context.t('Delete', 'حذف'),
+                  style: const TextStyle(color: GlassTokens.ringDanger))),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await _safe(() async {
+      final me = await _gateway.tdRaw({'@type': 'getMe'});
+      var total = 0;
+      for (var round = 0; round < 50; round++) {
+        final r = await _gateway.tdRaw({
+          '@type': 'searchChatMessages',
+          'chat_id': widget.chat.id,
+          'query': '',
+          'sender_id': {'@type': 'messageSenderUser', 'user_id': me['id']},
+          'from_message_id': 0,
+          'offset': 0,
+          'limit': 100,
+        });
+        final ids = [
+          for (final x in (r['messages'] as List? ?? const []).whereType<Map>())
+            (x['id'] as num).toInt(),
+        ];
+        if (ids.isEmpty) break;
+        await _gateway.tdRaw({
+          '@type': 'deleteMessages',
+          'chat_id': widget.chat.id,
+          'message_ids': ids,
+          'revoke': true,
+        });
+        total += ids.length;
+      }
+      if (mounted) {
+        notice(context, context.t('Deleted $total messages', 'تم حذف $total رسالة'),
+            kind: NoticeKind.success);
+      }
+    });
   }
 
   Future<void> _share(List<ChatMessage> ms) async {
@@ -1313,7 +1587,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       value: v,
       child: Row(
         children: [
-          Icon(i, size: 20, color: danger ? GlassTokens.ringDanger : null),
+          SIcon(i, size: 20, color: danger ? GlassTokens.ringDanger : null),
           const SizedBox(width: 12),
           Flexible(
             child: Text(
@@ -1328,7 +1602,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
     return PopupMenuButton<String>(
       tooltip: l.more,
-      icon: const Icon(Icons.more_vert),
+      icon: const SIcon(Icons.more_vert),
       onSelected: (v) async {
         final sc = ref.read(settingsProvider.notifier);
         switch (v) {
@@ -1373,6 +1647,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   duration: const Duration(milliseconds: 400),
                   curve: Curves.easeOut);
             }
+          case 'stars':
+            _showStars();
+          case 'jumpdate':
+            _jumpToDate();
+          case 'autodel':
+            _autoDelete();
+          case 'delmine':
+            _deleteMine();
           case 'copyid':
             await Clipboard.setData(ClipboardData(text: '${chat.id}'));
           case 'clear':
@@ -1418,6 +1700,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         item('bottom', Icons.vertical_align_bottom, context.t('Jump to latest', 'النزول لآخر رسالة')),
         item('ghost', Icons.visibility_off_outlined, context.t('Ghost for this chat', 'الشبح للشات ده')),
         item('options', Icons.tune, context.t('Chat options', 'خيارات الشات')),
+        item('stars', Icons.star_border, context.t('Starred messages', 'الرسايل المميزة')),
+        item('jumpdate', Icons.event, context.t('Jump to date', 'الذهاب لتاريخ')),
+        item('autodel', Icons.timer_outlined, context.t('Auto-delete timer', 'مؤقت الحذف التلقائي')),
+        item('delmine', Icons.delete_sweep_outlined, context.t('Delete all my messages', 'حذف كل رسايلي'), danger: true),
         item('copyid', Icons.tag, context.t('Copy chat ID', 'نسخ معرّف الشات')),
         item('archive', Icons.archive_outlined, l.archiveChat),
         const PopupMenuDivider(),
@@ -1467,7 +1753,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Row(
                         children: [
-                          const Icon(
+                          const SIcon(
                             Icons.visibility_off_outlined,
                             color: GlassTokens.ghost,
                           ),
@@ -1508,7 +1794,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       onChanged: (v) => c.setChatGhostPart(id, 'typing', v),
                     ),
                     ListTile(
-                      leading: const Icon(Icons.restart_alt),
+                      leading: const SIcon(Icons.restart_alt),
                       title: Text(l.ghostResetChat),
                       onTap: () {
                         c.setGhostOverride(id, null);
@@ -1517,7 +1803,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       },
                     ),
                     ListTile(
-                      leading: const Icon(Icons.tune),
+                      leading: const SIcon(Icons.tune),
                       title: Text(l.ghostSettings),
                       onTap: () {
                         Navigator.pop(sctx);
@@ -1646,14 +1932,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       child: Row(
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.close),
+                            icon: const SIcon(Icons.close),
                             onPressed: () => setState(_selected.clear),
                           ),
                           Expanded(
                             child: Text(l.selectedCount('${_selected.length}')),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.copy),
+                            icon: const SIcon(Icons.copy),
                             onPressed: () {
                               Clipboard.setData(
                                 ClipboardData(
@@ -1666,16 +1952,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                             },
                           ),
                           IconButton(
-                            icon: const Icon(Icons.ios_share),
+                            icon: const SIcon(Icons.ios_share),
                             onPressed: () => _share(_selectedMessages()),
                           ),
                           if (widget.chat.type != ChatType.secret)
                             IconButton(
-                              icon: const Icon(Icons.shortcut),
+                              icon: const SIcon(Icons.shortcut),
                               onPressed: _forwardSelected,
                             ),
                           IconButton(
-                            icon: const Icon(
+                            icon: const SIcon(
                               Icons.delete_outline,
                               color: GlassTokens.ringDanger,
                             ),
@@ -1781,7 +2067,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           Tooltip(
                             message: l.chatControls,
                             child: IconButton(
-                              icon: Icon(
+                              icon: SIcon(
                                 ghost
                                     ? Icons.visibility_off_outlined
                                     : Icons.visibility_outlined,
@@ -1824,7 +2110,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.push_pin, size: 16),
+                            const SIcon(Icons.push_pin, size: 16),
                             const SizedBox(width: 8),
                             if (_pins.length > 1)
                               Padding(
@@ -1850,7 +2136,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                               ),
                             ),
                             if (_pins.length > 1)
-                              const Icon(Icons.keyboard_arrow_down, size: 18),
+                              const SIcon(Icons.keyboard_arrow_down, size: 18),
                           ],
                         ),
                       ),
@@ -2000,7 +2286,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                               duration: const Duration(milliseconds: 250),
                               curve: Curves.easeOut,
                             ),
-                            child: const Icon(Icons.keyboard_arrow_down),
+                            child: const SIcon(Icons.keyboard_arrow_down),
                           ),
                         ),
                     ],
@@ -2057,7 +2343,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                             ),
                             child: Row(
                               children: [
-                                Icon(
+                                SIcon(
                                   _editing != null ? Icons.edit : Icons.reply,
                                   size: 18,
                                 ),
@@ -2071,7 +2357,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                   ),
                                 ),
                                 IconButton(
-                                  icon: const Icon(Icons.close, size: 18),
+                                  icon: const SIcon(Icons.close, size: 18),
                                   onPressed: () => setState(() {
                                     if (_editing != null) _c.clear();
                                     _editing = null;
@@ -2101,13 +2387,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                               if (!_recording)
                                 IconButton(
                                   tooltip: l.attach,
-                                  icon: const Icon(Icons.attach_file),
+                                  icon: const SIcon(Icons.attach_file),
                                   onPressed: _attachSheet,
                                 ),
                               if (!_recording)
                                 IconButton(
                                   tooltip: l.stickers,
-                                  icon: Icon(
+                                  icon: SIcon(
                                     _emojiOpen
                                         ? Icons.keyboard_alt_outlined
                                         : Icons.emoji_emotions_outlined,
@@ -2138,7 +2424,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                     children: [
                                       if (_recLocked)
                                         IconButton(
-                                          icon: const Icon(
+                                          icon: const SIcon(
                                             Icons.delete_outline,
                                             color: GlassTokens.ringDanger,
                                           ),
@@ -2147,7 +2433,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                         )
                                       else
                                         const SizedBox(width: 12),
-                                      const Icon(
+                                      const SIcon(
                                         Icons.fiber_manual_record,
                                         size: 14,
                                         color: GlassTokens.ringDanger,
@@ -2175,7 +2461,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                         ),
                                       ),
                                       if (!_recLocked)
-                                        const Icon(
+                                        const SIcon(
                                           Icons.lock_outline,
                                           size: 16,
                                           color: GlassTokens.textSecondary,
@@ -2186,7 +2472,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                               if (_recLocked)
                                 IconButton(
                                   tooltip: l.send,
-                                  icon: const Icon(Icons.send_rounded),
+                                  icon: const SIcon(Icons.send_rounded),
                                   onPressed: () => _stopRecording(send: true),
                                 )
                               else if (_c.text.trim().isEmpty &&
@@ -2217,7 +2503,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                                 : GlassScope.of(context).accent)
                                           : Colors.transparent,
                                     ),
-                                    child: Icon(
+                                    child: SIcon(
                                       _recording ? Icons.mic : Icons.mic_none,
                                     ),
                                   ),
@@ -2227,7 +2513,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                   onLongPress: _scheduleSend,
                                   child: IconButton(
                                     tooltip: l.send,
-                                    icon: const Icon(Icons.send_rounded),
+                                    icon: const SIcon(Icons.send_rounded),
                                     onPressed: () => _safe(_send),
                                   ),
                                 ),
@@ -2622,7 +2908,7 @@ class _Bubble extends StatelessWidget {
                         ),
                       if (m.outgoing && ps.chatShowTicks) ...[
                         const SizedBox(width: 3),
-                        Icon(
+                        SIcon(
                           m.sendState == 2
                               ? Icons.error_outline
                               : m.sendState == 1
@@ -2767,7 +3053,7 @@ class _PollView extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Icon(
+                        SIcon(
                           poll.options[i].chosen
                               ? Icons.check_circle
                               : Icons.radio_button_unchecked,
@@ -2903,7 +3189,7 @@ class _SwipeToActState extends State<_SwipeToAct> {
                       shape: BoxShape.circle,
                       color: Colors.white.withValues(alpha: 0.15),
                     ),
-                    child: Icon(_icon(act), size: 20),
+                    child: SIcon(_icon(act), size: 20),
                   ),
                 ),
               ),

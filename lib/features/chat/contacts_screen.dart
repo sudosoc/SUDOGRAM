@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/ui/icon_styles.dart';
 
 import '../../app/providers.dart';
+import '../../core/device_perms.dart';
+import '../../core/i18n/tr.dart';
 import '../../core/theme/glass.dart';
+import '../../core/ui/notice.dart';
 import '../../domain/models.dart';
 import '../../l10n/app_localizations.dart';
 import 'avatar.dart';
@@ -17,7 +21,42 @@ class ContactsScreen extends ConsumerStatefulWidget {
 }
 
 class _ContactsScreenState extends ConsumerState<ContactsScreen> {
-  late final _future = ref.read(gatewayProvider).contacts();
+  late Future<List<ChatSummary>> _future = ref.read(gatewayProvider).contacts();
+  bool _syncing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _sync(auto: true);
+  }
+
+  /// Imports the phone book into Telegram, then reloads the list.
+  Future<void> _sync({bool auto = false}) async {
+    if (_syncing) return;
+    setState(() => _syncing = true);
+    try {
+      final n = await syncPhoneContacts(ref.read(gatewayProvider));
+      if (!mounted) return;
+      if (n < 0) {
+        if (!auto) {
+          notice(context,
+              context.t('Contacts permission was refused', 'صلاحية جهات الاتصال مرفوضة'),
+              kind: NoticeKind.error);
+        }
+      } else {
+        setState(() => _future = ref.read(gatewayProvider).contacts());
+        if (!auto) {
+          notice(context, context.t('Synced $n numbers', 'تمت مزامنة $n رقم'),
+              kind: NoticeKind.success);
+        }
+      }
+    } catch (e) {
+      if (mounted && !auto) {
+        notice(context, friendlyError(e, ar: context.isAr), kind: NoticeKind.error);
+      }
+    }
+    if (mounted) setState(() => _syncing = false);
+  }
   String _q = '';
 
   Future<void> _open(Future<ChatSummary?> chat) async {
@@ -51,7 +90,7 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l.sendFailed('$e'))));
+          .showSnackBar(SnackBar(content: Text(friendlyError(e, ar: l.localeName == 'ar'))));
     }
   }
 
@@ -124,21 +163,32 @@ class _ContactsScreenState extends ConsumerState<ContactsScreen> {
                         filled: false),
                   ),
                 ),
+                _syncing
+                    ? const Padding(
+                        padding: EdgeInsets.all(12),
+                        child: SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2)))
+                    : IconButton(
+                        tooltip: context.t('Sync phone contacts', 'مزامنة جهات الاتصال'),
+                        icon: const SIcon(Icons.sync),
+                        onPressed: _sync),
               ]),
             ),
           ),
           ListTile(
-            leading: const CircleAvatar(child: Icon(Icons.link)),
+            leading: const CircleAvatar(child: SIcon(Icons.link)),
             title: Text(l.joinByLink),
             onTap: _joinLink,
           ),
           ListTile(
-            leading: const CircleAvatar(child: Icon(Icons.group_add_outlined)),
+            leading: const CircleAvatar(child: SIcon(Icons.group_add_outlined)),
             title: Text(l.newGroup),
             onTap: _newGroup,
           ),
           ListTile(
-            leading: const CircleAvatar(child: Icon(Icons.bookmark_outline)),
+            leading: const CircleAvatar(child: SIcon(Icons.bookmark_outline)),
             title: Text(l.savedMessages),
             onTap: () => _open(gw.savedMessages()),
           ),

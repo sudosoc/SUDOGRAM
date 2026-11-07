@@ -19,6 +19,8 @@ class DraftStore {
     changes.value++;
   }
 
+  static Map<int, String> get all => Map.unmodifiable(_drafts);
+
   static String get(int chatId) => _drafts[chatId] ?? '';
 
   static Future<void> set(int chatId, String text) async {

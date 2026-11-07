@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../core/ui/notice.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/ui/icon_styles.dart';
 
 import '../../app/providers.dart';
 import '../../domain/models.dart';
@@ -29,7 +31,7 @@ class _MembersScreenState extends ConsumerState<MembersScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(l.sendFailed('$e'))));
+          .showSnackBar(SnackBar(content: Text(friendlyError(e, ar: l.localeName == 'ar'))));
     }
   }
 
@@ -71,7 +73,7 @@ class _MembersScreenState extends ConsumerState<MembersScreen> {
         title: Text(l.members),
         actions: [
           if (widget.chat.type == ChatType.group)
-            IconButton(icon: const Icon(Icons.person_add_alt), onPressed: _add),
+            IconButton(icon: const SIcon(Icons.person_add_alt), onPressed: _add),
         ],
       ),
       body: FutureBuilder<List<MentionCandidate>>(
@@ -89,7 +91,7 @@ class _MembersScreenState extends ConsumerState<MembersScreen> {
                 subtitle: m.username.isEmpty ? null : Text('@${m.username}'),
                 trailing: widget.chat.type == ChatType.group
                     ? IconButton(
-                        icon: const Icon(Icons.person_remove_outlined),
+                        icon: const SIcon(Icons.person_remove_outlined),
                         tooltip: l.removeMember,
                         onPressed: () =>
                             _run(() => gw.removeMember(widget.chat.id, m.id)),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/ui/icon_styles.dart';
 
 import '../../app/providers.dart';
 import '../../domain/models.dart';
@@ -63,7 +64,7 @@ class _BlockedScreenState extends ConsumerState<BlockedScreen> {
                     child: TextField(
                       controller: name,
                       decoration: InputDecoration(
-                        prefixIcon: const Icon(Icons.search),
+                        prefixIcon: const SIcon(Icons.search),
                         hintText: context.t(
                           'Search contacts or type @username',
                           'ابحث في جهات الاتصال أو اكتب @يوزر',
@@ -77,7 +78,7 @@ class _BlockedScreenState extends ConsumerState<BlockedScreen> {
                                     strokeWidth: 2,
                                   ),
                                 )
-                              : const Icon(Icons.person_search),
+                              : const SIcon(Icons.person_search),
                           onPressed: () async {
                             setS(() => busy = true);
                             final r = await g.resolveUsername(name.text);
@@ -103,7 +104,7 @@ class _BlockedScreenState extends ConsumerState<BlockedScreen> {
                       children: [
                         for (final c in shown)
                           ListTile(
-                            leading: const Icon(Icons.person_outline),
+                            leading: const SIcon(Icons.person_outline),
                             title: Text(c.title),
                             onTap: () async {
                               Navigator.pop(sc);
@@ -132,7 +133,7 @@ class _BlockedScreenState extends ConsumerState<BlockedScreen> {
         title: Text(l.blocked),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        icon: const Icon(Icons.person_off),
+        icon: const SIcon(Icons.person_off),
         label: Text(context.t('Block someone', 'حظر شخص')),
         onPressed: _add,
       ),
@@ -225,7 +226,7 @@ class _TwoStepScreenState extends ConsumerState<TwoStepScreen> {
         padding: const EdgeInsets.all(16),
         children: [
           ListTile(
-            leading: const Icon(Icons.password),
+            leading: const SIcon(Icons.password),
             title: Text(l.twoStep),
             trailing: Text(
               _on == null ? '…' : (_on! ? l.twoStepOn : l.twoStepOff),

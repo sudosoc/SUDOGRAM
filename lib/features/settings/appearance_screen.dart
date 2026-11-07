@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'launcher_screen.dart';
+import '../../core/ui/icon_styles.dart';
 
 import '../../core/i18n/tr.dart';
 import '../../core/settings/app_settings.dart';
@@ -29,6 +31,11 @@ class AppearanceScreen extends StatelessWidget {
           STab(context.t('Wallpaper & text', 'الخلفية والنص'), Icons.wallpaper,
               (c) => const WallpaperTextTab(),
               preview: (c) => const ChatPreviewMock()),
+          STab(context.t('Icons', 'الأيقونات'), Icons.interests_outlined,
+              (c) => const _IconsTab(),
+              preview: (c) => const _MiniApp()),
+          STab(context.t('App icon', 'أيقونة التطبيق'), Icons.apps,
+              (c) => const LauncherTab()),
           STab(context.t('Bottom bar', 'الشريط السفلي'), Icons.view_agenda_outlined,
               (c) => const _BarTab(),
               preview: (c) => const _MiniApp()),
@@ -164,7 +171,7 @@ class _ThemesTab extends ConsumerWidget {
                     radius: 16,
                     backgroundColor: col,
                     child: s.accent == col.toARGB32()
-                        ? Icon(Icons.check,
+                        ? SIcon(Icons.check,
                             size: 18,
                             color: col.computeLuminance() > .6 ? Colors.black : Colors.white)
                         : null,
@@ -278,11 +285,11 @@ class _BarTab extends ConsumerWidget {
                 if (barItemById(id) != null)
                   ListTile(
                     key: ValueKey(id),
-                    leading: Icon(barItemById(id)!.icon(s.barIcons)),
+                    leading: SIcon(barItemById(id)!.icon(s.barIcons)),
                     title: Text(context.isAr ? barItemById(id)!.ar : barItemById(id)!.en),
                     trailing: items.length > 2
                         ? IconButton(
-                            icon: const Icon(Icons.remove_circle_outline),
+                            icon: const SIcon(Icons.remove_circle_outline),
                             onPressed: () =>
                                 c.setX('barItems', [for (final e in items) if (e != id) e]),
                           )
@@ -298,7 +305,7 @@ class _BarTab extends ConsumerWidget {
               child: Wrap(spacing: 8, runSpacing: 6, children: [
                 for (final b in free)
                   ActionChip(
-                    avatar: Icon(b.icon(s.barIcons), size: 18),
+                    avatar: SIcon(b.icon(s.barIcons), size: 18),
                     label: Text(context.isAr ? b.ar : b.en),
                     onPressed: () => c.setX('barItems', [...items, b.id]),
                   ),
@@ -390,6 +397,67 @@ class _BarTab extends ConsumerWidget {
               value: s.barBadge),
         ]),
       ],
+    ]);
+  }
+}
+
+
+/// Picks one of seven icon looks for the whole app, each shown live.
+class _IconsTab extends ConsumerWidget {
+  const _IconsTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cur = ref.watch(settingsProvider).iconStyle;
+    final names = {
+      'default': context.t('Default', 'الافتراضي'),
+      'outlined': context.t('Outlined', 'خطوط'),
+      'filled': context.t('Filled', 'ممتلئة'),
+      'rounded': context.t('Rounded', 'مدورة'),
+      'sharp': context.t('Sharp', 'حادة'),
+      'glow': context.t('Glow', 'توهج'),
+      'badge': context.t('Badge', 'دائرة'),
+    };
+    const sample = [
+      Icons.chat_bubble,
+      Icons.person,
+      Icons.settings,
+      Icons.lock,
+      Icons.photo_camera,
+    ];
+    return Column(children: [
+      SHint(context.t(
+          'Changes every icon in the app at once. Tap a style to apply it.',
+          'بيغير كل الأيقونات في التطبيق مرة واحدة. اضغط على نمط عشان يتطبق.')),
+      for (final k in kIconStyles)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () => ref.read(settingsProvider.notifier).setX('iconStyle', k),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                color: Colors.white.withValues(alpha: k == cur ? 0.14 : 0.05),
+                border: Border.all(
+                    color: k == cur ? GlassScope.of(context).accent : Colors.white12),
+              ),
+              child: Row(children: [
+                Expanded(
+                  child: Text(names[k]!,
+                      style: const TextStyle(fontWeight: FontWeight.w600)),
+                ),
+                for (final i in sample)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 5),
+                    child: SIcon(i, size: 22, styleOverride: k == 'default' ? 'filled' : k),
+                  ),
+                if (k == cur) const SIcon(Icons.check_circle, size: 18),
+              ]),
+            ),
+          ),
+        ),
     ]);
   }
 }

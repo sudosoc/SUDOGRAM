@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/ui/icon_styles.dart';
 
 import '../../core/i18n/tr.dart';
 import '../../core/settings/app_settings.dart';
@@ -79,22 +80,8 @@ class WallpaperTextTab extends ConsumerWidget {
               divisions: 12,
               fmt: (v) => '${(v * 100).round()}%',
             ),
-            SliderRow(
-              icon: Icons.undo,
-              title: context.t('Undo-send delay', 'مهلة التراجع عن الإرسال'),
-              hint: context.t(
-                  'Hold every text message for a few seconds so you can tap Undo. 0 = send instantly.',
-                  'بيأجّل كل رسالة نصية كام ثانية عشان تقدر تتراجع. 0 = إرسال فوري.'),
-              keyName: 'sendDelay',
-              asInt: true,
-              value: s.sendDelay.toDouble(),
-              min: 0,
-              max: 15,
-              divisions: 15,
-              fmt: (v) => v.round() == 0 ? context.t('off', 'مقفول') : '${v.round()}s',
-            ),
             SwitchListTile(
-              secondary: const Icon(Icons.speed),
+              secondary: const SIcon(Icons.speed),
               title: Text(context.t('Performance mode', 'وضع الأداء')),
               subtitle: Text(
                 context.t(
@@ -183,7 +170,7 @@ class _ActionPick extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => ListTile(
-    leading: Icon(icon),
+    leading: SIcon(icon),
     title: Text(title),
     trailing: PopupMenuButton<String>(
       initialValue: current,
@@ -199,7 +186,7 @@ class _ActionPick extends ConsumerWidget {
             _actLabel(context, current),
             style: TextStyle(color: GlassScope.of(context).accent),
           ),
-          const Icon(Icons.arrow_drop_down),
+          const SIcon(Icons.arrow_drop_down),
         ],
       ),
     ),
@@ -296,7 +283,7 @@ class _General extends ConsumerWidget {
         SGroup(
           children: [
             ListTile(
-              leading: const Icon(Icons.language),
+              leading: const SIcon(Icons.language),
               title: Text(context.t('Language', 'اللغة')),
               trailing: SegmentedButton<String?>(
                 showSelectedIcon: false,

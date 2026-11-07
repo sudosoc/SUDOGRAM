@@ -165,6 +165,7 @@ class AppSettings {
   bool get bgBlobs => x['bgBlobs'] as bool? ?? true;
 
   // ---- Personal tools
+  String get iconStyle => x['iconStyle'] as String? ?? 'default';
   String get quickReaction => x['quickReaction'] as String? ?? '👍';
   List<String> get quickReplies =>
       [for (final e in (x['quickReplies'] as List? ?? const [])) e.toString()];
@@ -225,7 +226,6 @@ class AppSettings {
   String get rowMode => x['rowMode'] as String? ?? 'full';
   double get avatarSize => (x['avatarSize'] as num?)?.toDouble() ?? 52;
   /// Seconds to hold a message before it is really sent (0 = instantly).
-  int get sendDelay => ((x['sendDelay'] as num?) ?? 0).round().clamp(0, 15);
   bool get homeShowTools => x['homeShowTools'] as bool? ?? false;
   bool get homeShowFab => x['homeShowFab'] as bool? ?? true;
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:open_filex/open_filex.dart';
+import '../../core/ui/icon_styles.dart';
 
 import '../../core/theme/glass.dart';
 import '../../domain/models.dart';
@@ -41,13 +42,13 @@ class FileCard extends StatelessWidget {
     } else if (file.downloading) {
       action = IconButton(
         tooltip: l.cancel,
-        icon: const Icon(Icons.close),
+        icon: const SIcon(Icons.close),
         onPressed: onCancel,
       );
     } else {
       action = IconButton(
         tooltip: l.download,
-        icon: const Icon(Icons.download_rounded),
+        icon: const SIcon(Icons.download_rounded),
         onPressed: onDownload,
       );
     }
@@ -57,7 +58,7 @@ class FileCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.insert_drive_file_outlined, size: 28),
+            const SIcon(Icons.insert_drive_file_outlined, size: 28),
             const SizedBox(width: 8),
             Flexible(
               child: Column(

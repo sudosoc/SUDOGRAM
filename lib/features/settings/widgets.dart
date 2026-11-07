@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/ui/icon_styles.dart';
 
 import '../../core/settings/app_settings.dart';
 import '../../core/theme/glass.dart';
@@ -82,7 +83,7 @@ class STabbedPage extends StatelessWidget {
               isScrollable: tabs.length > 3,
               tabs: [
                 for (final t in tabs)
-                  Tab(icon: Icon(t.icon, size: 20), text: t.label, height: 56),
+                  Tab(icon: SIcon(t.icon, size: 20), text: t.label, height: 56),
               ],
             ),
           ),
@@ -127,7 +128,7 @@ class ChoiceRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => ListTile(
-        leading: Icon(icon),
+        leading: SIcon(icon),
         title: Text(title),
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 4),
@@ -170,7 +171,7 @@ class SwitchRow extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final h = subtitle ?? hint;
     return SwitchListTile(
-      secondary: Icon(icon),
+      secondary: SIcon(icon),
       title: Text(title),
       subtitle: h == null ? null : SHint(h),
       value: value,
@@ -208,7 +209,7 @@ class SliderRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => ListTile(
-        leading: Icon(icon),
+        leading: SIcon(icon),
         title: Text(
             '$title  ${fmt != null ? fmt!(value) : value.toStringAsFixed(1)}'),
         subtitle:

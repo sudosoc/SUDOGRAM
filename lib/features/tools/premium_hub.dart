@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import '../../core/ui/icon_styles.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:open_filex/open_filex.dart';
@@ -10,9 +11,11 @@ import '../../app/providers.dart';
 import '../../core/i18n/tr.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/theme/glass.dart';
+import '../../core/ui/notice.dart';
 import '../../domain/models.dart';
 import '../chat/chat_screen.dart';
 import '../settings/widgets.dart';
+import 'more_tools.dart';
 
 /// Premium-style Telegram features that work on a normal account.
 class PremiumHubScreen extends StatelessWidget {
@@ -21,10 +24,10 @@ class PremiumHubScreen extends StatelessWidget {
   Widget _t(BuildContext c, IconData i, String en, String ar, String hen,
           String har, Widget Function() w) =>
       ListTile(
-        leading: Icon(i),
+        leading: SIcon(i),
         title: Text(c.t(en, ar)),
         subtitle: SHint(c.t(hen, har)),
-        trailing: const Icon(Icons.chevron_right, size: 20),
+        trailing: const SIcon(Icons.chevron_right, size: 20),
         onTap: () =>
             Navigator.of(c).push(MaterialPageRoute<void>(builder: (_) => w())),
       );
@@ -99,6 +102,9 @@ class PremiumHubScreen extends StatelessWidget {
                 'احذف أو أرشف حزم الستيكرز المثبّتة.',
                 () => const _Stickers()),
           ]),
+          SGroup(
+              title: context.t('More', 'المزيد'),
+              children: moreToolsTiles(context)),
           SGroup(title: context.t('Personal', 'شخصي'), children: [
             _t(context, Icons.bedtime_outlined, 'Do not disturb schedule', 'جدول عدم الإزعاج',
                 'Silence notifications between two times every day.',
@@ -190,7 +196,7 @@ class _ReadDate extends ConsumerWidget {
             return StatefulBuilder(builder: (c, set2) => ListView(padding: const EdgeInsets.all(12), children: [
               SGroup(children: [
                 SwitchListTile(
-                  secondary: const Icon(Icons.done_all),
+                  secondary: const SIcon(Icons.done_all),
                   title: Text(c.t('Show when I read messages', 'إظهار وقت قراءتي للرسايل')),
                   subtitle: SHint(c.t(
                       'Off = nobody sees your read time, and you will not see theirs.',
@@ -228,7 +234,7 @@ class _NewChat extends ConsumerWidget {
           return StatefulBuilder(builder: (c, set) => ListView(padding: const EdgeInsets.all(12), children: [
             SGroup(children: [
               SwitchListTile(
-                secondary: const Icon(Icons.mark_chat_read_outlined),
+                secondary: const SIcon(Icons.mark_chat_read_outlined),
                 title: Text(c.t('Allow non-contacts to start chats', 'السماح لغير جهات الاتصال ببدء شات')),
                 subtitle: SHint(c.t(
                     'Off = only your contacts can write to you first. (Telegram may require Premium to turn this off.)',
@@ -272,12 +278,12 @@ class _Websites extends ConsumerWidget {
                 child: Center(child: Text(c.t('No connected websites', 'مفيش مواقع مربوطة')))),
           for (final w in list)
             ListTile(
-              leading: const Icon(Icons.language),
+              leading: const SIcon(Icons.language),
               title: Text('${w['domain_name']}'),
               subtitle: Text('${w['browser']} · ${w['platform']}\n${w['location']} ${w['ip_address']}'),
               isThreeLine: true,
               trailing: IconButton(
-                icon: const Icon(Icons.link_off, color: GlassTokens.ringDanger),
+                icon: const SIcon(Icons.link_off, color: GlassTokens.ringDanger),
                 onPressed: () async {
                   await ref.read(gatewayProvider).tdRaw({'@type': 'disconnectWebsite', 'website_id': '${w['id']}'});
                   reload();
@@ -305,7 +311,7 @@ class _Birthday extends ConsumerWidget {
         context.t('My birthday', 'عيد ميلادي'),
         [
           FilledButton.icon(
-            icon: const Icon(Icons.cake_outlined),
+            icon: const SIcon(Icons.cake_outlined),
             label: Text(context.t('Choose date', 'اختار التاريخ')),
             onPressed: () async {
               final d = await showDatePicker(
@@ -352,15 +358,15 @@ class _Storage extends ConsumerWidget {
         builder: (c, m, reload) => ListView(padding: const EdgeInsets.all(12), children: [
           SGroup(children: [
             ListTile(
-                leading: const Icon(Icons.folder_outlined),
+                leading: const SIcon(Icons.folder_outlined),
                 title: Text(c.t('Cached files', 'الملفات المخزّنة')),
                 trailing: Text('${_size(_i(m['files_size']))} · ${_i(m['file_count'])}')),
             ListTile(
-                leading: const Icon(Icons.storage),
+                leading: const SIcon(Icons.storage),
                 title: Text(c.t('Database', 'قاعدة البيانات')),
                 trailing: Text(_size(_i(m['database_size'])))),
             ListTile(
-                leading: const Icon(Icons.description_outlined),
+                leading: const SIcon(Icons.description_outlined),
                 title: Text(c.t('Logs', 'السجلات')),
                 trailing: Text(_size(_i(m['log_size'])))),
           ]),
@@ -371,7 +377,7 @@ class _Storage extends ConsumerWidget {
               ('Everything', 'كل حاجة', 0),
             ])
               ListTile(
-                leading: const Icon(Icons.delete_sweep_outlined),
+                leading: const SIcon(Icons.delete_sweep_outlined),
                 title: Text(c.t(en, ar)),
                 onTap: () async {
                   try {
@@ -583,7 +589,7 @@ class _ProxiesState extends ConsumerState<_Proxies> {
               ),
           ],
         ),
-        floatingActionButton: FloatingActionButton(onPressed: _add, child: const Icon(Icons.add)),
+        floatingActionButton: FloatingActionButton(onPressed: _add, child: const SIcon(Icons.add)),
         body: _loading
             ? const Center(child: CircularProgressIndicator())
             : ListView(children: [
@@ -593,7 +599,7 @@ class _ProxiesState extends ConsumerState<_Proxies> {
                       child: Center(child: Text(context.t('No proxies yet', 'مفيش بروكسي لسه')))),
                 for (final p in _list)
                   ListTile(
-                    leading: Icon(p['is_enabled'] == true ? Icons.check_circle : Icons.vpn_key_outlined),
+                    leading: SIcon(p['is_enabled'] == true ? Icons.check_circle : Icons.vpn_key_outlined),
                     title: Text('${(p['proxy'] as Map)['server']}:${(p['proxy'] as Map)['port']}'),
                     subtitle: Text(
                         '${((p['proxy'] as Map)['type'] as Map)['@type'].toString().replaceFirst('proxyType', '')}'
@@ -604,7 +610,7 @@ class _ProxiesState extends ConsumerState<_Proxies> {
                     },
                     trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                       IconButton(
-                        icon: const Icon(Icons.speed),
+                        icon: const SIcon(Icons.speed),
                         onPressed: () async {
                           final id = _i(p['id']);
                           setState(() => _pings[id] = '…');
@@ -618,7 +624,7 @@ class _ProxiesState extends ConsumerState<_Proxies> {
                         },
                       ),
                       IconButton(
-                        icon: const Icon(Icons.delete_outline, color: GlassTokens.ringDanger),
+                        icon: const SIcon(Icons.delete_outline, color: GlassTokens.ringDanger),
                         onPressed: () async {
                           await _raw({'@type': 'removeProxy', 'proxy_id': _i(p['id'])});
                           await _load();
@@ -736,7 +742,7 @@ class _MediaSearchState extends ConsumerState<_MediaSearch> {
         if (_busy) const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator())),
         for (final m in _res)
           ListTile(
-            leading: const Icon(Icons.perm_media_outlined),
+            leading: const SIcon(Icons.perm_media_outlined),
             title: Text(_title(m), maxLines: 1, overflow: TextOverflow.ellipsis),
             subtitle: Text(_desc(m), maxLines: 2, overflow: TextOverflow.ellipsis),
             onTap: () {
@@ -817,7 +823,7 @@ class _ExportState extends ConsumerState<_Export> {
       for (final c in chats)
         ListTile(
           title: Text(c.title),
-          leading: const Icon(Icons.file_download_outlined),
+          leading: const SIcon(Icons.file_download_outlined),
           onTap: _busy ? null : () => _export(c),
         ),
     ]);
@@ -853,18 +859,18 @@ class _Bulk extends ConsumerWidget {
     return _page(context, context.t('Bulk clean-up', 'تنظيف جماعي'), [
       SGroup(children: [
         ListTile(
-          leading: const Icon(Icons.volume_off_outlined),
+          leading: const SIcon(Icons.volume_off_outlined),
           title: Text(context.t('Mute all groups & channels', 'كتم كل الجروبات والقنوات')),
           onTap: () => _each(context, ref, (x) => (x.type == ChatType.group || x.type == ChatType.channel) && !x.muted,
               (x) => g.setMuted(x.id, true)),
         ),
         ListTile(
-          leading: const Icon(Icons.volume_up_outlined),
+          leading: const SIcon(Icons.volume_up_outlined),
           title: Text(context.t('Unmute everything', 'إلغاء كتم الكل')),
           onTap: () => _each(context, ref, (x) => x.muted, (x) => g.setMuted(x.id, false)),
         ),
         ListTile(
-          leading: const Icon(Icons.archive_outlined),
+          leading: const SIcon(Icons.archive_outlined),
           title: Text(context.t('Archive all read chats', 'أرشفة كل الشاتات المقروءة')),
           subtitle: SHint(context.t('Chats with no unread messages.', 'الشاتات اللي مفيهاش رسايل غير مقروءة.')),
           onTap: () => _each(context, ref, (x) => x.unread == 0 && !x.markedUnread, (x) => g.setArchived(x.id, true)),
@@ -882,7 +888,7 @@ class _Insights extends ConsumerWidget {
     int n(bool Function(ChatSummary) f) => all.where(f).length;
     final top = [...all]..sort((a, b) => b.unread.compareTo(a.unread));
     Widget row(IconData i, String t, Object v) =>
-        ListTile(leading: Icon(i), title: Text(t), trailing: Text('$v', style: const TextStyle(fontSize: 18)));
+        ListTile(leading: SIcon(i), title: Text(t), trailing: Text('$v', style: const TextStyle(fontSize: 18)));
     return _page(context, context.t('Chat insights', 'إحصائيات الشاتات'), [
       SGroup(children: [
         row(Icons.chat_bubble_outline, context.t('All chats', 'كل الشاتات'), all.length),
@@ -943,59 +949,116 @@ class _OpenLinkState extends ConsumerState<_OpenLink> {
         Row(children: [
           Expanded(child: FilledButton(onPressed: _go, child: Text(context.t('Go', 'افتح')))),
           IconButton(
-              icon: const Icon(Icons.paste),
+              icon: const SIcon(Icons.paste),
               onPressed: () async => _c.text = (await Clipboard.getData('text/plain'))?.text ?? ''),
         ]),
         if (_msg != null) Padding(padding: const EdgeInsets.all(8), child: Text(_msg!)),
       ]);
 }
 
-class _Birthdays extends ConsumerWidget {
+class _Birthdays extends ConsumerStatefulWidget {
   const _Birthdays();
   @override
-  Widget build(BuildContext context, WidgetRef ref) => _Td<List<(String, int, int)>>(
-        title: context.t('Contacts\' birthdays', 'أعياد ميلاد جهات الاتصال'),
-        load: (r) async {
-          final g = r.read(gatewayProvider);
-          final ids = ((await g.tdRaw({'@type': 'getContacts'}))['user_ids'] as List? ?? const []).take(150).toList();
-          final out = <(String, int, int)>[];
-          for (var i = 0; i < ids.length; i += 10) {
-            final batch = ids.skip(i).take(10);
-            final res = await Future.wait(batch.map((id) async {
-              try {
-                final f = await g.tdRaw({'@type': 'getUserFullInfo', 'user_id': id});
-                final b = f['birthdate'] as Map?;
-                if (b == null) return null;
-                final u = await g.tdRaw({'@type': 'getUser', 'user_id': id});
-                return ('${u['first_name']} ${u['last_name']}'.trim(), _i(b['month']), _i(b['day']));
-              } catch (_) {
-                return null;
-              }
-            }));
-            out.addAll(res.whereType<(String, int, int)>());
-          }
-          final now = DateTime.now();
-          int days((String, int, int) e) {
-            var d = DateTime(now.year, e.$2, e.$3);
-            if (d.isBefore(DateTime(now.year, now.month, now.day))) d = DateTime(now.year + 1, e.$2, e.$3);
-            return d.difference(now).inDays;
-          }
-          out.sort((a, b) => days(a).compareTo(days(b)));
-          return out;
-        },
-        builder: (c, list, reload) => ListView(children: [
-          if (list.isEmpty)
-            Padding(
-                padding: const EdgeInsets.all(24),
-                child: Center(child: Text(c.t('No birthdays shared', 'محدش مشارك عيد ميلاده')))),
-          for (final e in list)
-            ListTile(
-              leading: const Icon(Icons.cake_outlined),
-              title: Text(e.$1),
-              trailing: Text('${e.$3}/${e.$2}'),
-            ),
-        ]),
-      );
+  ConsumerState<_Birthdays> createState() => _BirthdaysState();
+}
+
+class _BirthdaysState extends ConsumerState<_Birthdays> {
+  final List<(String, int, int)> _out = [];
+  int _done = 0, _total = 0;
+  bool _running = true;
+  String? _err;
+
+  @override
+  void initState() {
+    super.initState();
+    _run();
+  }
+
+  int _days((String, int, int) e) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    var d = DateTime(now.year, e.$2, e.$3);
+    if (d.isBefore(today)) d = DateTime(now.year + 1, e.$2, e.$3);
+    return d.difference(today).inDays;
+  }
+
+  Future<void> _run() async {
+    final g = ref.read(gatewayProvider);
+    try {
+      final r = await g
+          .tdRaw({'@type': 'getContacts'})
+          .timeout(const Duration(seconds: 15));
+      final ids = (r['user_ids'] as List? ?? const []).take(300).toList();
+      if (!mounted) return;
+      setState(() => _total = ids.length);
+      for (var i = 0; i < ids.length && mounted; i += 8) {
+        await Future.wait(ids.skip(i).take(8).map((id) async {
+          try {
+            final f = await g
+                .tdRaw({'@type': 'getUserFullInfo', 'user_id': id})
+                .timeout(const Duration(seconds: 6));
+            final b = f['birthdate'] as Map?;
+            if (b == null) return;
+            final u = await g
+                .tdRaw({'@type': 'getUser', 'user_id': id})
+                .timeout(const Duration(seconds: 6));
+            final name = '${u['first_name']} ${u['last_name']}'.trim();
+            _out.add((name, _i(b['month']), _i(b['day'])));
+          } catch (_) {}
+        }));
+        if (!mounted) return;
+        setState(() {
+          _done = (i + 8).clamp(0, ids.length);
+          _out.sort((a, b) => _days(a).compareTo(_days(b)));
+        });
+      }
+    } catch (e) {
+      if (mounted) _err = friendlyError(e, ar: context.isAr);
+    }
+    if (mounted) setState(() => _running = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        title: Text(context.t('Contacts\' birthdays', 'أعياد ميلاد جهات الاتصال')),
+        bottom: _running && _total > 0
+            ? PreferredSize(
+                preferredSize: const Size.fromHeight(3),
+                child: LinearProgressIndicator(value: _done / _total),
+              )
+            : null,
+      ),
+      body: _err != null
+          ? Center(child: Text(_err!))
+          : ListView(children: [
+              if (_out.isEmpty && !_running)
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Center(
+                    child: Text(context.t('No birthdays shared', 'محدش مشارك عيد ميلاده')),
+                  ),
+                ),
+              if (_out.isEmpty && _running)
+                const Padding(
+                  padding: EdgeInsets.all(40),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              for (final e in _out)
+                ListTile(
+                  leading: SIcon(_days(e) == 0 ? Icons.cake : Icons.cake_outlined),
+                  title: Text(e.$1),
+                  subtitle: Text(_days(e) == 0
+                      ? context.t('Today!', 'النهارده!')
+                      : context.t('in ${_days(e)} days', 'بعد ${_days(e)} يوم')),
+                  trailing: Text('${e.$3}/${e.$2}'),
+                ),
+            ]),
+    );
+  }
 }
 
 class _Stickers extends ConsumerWidget {
@@ -1014,11 +1077,11 @@ class _Stickers extends ConsumerWidget {
         builder: (c, list, reload) => ListView(children: [
           for (final s in list)
             ListTile(
-              leading: const Icon(Icons.emoji_emotions_outlined),
+              leading: const SIcon(Icons.emoji_emotions_outlined),
               title: Text('${s['title']}'),
               subtitle: Text('${s['size'] ?? ''}'),
               trailing: IconButton(
-                icon: const Icon(Icons.delete_outline, color: GlassTokens.ringDanger),
+                icon: const SIcon(Icons.delete_outline, color: GlassTokens.ringDanger),
                 onPressed: () async {
                   await ref.read(gatewayProvider).tdRaw({
                     '@type': 'changeStickerSet',
@@ -1058,13 +1121,13 @@ class _Dnd extends ConsumerWidget {
           value: s.dndOn,
         ),
         ListTile(
-          leading: const Icon(Icons.schedule),
+          leading: const SIcon(Icons.schedule),
           title: Text(context.t('From', 'من')),
           trailing: Text(hm(s.dndFrom)),
           onTap: () => pick('dndFrom', s.dndFrom),
         ),
         ListTile(
-          leading: const Icon(Icons.schedule),
+          leading: const SIcon(Icons.schedule),
           title: Text(context.t('To', 'إلى')),
           trailing: Text(hm(s.dndTo)),
           onTap: () => pick('dndTo', s.dndTo),
@@ -1084,7 +1147,7 @@ class _Replies extends ConsumerWidget {
       backgroundColor: Colors.transparent,
       appBar: AppBar(backgroundColor: Colors.transparent, title: Text(context.t('Quick replies', 'ردود جاهزة'))),
       floatingActionButton: FloatingActionButton(
-        child: const Icon(Icons.add),
+        child: const SIcon(Icons.add),
         onPressed: () async {
           final t = TextEditingController();
           final v = await showDialog<String>(
@@ -1109,7 +1172,7 @@ class _Replies extends ConsumerWidget {
           ListTile(
             title: Text(r, maxLines: 3, overflow: TextOverflow.ellipsis),
             trailing: IconButton(
-              icon: const Icon(Icons.delete_outline),
+              icon: const SIcon(Icons.delete_outline),
               onPressed: () => c.setX('quickReplies', [for (final (j, e) in s.quickReplies.indexed) if (j != i) e]),
             ),
             onTap: () {

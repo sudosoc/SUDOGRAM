@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/ui/icon_styles.dart';
 
 import '../../app/providers.dart';
 import '../../core/settings/app_settings.dart';
@@ -63,10 +64,10 @@ class SettingsScreen extends ConsumerWidget {
 
     Widget nav(IconData i, String t, WidgetBuilder b, {String? sub}) =>
         ListTile(
-          leading: Icon(i),
+          leading: SIcon(i),
           title: Text(t),
           subtitle: sub == null ? null : Text(sub),
-          trailing: const Icon(Icons.chevron_right, size: 20),
+          trailing: const SIcon(Icons.chevron_right, size: 20),
           onTap: () => _push(context, b),
         );
 
@@ -121,7 +122,7 @@ class SettingsScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  const Icon(Icons.chevron_right),
+                  const SIcon(Icons.chevron_right),
                 ],
               ),
             ),
@@ -157,9 +158,9 @@ class SettingsScreen extends ConsumerWidget {
               sub: s.ghostGlobal ? l.ghostStatusOn : l.ghostStatusOff,
             ),
             ListTile(
-              leading: const Icon(Icons.lock_outline),
+              leading: const SIcon(Icons.lock_outline),
               title: Text(l.hiddenSettings),
-              trailing: const Icon(Icons.chevron_right, size: 20),
+              trailing: const SIcon(Icons.chevron_right, size: 20),
               onTap: () async {
                 final ok = await requireHiddenAuth(context, ref);
                 if (ok && context.mounted) {
@@ -239,7 +240,7 @@ class SettingsScreen extends ConsumerWidget {
           ]),
           group(l.settingsPresets, [
             ListTile(
-              leading: const Icon(Icons.bookmark_add_outlined),
+              leading: const SIcon(Icons.bookmark_add_outlined),
               title: Text(l.saveProfile),
               onTap: () async {
                 final c2 = TextEditingController();

@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import '../../core/ui/notice.dart';
+import '../../core/ui/icon_styles.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -96,7 +98,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       if (fresh != null && mounted) setState(() => _me = fresh);
       ref.invalidate(meProvider);
     } catch (e) {
-      _toast(l.sendFailed('$e'));
+      _toast(friendlyError(e, ar: l.localeName == 'ar'));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -111,7 +113,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       _toast(l.saved);
       await _load();
     } catch (e) {
-      _toast(l.sendFailed('$e'));
+      _toast(friendlyError(e, ar: l.localeName == 'ar'));
     }
   }
 
@@ -138,13 +140,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     try {
       await ref.read(gatewayProvider).logOut();
     } catch (e) {
-      _toast(l.sendFailed('$e'));
+      _toast(friendlyError(e, ar: l.localeName == 'ar'));
     }
   }
 
   Widget _info(IconData i, String v, String label) => ListTile(
     contentPadding: EdgeInsets.zero,
-    leading: Icon(i),
+    leading: SIcon(i),
     title: Text(v),
     subtitle: Text(
       label,
@@ -187,7 +189,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         ),
                   const CircleAvatar(
                     radius: 16,
-                    child: Icon(Icons.camera_alt, size: 16),
+                    child: SIcon(Icons.camera_alt, size: 16),
                   ),
                 ],
               ),
@@ -258,7 +260,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
           const SizedBox(height: 24),
           OutlinedButton.icon(
-            icon: const Icon(Icons.logout, color: GlassTokens.ringDanger),
+            icon: const SIcon(Icons.logout, color: GlassTokens.ringDanger),
             label: Text(
               l.logout,
               style: const TextStyle(color: GlassTokens.ringDanger),

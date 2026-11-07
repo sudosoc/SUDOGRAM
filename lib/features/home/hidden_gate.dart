@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
+import '../../core/ui/icon_styles.dart';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
@@ -201,7 +202,7 @@ class _HiddenGateViewState extends ConsumerState<HiddenGateView> {
                     ),
                   ),
                   child: k == '<'
-                      ? const Icon(Icons.backspace_outlined)
+                      ? const SIcon(Icons.backspace_outlined)
                       : Text(k, style: const TextStyle(fontSize: 22)),
                 ),
         ),
@@ -230,7 +231,7 @@ class _HiddenGateViewState extends ConsumerState<HiddenGateView> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
+              const SIcon(
                 Icons.lock_outline,
                 size: 48,
                 color: GlassTokens.ghost,
@@ -245,7 +246,7 @@ class _HiddenGateViewState extends ConsumerState<HiddenGateView> {
                 if (_busy) const CircularProgressIndicator(),
                 if (!_busy)
                   FilledButton.icon(
-                    icon: const Icon(Icons.fingerprint),
+                    icon: const SIcon(Icons.fingerprint),
                     label: Text(l.unlock),
                     onPressed: _device,
                   ),

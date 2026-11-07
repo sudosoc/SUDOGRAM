@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/ui/icon_styles.dart';
 
 import '../../app/providers.dart';
 import '../../core/i18n/tr.dart';
@@ -50,7 +51,7 @@ class AccountsScreen extends ConsumerWidget {
                   ].join(' · '),
                 ),
                 trailing: a['slot'] == s.activeSlot
-                    ? const Icon(
+                    ? const SIcon(
                         Icons.check_circle,
                         color: GlassTokens.ringSafe,
                       )
@@ -66,7 +67,7 @@ class AccountsScreen extends ConsumerWidget {
                           ),
                           if (accs.length > 1)
                             IconButton(
-                              icon: const Icon(
+                              icon: const SIcon(
                                 Icons.delete_outline,
                                 color: GlassTokens.ringDanger,
                               ),
@@ -113,7 +114,7 @@ class AccountsScreen extends ConsumerWidget {
                       ),
               ),
             ListTile(
-              leading: const Icon(Icons.person_add_alt_1),
+              leading: const SIcon(Icons.person_add_alt_1),
               title: Text(context.t('Add account', 'إضافة حساب')),
               subtitle: Text(
                 context.t(

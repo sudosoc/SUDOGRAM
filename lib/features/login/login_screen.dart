@@ -1,11 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../../core/ui/icon_styles.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../app/providers.dart';
+import '../../core/device_perms.dart';
 import '../../core/i18n/tr.dart';
 import '../../core/settings/app_settings.dart';
 import '../../core/theme/glass.dart';
@@ -20,6 +22,16 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Pick the dial code from where the phone actually is.
+    detectIsoByLocation().then((iso) {
+      if (iso != null && mounted && _phone.text.isEmpty) {
+        setState(() => _country = countryByIso(iso));
+      }
+    });
+  }
   final _phone = TextEditingController();
   final _code = TextEditingController();
   final _pass = TextEditingController();
@@ -312,7 +324,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         Align(
                           alignment: AlignmentDirectional.centerStart,
                           child: TextButton.icon(
-                            icon: const Icon(Icons.arrow_back, size: 18),
+                            icon: const SIcon(Icons.arrow_back, size: 18),
                             label: Text(
                               _forcePhone
                                   ? context.t('Back', 'رجوع')
@@ -428,7 +440,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         fontSize: 16,
                       ),
                     ),
-                    const Icon(Icons.arrow_drop_down),
+                    const SIcon(Icons.arrow_drop_down),
                   ],
                 ),
               ),
@@ -471,7 +483,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         const SizedBox(height: 6),
         if (ref.watch(settingsProvider).accounts.length > 1)
           TextButton.icon(
-            icon: const Icon(Icons.arrow_back),
+            icon: const SIcon(Icons.arrow_back),
             label: Text(
               context.t('Back to my other account', 'رجوع لحسابي التاني'),
             ),
@@ -482,7 +494,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             },
           ),
         TextButton.icon(
-          icon: const Icon(Icons.qr_code_2),
+          icon: const SIcon(Icons.qr_code_2),
           label: Text(context.t('Log in with QR code', 'الدخول بكود QR')),
           onPressed: _busy
               ? null
@@ -545,7 +557,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         const SizedBox(height: 8),
         Row(
           children: [
-            const Icon(
+            const SIcon(
               Icons.send_rounded,
               size: 18,
               color: GlassTokens.accentDefault,
@@ -664,7 +676,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   curve: Curves.elasticOut,
                   builder: (_, a, _) => Transform.scale(
                     scale: 1 + .25 * a,
-                    child: Icon(
+                    child: SIcon(
                       n == 0 ? Icons.lock_outline : Icons.lock_open_rounded,
                       size: 44,
                       color: Color.lerp(
@@ -737,7 +749,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           decoration: InputDecoration(
             hintText: context.t('Password', 'الباسورد'),
             suffixIcon: IconButton(
-              icon: Icon(_showPass ? Icons.visibility_off : Icons.visibility),
+              icon: SIcon(_showPass ? Icons.visibility_off : Icons.visibility),
               onPressed: () => setState(() => _showPass = !_showPass),
             ),
           ),
@@ -790,12 +802,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           style: const TextStyle(color: GlassTokens.textSecondary),
         ),
         TextButton.icon(
-          icon: const Icon(Icons.refresh),
+          icon: const SIcon(Icons.refresh),
           label: Text(context.t('Refresh code', 'تحديث الكود')),
           onPressed: () => ref.read(gatewayProvider).requestQrLogin(),
         ),
         TextButton.icon(
-          icon: const Icon(Icons.phone_android),
+          icon: const SIcon(Icons.phone_android),
           label: Text(
             context.t('Use phone number instead', 'استخدم رقم الهاتف'),
           ),
@@ -886,7 +898,7 @@ class _DigitTicker extends StatelessWidget {
           if (ok)
             const Padding(
               padding: EdgeInsets.only(left: 6),
-              child: Icon(
+              child: SIcon(
                 Icons.check_circle,
                 size: 18,
                 color: GlassTokens.accentDefault,
@@ -934,7 +946,7 @@ class _CountrySheetState extends State<_CountrySheet> {
               child: TextField(
                 autofocus: false,
                 decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.search),
+                  prefixIcon: const SIcon(Icons.search),
                   hintText: context.t(
                     'Search country or code',
                     'ابحث عن دولة أو كود',

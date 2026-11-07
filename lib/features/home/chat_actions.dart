@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../core/ui/notice.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/ui/icon_styles.dart';
 
 import '../../app/providers.dart';
 import '../../core/settings/app_settings.dart';
@@ -94,7 +96,7 @@ Future<bool> runChatDanger(
     messenger.showSnackBar(SnackBar(content: Text(l.doneMsg)));
     return true;
   } catch (e) {
-    messenger.showSnackBar(SnackBar(content: Text(l.sendFailed('$e'))));
+    messenger.showSnackBar(SnackBar(content: Text(friendlyError(e, ar: l.localeName == 'ar'))));
     return false;
   }
 }
@@ -122,7 +124,7 @@ void showChatActions(BuildContext context, WidgetRef ref, ChatSummary chat,
           child: SingleChildScrollView(
             child: Column(mainAxisSize: MainAxisSize.min, children: [
               ListTile(
-                leading: Icon(pinned ? Icons.push_pin : Icons.push_pin_outlined),
+                leading: SIcon(pinned ? Icons.push_pin : Icons.push_pin_outlined),
                 title: Text(pinned ? l.unpin : l.pin),
                 onTap: () {
                   c.togglePin(chat.id);
@@ -131,7 +133,7 @@ void showChatActions(BuildContext context, WidgetRef ref, ChatSummary chat,
               ),
               if (chat.unread > 0 || chat.markedUnread)
                 ListTile(
-                  leading: const Icon(Icons.done_all),
+                  leading: const SIcon(Icons.done_all),
                   title: Text(l.markRead),
                   onTap: () {
                     ref.read(gatewayProvider).markChatRead(chat.id);
@@ -140,7 +142,7 @@ void showChatActions(BuildContext context, WidgetRef ref, ChatSummary chat,
                 ),
               if (chat.unread == 0 && !chat.markedUnread)
                 ListTile(
-                  leading: Icon(chat.markedUnread
+                  leading: SIcon(chat.markedUnread
                       ? Icons.mark_chat_read_outlined
                       : Icons.mark_chat_unread_outlined),
                   title: Text(chat.markedUnread ? l.markRead : l.markUnread),
@@ -152,7 +154,7 @@ void showChatActions(BuildContext context, WidgetRef ref, ChatSummary chat,
                   },
                 ),
               ListTile(
-                leading: Icon(chat.muted ? Icons.volume_up_outlined : Icons.volume_off_outlined),
+                leading: SIcon(chat.muted ? Icons.volume_up_outlined : Icons.volume_off_outlined),
                 title: Text(chat.muted ? l.unmute : l.mute),
                 onTap: () {
                   ref.read(gatewayProvider).setMuted(chat.id, !chat.muted);
@@ -160,7 +162,7 @@ void showChatActions(BuildContext context, WidgetRef ref, ChatSummary chat,
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.archive_outlined),
+                leading: const SIcon(Icons.archive_outlined),
                 title: Text(l.archiveChat),
                 onTap: () {
                   ref.read(gatewayProvider).setArchived(chat.id, true);
@@ -168,7 +170,7 @@ void showChatActions(BuildContext context, WidgetRef ref, ChatSummary chat,
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.edit_outlined),
+                leading: const SIcon(Icons.edit_outlined),
                 title: Text(l.rename),
                 subtitle: s.aliases[chat.id] == null ? null : Text(s.aliases[chat.id]!),
                 onTap: () async {
@@ -179,7 +181,7 @@ void showChatActions(BuildContext context, WidgetRef ref, ChatSummary chat,
                 },
               ),
               ListTile(
-                leading: Icon(hidden ? Icons.lock_open : Icons.lock_outline),
+                leading: SIcon(hidden ? Icons.lock_open : Icons.lock_outline),
                 title: Text(hidden ? l.unhideChat : l.hideChat),
                 onTap: () {
                   c.setHidden(chat.id, !hidden);
@@ -187,7 +189,7 @@ void showChatActions(BuildContext context, WidgetRef ref, ChatSummary chat,
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.visibility_off_outlined),
+                leading: const SIcon(Icons.visibility_off_outlined),
                 title: Text(s.ghostFor(chat.id) ? l.ghostOffForChat : l.ghostOnForChat),
                 onTap: () {
                   c.setGhostOverride(chat.id, !s.ghostFor(chat.id));
@@ -213,7 +215,7 @@ void showChatActions(BuildContext context, WidgetRef ref, ChatSummary chat,
                         : c.toggleInFolder(name, chat.id),
                   ),
                 ActionChip(
-                  avatar: const Icon(Icons.add, size: 16),
+                  avatar: const SIcon(Icons.add, size: 16),
                   label: Text(l.newFolder),
                   onPressed: () async {
                     final n = await _ask(root, l.newFolder, l.folderName);
@@ -228,7 +230,7 @@ void showChatActions(BuildContext context, WidgetRef ref, ChatSummary chat,
               const SizedBox(height: 8),
               const Divider(),
               ListTile(
-                leading: const Icon(Icons.cleaning_services_outlined,
+                leading: const SIcon(Icons.cleaning_services_outlined,
                     color: GlassTokens.ringDanger),
                 title: Text(l.clearHistory,
                     style: const TextStyle(color: GlassTokens.ringDanger)),
@@ -238,7 +240,7 @@ void showChatActions(BuildContext context, WidgetRef ref, ChatSummary chat,
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.delete_outline,
+                leading: const SIcon(Icons.delete_outline,
                     color: GlassTokens.ringDanger),
                 title: Text(
                     chat.type == ChatType.private ? l.deleteChat : l.leaveChat,
@@ -250,7 +252,7 @@ void showChatActions(BuildContext context, WidgetRef ref, ChatSummary chat,
               ),
               if (chat.type == ChatType.private)
                 ListTile(
-                  leading: const Icon(Icons.block, color: GlassTokens.ringDanger),
+                  leading: const SIcon(Icons.block, color: GlassTokens.ringDanger),
                   title: Text(l.blockUser,
                       style: const TextStyle(color: GlassTokens.ringDanger)),
                   onTap: () {

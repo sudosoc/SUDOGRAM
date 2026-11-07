@@ -209,6 +209,7 @@ class _SudogramAppState extends ConsumerState<SudogramApp>
           blurSigma: s.glassBlur,
           radiusScale: s.cornerScale,
           showBlobs: s.bgBlobs,
+          iconStyle: s.iconStyle,
           child: GlassBackdrop(child: _LockGate(child: child)),
         ),
       ),

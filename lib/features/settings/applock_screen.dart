@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../core/ui/icon_styles.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
@@ -183,7 +184,7 @@ class _Methods extends ConsumerWidget {
         SGroup(
           children: [
             SwitchListTile(
-              secondary: const Icon(Icons.lock_outline),
+              secondary: const SIcon(Icons.lock_outline),
               title: Text(context.t('Lock the app', 'قفل التطبيق')),
               subtitle: Text(
                 context.t(
@@ -205,7 +206,7 @@ class _Methods extends ConsumerWidget {
           title: context.t('Unlock with', 'الفتح بـ'),
           children: [
             SwitchListTile(
-              secondary: const Icon(Icons.fingerprint),
+              secondary: const SIcon(Icons.fingerprint),
               title: Text(
                 context.t(
                   'Fingerprint / face / device lock',
@@ -216,7 +217,7 @@ class _Methods extends ConsumerWidget {
               onChanged: (v) => toggle('biometric', v),
             ),
             ListTile(
-              leading: const Icon(Icons.pin_outlined),
+              leading: const SIcon(Icons.pin_outlined),
               title: Text(
                 hasPin
                     ? context.t('Change passcode', 'تغيير الباسكود')
@@ -235,12 +236,12 @@ class _Methods extends ConsumerWidget {
                             ),
                     )
                   : null,
-              trailing: const Icon(Icons.chevron_right),
+              trailing: const SIcon(Icons.chevron_right),
               onTap: () => _setLockPin(context, ref),
             ),
             if (hasPin)
               ListTile(
-                leading: const Icon(
+                leading: const SIcon(
                   Icons.delete_outline,
                   color: GlassTokens.ringDanger,
                 ),
@@ -334,7 +335,7 @@ class _Options extends ConsumerWidget {
               ),
             ),
             ListTile(
-              leading: const Icon(Icons.timer_outlined),
+              leading: const SIcon(Icons.timer_outlined),
               title: Text(
                 context.t(
                   'Wrong attempts before a 30 s pause',
@@ -371,7 +372,7 @@ class _Security extends ConsumerWidget {
         SGroup(
           children: [
             SwitchListTile(
-              secondary: const Icon(Icons.camera_front_outlined),
+              secondary: const SIcon(Icons.camera_front_outlined),
               title: Text(context.t('Intruder photo', 'صورة المتسلل')),
               subtitle: Text(
                 context.t(
@@ -402,7 +403,7 @@ class _Security extends ConsumerWidget {
         SGroup(
           children: [
             ListTile(
-              leading: const Icon(Icons.lock_clock),
+              leading: const SIcon(Icons.lock_clock),
               title: Text(context.t('Lock now', 'اقفل دلوقتي')),
               onTap: () {
                 if (!s.appLock) {
