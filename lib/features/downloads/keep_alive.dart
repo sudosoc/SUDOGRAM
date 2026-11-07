@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 
+import '../../core/audio_hub.dart';
+
 /// No-op handler: the service only exists so Android keeps the process (and
 /// therefore TDLib's downloads) alive while the app is in the background.
 class _IdleHandler extends TaskHandler {
@@ -32,6 +34,15 @@ class DownloadKeepAlive {
   final String title;
   final String Function(int count) text;
   bool _inited = false;
+  bool _audio = false;
+
+  void _audioChanged() {
+    final p = AudioHub.instance.playing;
+    if (p != _audio) {
+      _audio = p;
+      _sync();
+    }
+  }
 
   bool get _foreground =>
       WidgetsBinding.instance.lifecycleState == null ||
@@ -53,6 +64,7 @@ class DownloadKeepAlive {
     );
     _inited = true;
     pending.addListener(_sync);
+    AudioHub.instance.addListener(_audioChanged);
     _sync();
   }
 
@@ -63,7 +75,7 @@ class DownloadKeepAlive {
     try {
       final n = pending.value;
       final running = await FlutterForegroundTask.isRunningService;
-      final want = n > 0 || keepConnected();
+      final want = n > 0 || keepConnected() || AudioHub.instance.playing;
       final label = n > 0 ? text(n) : idleText;
       if (want) {
         // Android 12+ kills apps that start a foreground service from the

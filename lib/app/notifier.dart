@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import '../core/audio_hub.dart';
 import '../domain/models.dart';
 
 /// Local notifications for new incoming messages. Works while the app
@@ -27,6 +28,10 @@ class MessageNotifier {
           android: AndroidInitializationSettings('@mipmap/ic_launcher'),
         ),
         onDidReceiveNotificationResponse: (r) {
+          if ((r.actionId ?? '').startsWith('audio_')) {
+            AudioHub.instance.handleAction(r.actionId!);
+            return;
+          }
           final id = int.tryParse(r.payload ?? '');
           if (id != null) onOpen?.call(id);
         },
@@ -36,10 +41,40 @@ class MessageNotifier {
             AndroidFlutterLocalNotificationsPlugin
           >()
           ?.requestNotificationsPermission();
+      AudioHub.instance.onNotify = showAudio;
+      AudioHub.instance.onClearNotify = () => _plugin.cancel(_audioId);
       _ready = true;
     } catch (e) {
       debugPrint('notifications init failed: $e');
     }
+  }
+
+  static const _audioId = 1999999990;
+
+  void showAudio(String title, bool playing) {
+    if (!_ready) return;
+    _plugin.show(
+      _audioId,
+      title,
+      playing ? 'Playing' : 'Paused',
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          'sudogram_audio',
+          'Voice playback',
+          importance: Importance.low,
+          priority: Priority.low,
+          ongoing: playing,
+          playSound: false,
+          enableVibration: false,
+          onlyAlertOnce: true,
+          category: AndroidNotificationCategory.transport,
+          actions: [
+            AndroidNotificationAction('audio_toggle', playing ? 'Pause' : 'Play'),
+            const AndroidNotificationAction('audio_stop', 'Stop', cancelNotification: true),
+          ],
+        ),
+      ),
+    );
   }
 
   /// Call on every chat-list emission. [privateIds] get a generic body

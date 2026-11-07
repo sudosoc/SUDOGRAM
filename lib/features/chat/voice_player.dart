@@ -1,4 +1,5 @@
 import 'package:audioplayers/audioplayers.dart';
+import '../../core/audio_hub.dart';
 import 'package:flutter/material.dart';
 import '../../core/ui/icon_styles.dart';
 
@@ -8,8 +9,9 @@ import 'file_card.dart';
 
 /// Voice notes / audio: play, seek bar, ±10 s skip and playback speed.
 class VoicePlayer extends StatefulWidget {
-  const VoicePlayer({super.key, required this.file, required this.onDownload});
+  const VoicePlayer({super.key, required this.file, required this.onDownload, this.title = 'Voice message'});
 
+  final String title;
   final Attachment file;
   final VoidCallback onDownload;
 
@@ -19,28 +21,25 @@ class VoicePlayer extends StatefulWidget {
 
 class _VoicePlayerState extends State<VoicePlayer> {
   static const _speeds = [1.0, 1.5, 2.0, 0.75];
-  static double _lastSpeed = 1.0; // remembered across messages
-
-  AudioPlayer? _p;
-  PlayerState _state = PlayerState.stopped;
-  Duration _pos = Duration.zero;
-  Duration _dur = Duration.zero;
-  double _speed = _lastSpeed;
+  final _hub = AudioHub.instance;
   double? _drag;
 
-  AudioPlayer _player() => _p ??= AudioPlayer()
-    ..onPlayerStateChanged.listen((s) {
-      if (mounted) setState(() => _state = s);
-    })
-    ..onPositionChanged.listen((d) {
-      if (mounted && _drag == null) setState(() => _pos = d);
-    })
-    ..onDurationChanged.listen((d) {
-      if (mounted) setState(() => _dur = d);
-    })
-    ..onPlayerComplete.listen((_) {
-      if (mounted) setState(() => _pos = Duration.zero);
-    });
+  String get _key => widget.file.localPath ?? 'f${widget.file.fileId}';
+  bool get _active => _hub.isActive(_key);
+  PlayerState get _state => _active ? _hub.state : PlayerState.stopped;
+  Duration get _pos => _active ? _hub.pos : Duration.zero;
+  Duration get _dur => _active ? _hub.dur : Duration.zero;
+  double get _speed => _hub.speed;
+
+  @override
+  void initState() {
+    super.initState();
+    _hub.addListener(_tick);
+  }
+
+  void _tick() {
+    if (mounted && _drag == null) setState(() {});
+  }
 
   Future<void> _toggle() async {
     final f = widget.file;
@@ -48,38 +47,29 @@ class _VoicePlayerState extends State<VoicePlayer> {
       widget.onDownload();
       return;
     }
-    final p = _player();
-    if (_state == PlayerState.playing) {
-      await p.pause();
-    } else if (_state == PlayerState.paused) {
-      await p.resume();
+    if (_active) {
+      await _hub.toggle();
     } else {
-      await p.setPlaybackRate(_speed);
-      await p.play(DeviceFileSource(f.localPath!));
+      await _hub.play(_key, f.localPath!, widget.title);
     }
   }
 
   Future<void> _skip(int seconds) async {
-    final p = _p;
-    if (p == null) return;
+    if (!_active) return;
     var t = _pos + Duration(seconds: seconds);
     if (t < Duration.zero) t = Duration.zero;
     if (_dur > Duration.zero && t > _dur) t = _dur;
-    await p.seek(t);
-    if (mounted) setState(() => _pos = t);
+    await _hub.seek(t);
   }
 
   Future<void> _cycleSpeed() async {
     final i = _speeds.indexOf(_speed);
-    _speed = _speeds[(i + 1) % _speeds.length];
-    _lastSpeed = _speed;
-    await _p?.setPlaybackRate(_speed);
-    if (mounted) setState(() {});
+    await _hub.setSpeed(_speeds[(i + 1) % _speeds.length]);
   }
 
   @override
   void dispose() {
-    _p?.dispose();
+    _hub.removeListener(_tick);
     super.dispose();
   }
 
@@ -132,13 +122,8 @@ class _VoicePlayerState extends State<VoicePlayer> {
                           : (v) => setState(() => _drag = v),
                       onChangeEnd: (v) async {
                         final t = Duration(milliseconds: (v * totalMs).round());
-                        await _player().seek(t);
-                        if (mounted) {
-                          setState(() {
-                            _pos = t;
-                            _drag = null;
-                          });
-                        }
+                        if (_active) await _hub.seek(t);
+                        if (mounted) setState(() => _drag = null);
                       },
                     ),
                   )

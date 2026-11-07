@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../app/providers.dart';
+import '../../core/audio_hub.dart';
 import '../../core/i18n/tr.dart';
 import '../../core/theme/glass.dart';
 import '../../core/ui/icon_styles.dart';
@@ -310,6 +311,142 @@ class _ConnectionBannerState extends State<ConnectionBanner> {
                 ),
               ),
             ),
+    );
+  }
+}
+
+// -------------------------------------------------------- mini player
+
+/// Playback bar shown while a voice note plays (also after leaving its chat).
+class MiniPlayer extends StatelessWidget {
+  const MiniPlayer({super.key});
+
+  String _fmt(Duration d) =>
+      '${d.inMinutes}:${(d.inSeconds % 60).toString().padLeft(2, '0')}';
+
+  @override
+  Widget build(BuildContext context) {
+    final hub = AudioHub.instance;
+    final accent = GlassScope.of(context).accent;
+    return ListenableBuilder(
+      listenable: hub,
+      builder: (context, _) {
+        if (hub.key == null) return const SizedBox(width: double.infinity);
+        final total = hub.dur.inMilliseconds;
+        final v = total == 0 ? 0.0 : (hub.pos.inMilliseconds / total).clamp(0.0, 1.0);
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.07),
+                border: Border.all(color: accent.withValues(alpha: 0.3)),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Row(children: [
+                  IconButton(
+                    onPressed: hub.toggle,
+                    icon: SIcon(hub.playing ? Icons.pause_rounded : Icons.play_arrow_rounded, color: accent),
+                  ),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(hub.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                      Text('${_fmt(hub.pos)} / ${_fmt(hub.dur)}',
+                          style: const TextStyle(fontSize: 11, color: GlassTokens.textSecondary)),
+                    ]),
+                  ),
+                  InkWell(
+                    borderRadius: BorderRadius.circular(10),
+                    onTap: () {
+                      const s = [1.0, 1.5, 2.0, 0.75];
+                      hub.setSpeed(s[(s.indexOf(hub.speed) + 1) % s.length]);
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: Text('${hub.speed == hub.speed.roundToDouble() ? hub.speed.toInt() : hub.speed}x',
+                          style: const TextStyle(fontWeight: FontWeight.w700)),
+                    ),
+                  ),
+                  IconButton(onPressed: hub.stop, icon: const SIcon(Icons.close_rounded, size: 20)),
+                ]),
+                LinearProgressIndicator(value: v, minHeight: 2, color: accent, backgroundColor: Colors.transparent),
+              ]),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ------------------------------------------------------ format bar
+
+/// Wraps the composer selection with style markers (see parseCode).
+class FormatBar extends StatelessWidget {
+  const FormatBar({super.key, required this.controller});
+  final TextEditingController controller;
+
+  void _wrap(String open, [String? close]) {
+    final c = close ?? open;
+    final v = controller.value;
+    final sel = v.selection;
+    if (!sel.isValid) return;
+    final t = v.text;
+    final inner = t.substring(sel.start, sel.end);
+    final text = t.replaceRange(sel.start, sel.end, '$open$inner$c');
+    controller.value = TextEditingValue(
+      text: text,
+      selection: TextSelection(
+        baseOffset: sel.start + open.length,
+        extentOffset: sel.start + open.length + inner.length,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = GlassScope.of(context).accent;
+    Widget b(Widget child, String tip, VoidCallback f) => Tooltip(
+          message: tip,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(10),
+            onTap: f,
+            child: Container(
+              width: 40,
+              height: 36,
+              alignment: Alignment.center,
+              child: child,
+            ),
+          ),
+        );
+    const base = TextStyle(fontSize: 16, fontWeight: FontWeight.w700);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.08),
+          border: Border.all(color: accent.withValues(alpha: 0.35)),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          b(const Text('B', style: base), context.t('Bold', 'عريض'), () => _wrap('**')),
+          b(const Text('I', style: TextStyle(fontSize: 16, fontStyle: FontStyle.italic, fontWeight: FontWeight.w600)),
+              context.t('Italic', 'مائل'), () => _wrap('__')),
+          b(const Text('S', style: TextStyle(fontSize: 16, decoration: TextDecoration.lineThrough, fontWeight: FontWeight.w600)),
+              context.t('Strikethrough', 'مشطوب'), () => _wrap('~~')),
+          b(const SIcon(Icons.visibility_off_outlined, size: 20), context.t('Spoiler', 'سبويلر'), () => _wrap('||')),
+          b(const Text('</>', style: TextStyle(fontSize: 13, fontFamily: 'monospace', fontWeight: FontWeight.w700)),
+              context.t('Code', 'كود'), () => _wrap('`')),
+          b(const SIcon(Icons.data_object, size: 20), context.t('Code block', 'بلوك كود'),
+              () => _wrap('```\n', '\n```')),
+        ]),
+      ),
     );
   }
 }

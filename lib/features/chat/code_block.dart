@@ -125,7 +125,7 @@ List<Widget> codeAwareBody(
   List<TextEnt> inlineIn(int a, int b) => [
         for (final e in ents)
           if (!e.block && e.offset >= a && e.offset + e.length <= b)
-            TextEnt(e.offset - a, e.length, false),
+            TextEnt(e.offset - a, e.length, false, '', e.style),
       ];
   void piece(int a, int b) {
     if (b <= a) return;

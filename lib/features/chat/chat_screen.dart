@@ -15,6 +15,7 @@ import '../home/home_screen.dart' show kindLabel;
 
 import 'dart:io';
 
+import '../../core/voice_fx.dart';
 import 'chat_extras.dart';
 import 'code_block.dart';
 
@@ -870,6 +871,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   // ---- voice notes (tap mic to start, tap send to deliver)
   final _recorder = AudioRecorder();
+  VoiceFx _recFx = VoiceFx.none;
+  bool _fxBusy = false;
   bool _recording = false;
   int _recSeconds = 0;
   Timer? _recTimer;
@@ -922,14 +925,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         return;
       }
       final tmp = await getTemporaryDirectory();
+      _recFx = voiceFxFrom(ref.read(settingsProvider).voiceFx);
+      final fxOn = _recFx != VoiceFx.none;
       _recPath =
-          '${tmp.path}/voice_${DateTime.now().millisecondsSinceEpoch}.ogg';
+          '${tmp.path}/voice_${DateTime.now().millisecondsSinceEpoch}.${fxOn ? 'wav' : 'ogg'}';
       await _recorder.start(
-        const RecordConfig(
-          encoder: AudioEncoder.opus,
-          bitRate: 32000,
-          sampleRate: 48000,
-        ),
+        fxOn
+            ? const RecordConfig(encoder: AudioEncoder.wav, sampleRate: 48000, numChannels: 1)
+            : const RecordConfig(
+                encoder: AudioEncoder.opus,
+                bitRate: 32000,
+                sampleRate: 48000,
+              ),
         path: _recPath!,
       );
       _recSeconds = 0;
@@ -966,7 +973,71 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       }
       return;
     }
+    if (_recFx != VoiceFx.none && path.endsWith('.wav')) {
+      if (mounted) setState(() => _fxBusy = true);
+      try {
+        final r = await applyVoiceFx(path, _recFx);
+        if (r.fallbackWav) {
+          if (mounted) {
+            notice(context,
+                context.t('Opus encoding unavailable here — sent the changed voice as an audio file',
+                    'تشفير الصوت مش متاح هنا — اتبعت الصوت المتغير كملف صوتي'),
+                kind: NoticeKind.info);
+          }
+          await _safe(() => _gateway.sendMedia(widget.chat.id, [r.path]));
+        } else {
+          await _safe(() => _gateway.sendVoice(widget.chat.id, r.path, r.seconds));
+        }
+      } catch (e) {
+        if (mounted) notice(context, friendlyError(e, ar: context.isAr), kind: NoticeKind.error);
+      } finally {
+        if (mounted) setState(() => _fxBusy = false);
+      }
+      return;
+    }
     await _safe(() => _gateway.sendVoice(widget.chat.id, path!, secs));
+  }
+
+  void _fxSheet() {
+    final accent = GlassScope.of(context).accent;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheet) => Consumer(builder: (ctx, ref2, _) {
+        final cur = voiceFxFrom(ref2.watch(settingsProvider).voiceFx);
+        return Padding(
+          padding: const EdgeInsets.all(12),
+          child: GlassSurface(
+            blur: true,
+            radius: 26,
+            padding: const EdgeInsets.all(16),
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(context.t('Voice changer', 'مغيّر الصوت'),
+                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 4),
+              Text(
+                  context.t('Hold the mic as usual — your recording is sent with the selected voice.',
+                      'سجّل زي العادة — التسجيل بيتبعت بالصوت اللي تختاره.'),
+                  style: const TextStyle(fontSize: 12, color: GlassTokens.textSecondary)),
+              const SizedBox(height: 12),
+              Wrap(spacing: 8, runSpacing: 8, children: [
+                for (final f in VoiceFx.values)
+                  ChoiceChip(
+                    avatar: SIcon(f.icon, size: 18, color: cur == f ? Colors.white : accent),
+                    label: Text(f.label(context.isAr)),
+                    selected: cur == f,
+                    onSelected: (_) {
+                      ref2.read(settingsProvider.notifier).setX('voiceFx', f.id);
+                      Navigator.of(sheet).pop();
+                    },
+                  ),
+              ]),
+            ]),
+          ),
+        );
+      }),
+    );
   }
 
   Future<void> _send() async {
@@ -2143,6 +2214,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             child: Column(
               children: [
                 const ConnectionBanner(),
+                const MiniPlayer(),
+                if (_fxBusy)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                    child: Text(context.t('Changing voice…', 'بيغيّر الصوت…'),
+                        style: const TextStyle(fontSize: 12, color: GlassTokens.textSecondary)),
+                  ),
                 if (_selected.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
@@ -2600,6 +2678,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                             ),
                           ),
                         ),
+                      if (widget.chat.canSend &&
+                          !_recording &&
+                          _focus.hasFocus &&
+                          !_c.selection.isCollapsed)
+                        Align(
+                          alignment: AlignmentDirectional.centerStart,
+                          child: FormatBar(controller: _c),
+                        ),
                       if (!widget.chat.canSend)
                         GlassSurface(
                           radius: 26,
@@ -2709,7 +2795,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                 )
                               else if (_c.text.trim().isEmpty &&
                                   _editing == null)
-                                GestureDetector(
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (!_recording)
+                                      IconButton(
+                                        tooltip: context.t('Voice changer', 'مغيّر الصوت'),
+                                        onPressed: _fxSheet,
+                                        icon: SIcon(
+                                          Icons.graphic_eq,
+                                          color: voiceFxFrom(ref.watch(settingsProvider).voiceFx) ==
+                                                  VoiceFx.none
+                                              ? null
+                                              : GlassScope.of(context).accent,
+                                        ),
+                                      ),
+                                    GestureDetector(
                                   key: const ValueKey('mic'),
                                   behavior: HitTestBehavior.opaque,
                                   onTap: () => ScaffoldMessenger.of(context)
@@ -2739,6 +2840,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                       _recording ? Icons.mic : Icons.mic_none,
                                     ),
                                   ),
+                                ),
+                                  ],
                                 )
                               else
                                 GestureDetector(
@@ -3064,6 +3167,9 @@ class _Bubble extends StatelessWidget {
                       : _body(m, text, accent),
                 if (m.file != null && m.kind == MessageKind.voice)
                   VoicePlayer(
+                    title: m.outgoing
+                        ? context.t('You', 'أنت')
+                        : (m.senderName.isEmpty ? context.t('Voice message', 'رسالة صوتية') : m.senderName),
                     file: m.file!,
                     onDownload: () => onDownload(m.file!.fileId),
                   )
@@ -3318,6 +3424,100 @@ class _LinkText extends StatefulWidget {
 
 class _LinkTextState extends State<_LinkText> {
   final _recognizers = <TapGestureRecognizer>[];
+  final _revealed = <int>{};
+
+  List<InlineSpan> _styledSpans(String text, RegExp re) {
+    final out = <InlineSpan>[];
+    final bounds = <int>{0, text.length};
+    for (final e in widget.inline) {
+      bounds.add(e.offset.clamp(0, text.length));
+      bounds.add((e.offset + e.length).clamp(0, text.length));
+    }
+    final cuts = bounds.toList()..sort();
+    for (var i = 0; i + 1 < cuts.length; i++) {
+      final a = cuts[i], b = cuts[i + 1];
+      final run = text.substring(a, b);
+      if (run.isEmpty) continue;
+      final here = [
+        for (final e in widget.inline)
+          if (e.offset <= a && e.offset + e.length >= b) e,
+      ];
+      final isCode = here.any((e) => e.style.isEmpty);
+      if (isCode) {
+        out.add(WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: GestureDetector(
+            onLongPress: () {
+              Clipboard.setData(ClipboardData(text: run));
+              notice(context, context.t('Copied', 'تم النسخ'), kind: NoticeKind.success);
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E1E1E),
+                borderRadius: BorderRadius.circular(5),
+              ),
+              child: Text(run,
+                  style: const TextStyle(
+                      fontFamily: 'monospace', fontSize: 13, color: Color(0xFFCE9178))),
+            ),
+          ),
+        ));
+        continue;
+      }
+      var style = const TextStyle();
+      var spoilerId = -1;
+      final deco = <TextDecoration>[];
+      for (final e in here) {
+        switch (e.style) {
+          case 'bold':
+            style = style.copyWith(fontWeight: FontWeight.w700);
+          case 'italic':
+            style = style.copyWith(fontStyle: FontStyle.italic);
+          case 'strike':
+            deco.add(TextDecoration.lineThrough);
+          case 'underline':
+            deco.add(TextDecoration.underline);
+          case 'spoiler':
+            spoilerId = e.offset;
+        }
+      }
+      if (deco.isNotEmpty) style = style.copyWith(decoration: TextDecoration.combine(deco));
+      if (spoilerId >= 0 && !_revealed.contains(spoilerId)) {
+        final r = TapGestureRecognizer()..onTap = () => setState(() => _revealed.add(spoilerId));
+        _recognizers.add(r);
+        out.add(TextSpan(
+          text: run,
+          recognizer: r,
+          style: style.copyWith(
+            color: Colors.transparent,
+            backgroundColor: Colors.white.withValues(alpha: 0.28),
+          ),
+        ));
+        continue;
+      }
+      // links / mentions inside this run
+      var last = 0;
+      for (final m in re.allMatches(run)) {
+        if (m.start > last) out.add(TextSpan(text: run.substring(last, m.start), style: style));
+        final url = m.group(1);
+        if (url != null) {
+          final r = TapGestureRecognizer()
+            ..onTap = () => launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+          _recognizers.add(r);
+          out.add(TextSpan(
+              text: url,
+              recognizer: r,
+              style: style.copyWith(color: widget.color, decoration: TextDecoration.underline)));
+        } else {
+          out.add(TextSpan(text: m.group(0), style: style.copyWith(color: widget.color)));
+        }
+        last = m.end;
+      }
+      if (last < run.length) out.add(TextSpan(text: run.substring(last), style: style));
+    }
+    return out;
+  }
 
   void _clear() {
     for (final r in _recognizers) {
@@ -3340,35 +3540,7 @@ class _LinkTextState extends State<_LinkText> {
     var last = 0;
     final re = RegExp(r'(https?://[^\s]+)|(@\w{3,32})');
     if (widget.inline.isNotEmpty) {
-      var l = 0;
-      for (final e in widget.inline) {
-        if (e.offset < l) continue;
-        if (e.offset > l) out.add(TextSpan(text: text.substring(l, e.offset)));
-        out.add(WidgetSpan(
-          alignment: PlaceholderAlignment.middle,
-          child: GestureDetector(
-            onLongPress: () {
-              Clipboard.setData(ClipboardData(text: text.substring(e.offset, e.offset + e.length)));
-              notice(context, context.t('Copied', 'تم النسخ'), kind: NoticeKind.success);
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E1E1E),
-                borderRadius: BorderRadius.circular(5),
-              ),
-              child: Text(
-                text.substring(e.offset, e.offset + e.length),
-                style: const TextStyle(
-                    fontFamily: 'monospace', fontSize: 13, color: Color(0xFFCE9178)),
-              ),
-            ),
-          ),
-        ));
-        l = e.offset + e.length;
-      }
-      if (l < text.length) out.add(TextSpan(text: text.substring(l)));
-      return Text.rich(TextSpan(children: out));
+      return Text.rich(TextSpan(children: _styledSpans(text, re)));
     }
     for (final m in re.allMatches(text)) {
       if (m.start > last) {

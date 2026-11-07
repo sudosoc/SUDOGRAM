@@ -122,6 +122,7 @@ class AppSettings {
   // ---- Message gestures
   /// Actions: reply, forward, copy, react, heart, pin, select, delete,
   /// share, save, menu, none.
+  String get voiceFx => x['voiceFx'] as String? ?? 'none';
   bool get longAsFile => x['longAsFile'] as bool? ?? true;
   String get swipeRight => x['swipeRight'] as String? ?? 'reply';
   String get swipeLeft => x['swipeLeft'] as String? ?? 'forward';

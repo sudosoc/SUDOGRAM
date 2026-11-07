@@ -31,6 +31,17 @@ class MainActivity : FlutterFragmentActivity() {
                             runOnUiThread { result.error("save", e.toString(), null) }
                         }
                     }.start()
+                } else if (call.method == "encodeOpus") {
+                    val src = call.argument<String>("src") ?: ""
+                    val dst = call.argument<String>("dst") ?: ""
+                    Thread {
+                        try {
+                            OpusOgg.encode(src, dst)
+                            runOnUiThread { result.success(dst) }
+                        } catch (e: Throwable) {
+                            runOnUiThread { result.error("opus", e.toString(), null) }
+                        }
+                    }.start()
                 } else if (call.method == "setLauncher") {
                     val idx = call.argument<Int>("index") ?: 0
                     val pm = packageManager
