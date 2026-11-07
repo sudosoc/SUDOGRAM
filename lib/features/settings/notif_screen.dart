@@ -82,13 +82,15 @@ class _General extends ConsumerWidget {
             SwitchRow(
               icon: Icons.volume_up_outlined,
               title: context.t('Sound', 'الصوت'),
-              keyName: 'notifSound',
+              hint: context.t('Notification sound for all chats (per-chat can differ).', 'صوت الإشعار لكل الشاتات (ممكن يختلف لكل شات).'),
+            keyName: 'notifSound',
               value: s.notifSound,
             ),
             SwitchRow(
               icon: Icons.vibration,
               title: context.t('Vibration', 'الاهتزاز'),
-              keyName: 'notifVibrate',
+              hint: context.t('Vibration pattern for new messages.', 'نمط الاهتزاز للرسايل الجديدة.'),
+            keyName: 'notifVibrate',
               value: s.notifVibrate,
             ),
           ],

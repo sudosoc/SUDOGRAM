@@ -5,6 +5,7 @@ import '../downloads/keep_alive.dart';
 import '../../core/drafts.dart';
 import '../chat/avatar.dart';
 import 'archive_screen.dart';
+import '../tools/tools_hub.dart';
 import 'bottom_bar.dart';
 import '../chat/contacts_screen.dart';
 
@@ -209,7 +210,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      floatingActionButton: demo
+      floatingActionButton: demo || !settings.homeShowFab
           ? null
           : GestureDetector(
               onLongPress: settings.hiddenMethods.contains('fab')
@@ -336,19 +337,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ),
                       ),
                     ),
-                  const SizedBox(width: 8),
-                  GlassIconButton(
-                    icon: Icons.tune,
-                    tooltip: l.settings,
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const SettingsScreen(),
+                  if (settings.homeShowTools) ...[
+                    const SizedBox(width: 8),
+                    GlassIconButton(
+                      icon: Icons.handyman_outlined,
+                      tooltip: 'Tools',
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const ToolsHubScreen(),
+                        ),
                       ),
                     ),
-                    onLongPress: settings.hiddenMethods.contains('settings')
-                        ? _openVault
-                        : null,
-                  ),
+                  ],
+                  if (settings.homeShowSettings) ...[
+                    const SizedBox(width: 8),
+                    GlassIconButton(
+                      icon: Icons.tune,
+                      tooltip: l.settings,
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const SettingsScreen(),
+                        ),
+                      ),
+                      onLongPress: settings.hiddenMethods.contains('settings')
+                          ? _openVault
+                          : null,
+                    ),
+                  ],
                   const SizedBox(width: 8),
                   if (settings.homeShowSearch || _searching)
                     GlassIconButton(

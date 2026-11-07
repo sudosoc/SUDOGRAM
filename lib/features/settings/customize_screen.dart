@@ -132,9 +132,14 @@ class _HomePreview extends ConsumerWidget {
             const Padding(
                 padding: EdgeInsets.only(left: 8),
                 child: Icon(Icons.search, size: 20)),
-          const Padding(
-              padding: EdgeInsets.only(left: 8),
-              child: Icon(Icons.tune, size: 20)),
+          if (s.homeShowTools)
+            const Padding(
+                padding: EdgeInsets.only(left: 8),
+                child: Icon(Icons.handyman_outlined, size: 20)),
+          if (s.homeShowSettings)
+            const Padding(
+                padding: EdgeInsets.only(left: 8),
+                child: Icon(Icons.tune, size: 20)),
         ]),
         if (s.homeSections)
           Padding(
@@ -289,6 +294,28 @@ class _BarTab extends ConsumerWidget {
             keyName: 'showAccountSwitcher',
             value: s.showAccountSwitcher),
         SwitchRow(
+            icon: Icons.tune,
+            title: context.t('Settings button', 'زر الإعدادات'),
+            hint: context.t(
+                'Can be hidden only while the bottom bar has a Settings button, so you never lock yourself out.',
+                'ممكن تخبّيه بس لو الشريط السفلي فيه زر إعدادات، عشان ماتتقفلش بره.'),
+            keyName: 'homeShowSettings',
+            value: s.homeShowSettings),
+        SwitchRow(
+            icon: Icons.handyman_outlined,
+            title: context.t('Tools button', 'زر الأدوات'),
+            hint: context.t('A shortcut to the tools page in the top bar.',
+                'اختصار لصفحة الأدوات في الشريط العلوي.'),
+            keyName: 'homeShowTools',
+            value: s.homeShowTools),
+        SwitchRow(
+            icon: Icons.edit_outlined,
+            title: context.t('New chat button', 'زر شات جديد'),
+            hint: context.t('The floating pencil at the bottom corner.',
+                'القلم العايم في ركن الشاشة السفلي.'),
+            keyName: 'homeShowFab',
+            value: s.homeShowFab),
+        SwitchRow(
             icon: Icons.view_carousel_outlined,
             title: context.t('Section chips', 'شرايح الأقسام'),
             hint: context.t('All / People / Groups / your own sections under the title.',
@@ -354,7 +381,8 @@ class _ListTab extends ConsumerWidget {
           SliderRow(
               icon: Icons.photo_size_select_large,
               title: context.t('Avatar size', 'حجم الصورة'),
-              keyName: 'avatarSize',
+              hint: context.t('Size of the profile photo in each row.', 'حجم صورة البروفايل في كل صف.'),
+            keyName: 'avatarSize',
               value: s.avatarSize,
               min: 36,
               max: 72,
@@ -406,6 +434,7 @@ class _ChatTab extends ConsumerWidget {
         SliderRow(
             icon: Icons.rounded_corner,
             title: context.t('Corner radius', 'استدارة الحواف'),
+            hint: context.t('How round the message bubbles are.', 'قد إيه فقاعات الرسايل مدورة.'),
             keyName: 'bubbleRadius',
             value: s.bubbleRadius,
             min: 4,
@@ -422,6 +451,7 @@ class _ChatTab extends ConsumerWidget {
         SliderRow(
             icon: Icons.format_line_spacing,
             title: context.t('Spacing', 'المسافة بين الرسائل'),
+            hint: context.t('Vertical gap between messages.', 'المسافة الرأسية بين الرسايل.'),
             keyName: 'chatSpacing',
             value: s.chatSpacing,
             min: 0,
@@ -444,6 +474,7 @@ class _ChatTab extends ConsumerWidget {
         SwitchRow(
             icon: Icons.schedule,
             title: context.t('Message time', 'وقت الرسالة'),
+            hint: context.t('Show the send time inside each bubble.', 'إظهار وقت الإرسال جوه كل فقاعة.'),
             keyName: 'chatShowTime',
             value: s.chatShowTime),
         SwitchRow(
@@ -455,11 +486,13 @@ class _ChatTab extends ConsumerWidget {
         SwitchRow(
             icon: Icons.badge_outlined,
             title: context.t('Sender names in groups', 'أسماء المرسلين في الجروبات'),
+            hint: context.t('Show who sent each message in group chats.', 'إظهار اسم المرسل في الجروبات.'),
             keyName: 'chatShowNames',
             value: s.chatShowNames),
         SwitchRow(
             icon: Icons.calendar_today_outlined,
             title: context.t('Date separators', 'فواصل التاريخ'),
+            hint: context.t('The Today / Yesterday chips between days.', 'شرايح النهاردة / إمبارح بين الأيام.'),
             keyName: 'chatDateChips',
             value: s.chatDateChips),
       ]),
@@ -467,6 +500,7 @@ class _ChatTab extends ConsumerWidget {
         ChoiceRow(
             icon: Icons.account_circle_outlined,
             title: context.t('Header avatar shape', 'شكل صورة الهيدر'),
+            hint: context.t('Shape of the photo in the chat header.', 'شكل الصورة في هيدر الشات.'),
             keyName: 'chatAvatarShape',
             current: s.chatAvatarShape,
             options: _shapes(context)),

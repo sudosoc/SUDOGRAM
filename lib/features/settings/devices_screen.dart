@@ -350,7 +350,7 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
       leading: Icon(_icon(d)),
       title: Text(d.app.isEmpty ? d.device : d.app),
       subtitle: Text(
-        '${d.device}\n${d.country} ${d.ip} · ${_ago(d.lastActive)}',
+        '${d.device}\n${d.country} ${d.ip} · ${_ago(d.lastActive)}${!d.current && _fresh(d) ? context.t(' · can be ended after 24 h', ' · تقدر تنهيها بعد 24 ساعة') : ''}',
         style: const TextStyle(color: GlassTokens.textSecondary),
       ),
       isThreeLine: true,

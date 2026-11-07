@@ -215,12 +215,27 @@ class _Appearance extends ConsumerWidget {
             SliderRow(
               icon: Icons.format_size,
               title: context.t('App text size', 'حجم الخط في التطبيق'),
-              keyName: 'textScale',
+              hint: context.t('Scales text everywhere in the app.', 'بيكبّر أو بيصغّر النص في التطبيق كله.'),
+            keyName: 'textScale',
               value: s.textScale,
               min: .8,
               max: 1.4,
               divisions: 12,
               fmt: (v) => '${(v * 100).round()}%',
+            ),
+            SliderRow(
+              icon: Icons.undo,
+              title: context.t('Undo-send delay', 'مهلة التراجع عن الإرسال'),
+              hint: context.t(
+                  'Hold every text message for a few seconds so you can tap Undo. 0 = send instantly.',
+                  'بيأجّل كل رسالة نصية كام ثانية عشان تقدر تتراجع. 0 = إرسال فوري.'),
+              keyName: 'sendDelay',
+              asInt: true,
+              value: s.sendDelay.toDouble(),
+              min: 0,
+              max: 15,
+              divisions: 15,
+              fmt: (v) => v.round() == 0 ? context.t('off', 'مقفول') : '${v.round()}s',
             ),
             SwitchListTile(
               secondary: const Icon(Icons.speed),
@@ -441,7 +456,8 @@ class _General extends ConsumerWidget {
             SwitchRow(
               icon: Icons.view_carousel_outlined,
               title: context.t('Home sections', 'أقسام الهوم'),
-              keyName: 'homeSections',
+              hint: context.t('The All / Unread / People / Groups chips on top of the chat list.', 'شرايح الكل / غير المقروء / أشخاص / جروبات فوق قائمة الشاتات.'),
+            keyName: 'homeSections',
               value: s.homeSections,
             ),
           ],

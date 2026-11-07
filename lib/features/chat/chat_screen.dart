@@ -775,6 +775,24 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       await _gateway.editText(widget.chat.id, editing.id, text);
       return;
     }
+    final delay = ref.read(settingsProvider).sendDelay;
+    if (delay > 0) {
+      // Undo-send window: the message only leaves after [delay] seconds.
+      var undone = false;
+      final ctl = ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        duration: Duration(seconds: delay),
+        content: Text(context.t('Sending in ${delay}s…', 'هيتبعت بعد $delay ث…')),
+        action: SnackBarAction(
+          label: context.t('Undo', 'تراجع'),
+          onPressed: () {
+            undone = true;
+            if (mounted && _c.text.isEmpty) _c.text = text;
+          },
+        ),
+      ));
+      await ctl.closed;
+      if (undone) return;
+    }
     final parts = SmartSplitter.split(text, SplitOptions(maxLength: _limit));
     for (var i = 0; i < parts.length; i++) {
       // strictly in order; only the first part carries the reply

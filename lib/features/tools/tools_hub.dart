@@ -4,9 +4,11 @@ import 'dart:math';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../../app/providers.dart';
 import '../../core/i18n/tr.dart';
 import '../../core/theme/glass.dart';
 import '../rules/rules_screen.dart';
@@ -14,7 +16,7 @@ import '../settings/qr_tools.dart';
 import '../settings/widgets.dart';
 import 'tools_screens.dart';
 
-class ToolsHubScreen extends StatelessWidget {
+class ToolsHubScreen extends ConsumerWidget {
   const ToolsHubScreen({super.key});
 
   Widget _t(BuildContext c, IconData i, String en, String ar, String hen,
@@ -29,10 +31,27 @@ class ToolsHubScreen extends StatelessWidget {
       );
 
   @override
-  Widget build(BuildContext context) => SPage(
+  Widget build(BuildContext context, WidgetRef ref) => SPage(
         title: context.t('Tools', 'الأدوات'),
         children: [
           SGroup(title: context.t('Telegram tools', 'أدوات تليجرام'), children: [
+            ListTile(
+              leading: const Icon(Icons.done_all),
+              title: Text(context.t('Mark all chats as read', 'تعليم كل الشاتات كمقروءة')),
+              subtitle: SHint(context.t(
+                  'Clears every unread badge in one go (works even in Ghost mode).',
+                  'بيمسح كل عدّادات غير المقروء مرة واحدة (حتى في وضع الشبح).')),
+              onTap: () async {
+                final g = ref.read(gatewayProvider);
+                final msg = ScaffoldMessenger.of(context);
+                final done = context.t('Done', 'تم');
+                final all = ref.read(chatsProvider).value ?? const [];
+                for (final c in all) {
+                  if (c.unread > 0 || c.markedUnread) await g.markChatRead(c.id);
+                }
+                msg.showSnackBar(SnackBar(content: Text(done)));
+              },
+            ),
             _t(context, Icons.history, 'Time machine', 'آلة الزمن',
                 'Browse deleted and edited messages kept in the archive.',
                 'تصفّح الرسائل المحذوفة والمعدّلة المحفوظة في الأرشيف.',

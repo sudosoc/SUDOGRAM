@@ -180,7 +180,8 @@ class _ThemesTab extends ConsumerWidget {
           SliderRow(
               icon: Icons.brightness_6_outlined,
               title: context.t('Light strength', 'قوة الإضاءة'),
-              keyName: 'bgIntensity',
+              hint: context.t('How bright the coloured light behind the app is.', 'قد إيه الإضاءة الملوّنة ورا التطبيق قوية.'),
+            keyName: 'bgIntensity',
               value: s.bgIntensity,
               min: .2,
               max: 1.6,
@@ -314,7 +315,8 @@ class _BarTab extends ConsumerWidget {
           ChoiceRow(
               icon: Icons.interests_outlined,
               title: context.t('Icon set', 'شكل الأيقونات'),
-              keyName: 'barIcons',
+              hint: context.t('Style of the icons on the bar.', 'شكل الأيقونات على الشريط.'),
+            keyName: 'barIcons',
               current: s.barIcons,
               options: {
                 'outlined': context.t('Outlined', 'خطوط'),
@@ -325,7 +327,8 @@ class _BarTab extends ConsumerWidget {
           ChoiceRow(
               icon: Icons.label_outline,
               title: context.t('Labels', 'الأسماء'),
-              keyName: 'barLabels',
+              hint: context.t('When to show the text under each icon.', 'إمتى يظهر النص تحت كل أيقونة.'),
+            keyName: 'barLabels',
               current: s.barLabels,
               options: {
                 'always': context.t('Always', 'دايمًا'),
@@ -335,7 +338,8 @@ class _BarTab extends ConsumerWidget {
           ChoiceRow(
               icon: Icons.radio_button_checked,
               title: context.t('Active marker', 'علامة الزر النشط'),
-              keyName: 'barIndicator',
+              hint: context.t('How the current button is highlighted.', 'إزاي الزر الحالي بيتميّز.'),
+            keyName: 'barIndicator',
               current: s.barIndicator,
               options: {
                 'pill': context.t('Pill', 'كبسولة'),
@@ -346,7 +350,8 @@ class _BarTab extends ConsumerWidget {
           SliderRow(
               icon: Icons.height,
               title: context.t('Height', 'الارتفاع'),
-              keyName: 'barHeight',
+              hint: context.t('Taller bars are easier to tap.', 'الشريط الأطول أسهل في الضغط.'),
+            keyName: 'barHeight',
               value: s.barHeight,
               min: 48,
               max: 88,
@@ -355,7 +360,8 @@ class _BarTab extends ConsumerWidget {
           SliderRow(
               icon: Icons.opacity,
               title: context.t('Opacity', 'الشفافية'),
-              keyName: 'barOpacity',
+              hint: context.t('Higher = more solid, lower = more see-through.', 'أعلى = أصلب، أقل = أشفّ.'),
+            keyName: 'barOpacity',
               value: s.barOpacity,
               min: .2,
               max: 3,
@@ -366,7 +372,8 @@ class _BarTab extends ConsumerWidget {
           SwitchRow(
               icon: Icons.vibration,
               title: context.t('Haptic feedback', 'اهتزاز عند الضغط'),
-              keyName: 'barHaptic',
+              hint: context.t('A small vibration when you tap a button.', 'اهتزاز خفيف لما تضغط على زر.'),
+            keyName: 'barHaptic',
               value: s.barHaptic),
           SwitchRow(
               icon: Icons.mark_chat_unread_outlined,
