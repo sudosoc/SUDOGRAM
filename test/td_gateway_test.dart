@@ -656,4 +656,36 @@ void main() {
     expect((sent[1]['filter'] as Map)['@type'], 'searchMessagesFilterPhoto');
     await sub.cancel();
   });
+
+  test('pinned list, available reactions and optimistic reaction', () async {
+    List<ChatMessage> got = const [];
+    final sub = g.watchMessages(5).listen((v) => got = v);
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    t.push(tmsg(80));
+    await Future<void>.delayed(const Duration(milliseconds: 30));
+    final sent = <Map<String, dynamic>>[];
+    t.onRequest = (r) {
+      sent.add(r);
+      switch (r['@type']) {
+        case 'searchChatMessages':
+          return {'@type': 'foundChatMessages', 'messages': [
+            (tmsg(80)['message'] as Map), (tmsg(81)['message'] as Map)]};
+        case 'getMessageAvailableReactions':
+          return {'@type': 'availableReactions', 'top_reactions': [
+            {'type': {'@type': 'reactionTypeEmoji', 'emoji': '👍'}, 'needs_premium': false},
+            {'type': {'@type': 'reactionTypeEmoji', 'emoji': '💎'}, 'needs_premium': true},
+          ]};
+      }
+      return {'@type': 'ok'};
+    };
+    final pins = await g.pinnedMessages(5);
+    expect(pins.map((m) => m.id), [81, 80]);
+    expect((sent[0]['filter'] as Map)['@type'], 'searchMessagesFilterPinned');
+    expect(await g.availableReactions(5, 80), ['👍']);
+    await g.toggleReaction(5, 80, '👍', on: true);
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+    expect(got.firstWhere((m) => m.id == 80).myReactions, {'👍'});
+    expect(got.firstWhere((m) => m.id == 80).reactions['👍'], 1);
+    await sub.cancel();
+  });
 }

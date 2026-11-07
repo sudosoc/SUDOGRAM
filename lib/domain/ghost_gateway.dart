@@ -304,6 +304,18 @@ class GhostGateway implements TelegramGateway {
       _inner.sharedMedia(chatId, filter);
 
   @override
+  Future<List<ChatMessage>> pinnedMessages(int chatId) =>
+      _inner.pinnedMessages(chatId);
+
+  @override
+  Future<List<String>> availableReactions(int chatId, int messageId) =>
+      _inner.availableReactions(chatId, messageId);
+
+  @override
+  Future<void> markReadManual(int chatId, List<int> messageIds) =>
+      _inner.markRead(chatId, messageIds);
+
+  @override
   Future<void> forwardMessages(int toChatId, int fromChatId, List<int> ids) =>
       _inner.forwardMessages(toChatId, fromChatId, ids);
   @override

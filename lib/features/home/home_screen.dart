@@ -18,7 +18,7 @@ import '../../l10n/app_localizations.dart';
 import '../chat/chat_screen.dart';
 import '../settings/settings_screen.dart';
 import 'chat_actions.dart';
-import 'hidden_screen.dart';
+import 'hidden_gate.dart';
 import '../settings/ghost_screen.dart';
 
 String kindLabel(AppLocalizations l, MessageKind k) => switch (k) {
@@ -48,7 +48,61 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _searching = false;
   String _query = '';
-  String? _folder; // null = all chats
+  String _section = 'all'; // all, unread, people, groups, channels, f:<folder>
+
+  bool _inSection(ChatSummary c, AppSettings s) {
+    if (_section == 'all') return true;
+    if (_section.startsWith('f:')) {
+      return s.folders[_section.substring(2)]?.contains(c.id) ?? false;
+    }
+    return switch (_section) {
+      'unread' => c.unread > 0 || c.markedUnread,
+      'people' => c.type == ChatType.private || c.type == ChatType.secret,
+      'groups' => c.type == ChatType.group,
+      'channels' => c.type == ChatType.channel,
+      _ => true,
+    };
+  }
+
+  Future<void> _folderMenu(String name) async {
+    final l = AppLocalizations.of(context);
+    final c = ref.read(settingsProvider.notifier);
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sctx) => Padding(
+        padding: const EdgeInsets.all(12),
+        child: GlassSurface(
+          blur: true,
+          radius: 24,
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            ListTile(
+              leading: const Icon(Icons.edit_outlined),
+              title: Text(l.renameSection),
+              onTap: () => Navigator.pop(sctx, 'rename'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline, color: GlassTokens.ringDanger),
+              title: Text(l.deleteSection,
+                  style: const TextStyle(color: GlassTokens.ringDanger)),
+              onTap: () => Navigator.pop(sctx, 'delete'),
+            ),
+          ]),
+        ),
+      ),
+    );
+    if (!mounted || choice == null) return;
+    if (choice == 'rename') {
+      final n = await askText(context, l.renameSection, l.sectionName, initial: name);
+      if (n != null && n.trim().isNotEmpty && n.trim() != name) {
+        c.renameFolder(name, n.trim());
+        if (_section == 'f:$name') setState(() => _section = 'f:${n.trim()}');
+      }
+    } else if (await confirmDialog(context, l.deleteSectionQ)) {
+      c.deleteFolder(name);
+      if (_section == 'f:$name') setState(() => _section = 'all');
+    }
+  }
   int _titleTaps = 0;
   DateTime _lastTap = DateTime(2000);
 
@@ -111,28 +165,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (ok == true) await requestBackground();
   }
 
-  /// Long-press on search → biometric → hidden chats appear instantly.
-  Future<void> _openVault() async {
-    final l = AppLocalizations.of(context);
-    final ok = await ref
-        .read(vaultUnlockProvider.notifier)
-        .unlock(
-          reason: l.vaultAuthReason,
-          requireAuth: ref.read(settingsProvider).hiddenAuth,
-        );
-    if (!mounted) return;
-    if (!ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(l.vaultUnavailable),
-          duration: const Duration(seconds: 1),
-        ),
-      );
-      return;
+  /// Any of the enabled gestures: auth (biometrics and / or passcode), then
+  /// the hidden chats open.
+  Future<void> _openVault() => openHiddenChats(context, ref);
+
+  // Rubbing the title left-right-left opens it too (method "swipe").
+  double _wiggleDir = 0;
+  int _wiggles = 0;
+  void _wiggle(double dx, Set<String> methods) {
+    if (!methods.contains('swipe') || dx.abs() < 2) return;
+    final dir = dx.sign;
+    if (_wiggleDir != 0 && dir != _wiggleDir) _wiggles++;
+    _wiggleDir = dir;
+    if (_wiggles >= 3) {
+      _wiggles = 0;
+      _wiggleDir = 0;
+      _openVault();
     }
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (_) => const HiddenChatsScreen()));
   }
 
   @override
@@ -146,13 +195,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       backgroundColor: Colors.transparent,
       floatingActionButton: demo
           ? null
-          : FloatingActionButton(
-              tooltip: l.newChat,
-              backgroundColor: GlassScope.of(context).accent,
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(builder: (_) => const ContactsScreen()),
+          : GestureDetector(
+              onLongPress: settings.hiddenMethods.contains('fab')
+                  ? _openVault
+                  : null,
+              child: FloatingActionButton(
+                tooltip: l.newChat,
+                backgroundColor: GlassScope.of(context).accent,
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const ContactsScreen(),
+                  ),
+                ),
+                child: const Icon(Icons.edit_outlined),
               ),
-              child: const Icon(Icons.edit_outlined),
             ),
       body: SafeArea(
         child: Column(
@@ -182,6 +238,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           )
                         : GestureDetector(
                             behavior: HitTestBehavior.opaque,
+                            onHorizontalDragStart: (_) {
+                              _wiggles = 0;
+                              _wiggleDir = 0;
+                            },
+                            onHorizontalDragUpdate: (d) =>
+                                _wiggle(d.delta.dx, settings.hiddenMethods),
                             onTap: () => _titleTap(settings.hiddenMethods),
                             child: SizedBox(
                               height: 40,
@@ -283,41 +345,80 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ],
               ),
             ),
-            if (settings.folders.isNotEmpty)
-              SizedBox(
-                height: 44,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  children: [
-                    for (final name in [null, ...settings.folders.keys])
+            if (settings.homeSections || settings.folders.isNotEmpty)
+              Builder(builder: (context) {
+                final all = chats.value ?? const <ChatSummary>[];
+                final visible = [
+                  for (final c in all)
+                    if (!settings.hiddenChats.contains(c.id)) c
+                ];
+                int unread(bool Function(ChatSummary) f) =>
+                    visible.where((c) => f(c) && !c.muted && c.unread > 0).length;
+                final chips = <(String, String, int)>[
+                  ('all', l.sectAll, unread((_) => true)),
+                  if (settings.homeSections) ...[
+                    ('unread', l.sectUnread, 0),
+                    ('people', l.sectPeople,
+                        unread((c) => c.type == ChatType.private || c.type == ChatType.secret)),
+                    ('groups', l.sectGroups, unread((c) => c.type == ChatType.group)),
+                    ('channels', l.sectChannels, unread((c) => c.type == ChatType.channel)),
+                  ],
+                  for (final e in settings.folders.entries)
+                    ('f:${e.key}', e.key,
+                        unread((c) => e.value.contains(c.id))),
+                ];
+                return SizedBox(
+                  height: 48,
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    children: [
+                      for (final (id, label, n) in chips)
+                        Padding(
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                          child: GestureDetector(
+                            onLongPress: id.startsWith('f:')
+                                ? () => _folderMenu(id.substring(2))
+                                : null,
+                            child: ChoiceChip(
+                              label: Text(n > 0 ? '$label  $n' : label),
+                              selected: _section == id,
+                              onSelected: (_) => setState(() => _section = id),
+                            ),
+                          ),
+                        ),
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: ChoiceChip(
-                          label: Text(name ?? l.folderAll),
-                          selected: _folder == name,
-                          onSelected: (_) => setState(() => _folder = name),
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                        child: ActionChip(
+                          avatar: const Icon(Icons.add, size: 16),
+                          label: Text(l.newSection),
+                          onPressed: () async {
+                            final n =
+                                await askText(context, l.newSection, l.sectionName);
+                            if (n != null && n.trim().isNotEmpty) {
+                              ref.read(settingsProvider.notifier).addFolder(n.trim());
+                              setState(() => _section = 'f:${n.trim()}');
+                            }
+                          },
                         ),
                       ),
-                  ],
-                ),
-              ),
+                    ],
+                  ),
+                );
+              }),
             Expanded(
               child: chats.when(
                 loading: () => Center(child: Text(l.connecting)),
                 error: (e, _) => Center(child: Text(l.errorGeneric)),
                 data: (all) {
                   final q = _query.trim().toLowerCase();
-                  final inFolder = _folder == null
-                      ? null
-                      : settings.folders[_folder];
                   final shown =
                       all.where((c) {
                           final hidden = settings.hiddenChats.contains(c.id);
                           if (hidden) return false; // hidden chats live on their own screen
-                          if (inFolder != null && !inFolder.contains(c.id)) {
-                            return false;
-                          }
+                          if (!_inSection(c, settings)) return false;
                           final name = (settings.aliases[c.id] ?? c.title)
                               .toLowerCase();
                           return q.isEmpty || name.contains(q);
@@ -346,7 +447,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   return ListView(
                     padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
                     children: [
-                      if (q.isEmpty && _folder == null)
+                      if (q.isEmpty && _section == 'all')
                         ref
                             .watch(archivedProvider)
                             .maybeWhen(

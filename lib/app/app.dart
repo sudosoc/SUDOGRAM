@@ -11,6 +11,10 @@ import '../l10n/app_localizations.dart';
 import '../features/downloads/keep_alive.dart';
 import '../features/rules/rules_controller.dart';
 import 'providers.dart';
+import '../features/home/hidden_gate.dart';
+
+/// Lets the lock overlay pop everything back to the home screen.
+final rootNavKey = GlobalKey<NavigatorState>();
 
 class SudogramApp extends ConsumerStatefulWidget {
   const SudogramApp({super.key});
@@ -76,9 +80,13 @@ class _SudogramAppState extends ConsumerState<SudogramApp>
           enabled: st.notifications,
           privateIds: st.hiddenChats,
           silentIds: st.hiddenNotify == 1 ? st.hiddenChats : const {},
+          sound: st.notifSound,
+          vibrate: st.notifVibrate,
+          preview: st.notifPreview,
           hiddenBody: _ar() ? 'رسالة جديدة' : 'New message');
     });
     return MaterialApp(
+      navigatorKey: rootNavKey,
       onGenerateTitle: (c) => AppLocalizations.of(c).appTitle,
       debugShowCheckedModeBanner: false,
       theme: buildGlassTheme(Brightness.dark),
@@ -90,10 +98,14 @@ class _SudogramAppState extends ConsumerState<SudogramApp>
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      builder: (context, child) => GlassScope(
-        performanceMode: s.performanceMode,
-        accent: s.accentColor,
-        child: GlassBackdrop(child: _LockGate(child: child)),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context)
+            .copyWith(textScaler: TextScaler.linear(s.textScale)),
+        child: GlassScope(
+          performanceMode: s.performanceMode,
+          accent: s.accentColor,
+          child: GlassBackdrop(child: _LockGate(child: child)),
+        ),
       ),
       home: const _Root(),
     );
@@ -129,7 +141,10 @@ class _Root extends ConsumerWidget {
   }
 }
 
-/// Covers the whole app with a lock screen while [appLockedProvider] is set.
+/// Covers the app with a lock screen while it is locked, WITHOUT removing
+/// the navigator: after unlocking you are exactly where you left off.
+/// Two layers: the App Lock, and the hidden-chats gate (shown only while a
+/// hidden-area screen is open and the vault is locked).
 class _LockGate extends ConsumerStatefulWidget {
   const _LockGate({required this.child});
   final Widget? child;
@@ -144,33 +159,57 @@ class _LockGateState extends ConsumerState<_LockGate> {
   @override
   Widget build(BuildContext context) {
     final locked = ref.watch(appLockedProvider);
+    final hiddenOpen = ref.watch(vaultUnlockProvider);
+    final inHidden = ref.watch(hiddenAreaProvider) > 0;
+    final l = AppLocalizations.of(context);
     if (!locked) {
       _prompted = false;
-      return widget.child ?? const SizedBox.shrink();
-    }
-    final l = AppLocalizations.of(context);
-    if (!_prompted) {
+    } else if (!_prompted) {
       _prompted = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ref.read(appLockedProvider.notifier).unlock(l.appLockReason);
       });
     }
-    return Scaffold(
-      backgroundColor: GlassTokens.base,
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.lock_outline, size: 48),
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: () =>
-                  ref.read(appLockedProvider.notifier).unlock(l.appLockReason),
-              child: Text(l.unlock),
+    return Stack(children: [
+      Positioned.fill(child: widget.child ?? const SizedBox.shrink()),
+      if (!locked && inHidden && !hiddenOpen)
+        Positioned.fill(
+          // own Overlay: this sits above the Navigator, text fields need one
+          child: Overlay(initialEntries: [
+            OverlayEntry(
+              builder: (_) => Scaffold(
+                backgroundColor: GlassTokens.base,
+                body: HiddenGateView(
+                  onUnlocked: () =>
+                      ref.read(vaultUnlockProvider.notifier).open(),
+                  onCancel: () =>
+                      rootNavKey.currentState?.popUntil((r) => r.isFirst),
+                ),
+              ),
             ),
-          ],
+          ]),
         ),
-      ),
-    );
+      if (locked)
+        Positioned.fill(
+          child: Scaffold(
+            backgroundColor: GlassTokens.base,
+            body: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.lock_outline, size: 48),
+                  const SizedBox(height: 16),
+                  FilledButton(
+                    onPressed: () => ref
+                        .read(appLockedProvider.notifier)
+                        .unlock(l.appLockReason),
+                    child: Text(l.unlock),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+    ]);
   }
 }

@@ -53,6 +53,43 @@ class GhostScreen extends ConsumerWidget {
           ]),
         ),
         const SizedBox(height: 12),
+        _Header(l.ghostPauseTitle),
+        GlassSurface(
+          radius: 20,
+          padding: const EdgeInsets.all(12),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(
+                s.ghostPaused
+                    ? l.ghostPausedUntil(
+                        '${s.ghostPausedUntil!.hour.toString().padLeft(2, '0')}:${s.ghostPausedUntil!.minute.toString().padLeft(2, '0')}')
+                    : l.ghostPauseHint,
+                style: const TextStyle(color: GlassTokens.textSecondary)),
+            const SizedBox(height: 8),
+            Wrap(spacing: 8, children: [
+              for (final (label, mins) in [
+                ('5', 5),
+                ('15', 15),
+                ('30', 30),
+                ('60', 60),
+              ])
+                ActionChip(
+                  label: Text(l.ghostPauseMin(label)),
+                  onPressed: () => c.setX(
+                      'ghostPauseUntil',
+                      DateTime.now()
+                          .add(Duration(minutes: mins))
+                          .millisecondsSinceEpoch),
+                ),
+              if (s.ghostPaused)
+                ActionChip(
+                  avatar: const Icon(Icons.play_arrow, size: 16),
+                  label: Text(l.ghostResume),
+                  onPressed: () => c.setX('ghostPauseUntil', null),
+                ),
+            ]),
+          ]),
+        ),
+        const SizedBox(height: 12),
         _Header(l.ghostWhatToHide),
         GlassSurface(
           radius: 20,
@@ -86,6 +123,12 @@ class GhostScreen extends ConsumerWidget {
               onChanged: (v) => c.setX('ghostForceHidden', v),
             ),
           ]),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+          child: Text(l.ghostManualRead,
+              style: const TextStyle(
+                  fontSize: 12, color: GlassTokens.textSecondary)),
         ),
         const SizedBox(height: 12),
         _Header(l.ghostPerChat),

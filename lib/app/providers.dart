@@ -108,6 +108,20 @@ class VaultUnlock extends Notifier<bool> {
 
   void lock() => state = false;
 
+  /// Opens the vault without asking (the caller already authenticated).
+  void open() => state = true;
+
+  /// System biometric / device-credential prompt only; does not open the vault.
+  Future<bool> deviceAuth(String reason) async {
+    try {
+      return await LocalAuthentication()
+          .authenticate(localizedReason: reason, biometricOnly: false);
+    } catch (e) {
+      debugPrint('device auth failed: $e');
+      return false;
+    }
+  }
+
   Future<bool> unlock({required String reason, bool requireAuth = true}) async {
     if (state) return true;
     if (!requireAuth) {
@@ -130,6 +144,17 @@ class VaultUnlock extends Notifier<bool> {
 
 final vaultUnlockProvider =
     NotifierProvider<VaultUnlock, bool>(VaultUnlock.new);
+
+/// How many hidden-area screens (the hidden list, hidden chats) are open.
+/// While > 0 and the vault is locked, a gate covers the app in place.
+class HiddenArea extends Notifier<int> {
+  @override
+  int build() => 0;
+  void enter() => state = state + 1;
+  void leave() => state = state > 0 ? state - 1 : 0;
+}
+
+final hiddenAreaProvider = NotifierProvider<HiddenArea, int>(HiddenArea.new);
 
 /// App Lock: when on, the app asks for biometrics after being in background.
 class AppLocked extends Notifier<bool> {

@@ -1131,4 +1131,156 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get sectionEmpty =>
       'This section is empty. Long-press a chat to add it here.';
+
+  @override
+  String get gateTooMany => 'Too many attempts. Wait 30 seconds.';
+
+  @override
+  String get gateWrong => 'Wrong code';
+
+  @override
+  String get gateEnterCode => 'Enter your code';
+
+  @override
+  String get pinKindWord => 'Word / password';
+
+  @override
+  String pinKindDigits(String n) {
+    return '$n digits';
+  }
+
+  @override
+  String pinLenErr(String n) {
+    return 'The code must be exactly $n digits';
+  }
+
+  @override
+  String get pinMismatch => 'The two codes don\'t match';
+
+  @override
+  String get pinConfirm => 'Repeat the code';
+
+  @override
+  String get pinOff => 'Off';
+
+  @override
+  String get hiddenPin => 'Own passcode (PIN or word)';
+
+  @override
+  String get hiddenLockExit => 'Lock when I leave';
+
+  @override
+  String get hiddenLockExitHint =>
+      'Ask for the fingerprint / code every time you open it';
+
+  @override
+  String get mFab => 'Long-press the new-chat (pencil) button';
+
+  @override
+  String get mSwipe => 'Rub the title left-right-left';
+
+  @override
+  String get mSwipeHint => 'Swipe back and forth on the top title';
+
+  @override
+  String get sectUnread => 'Unread';
+
+  @override
+  String get unpinAll => 'Unpin all';
+
+  @override
+  String get savedToSaved => 'Saved to Saved Messages';
+
+  @override
+  String get saveToSaved => 'Save to Saved Messages';
+
+  @override
+  String get markReadHere => 'Mark read up to here';
+
+  @override
+  String get markedReadMsg => 'Marked as read';
+
+  @override
+  String get actReact => '👍 Like';
+
+  @override
+  String get actHeart => '❤️ Heart';
+
+  @override
+  String get actMenu => 'Open menu';
+
+  @override
+  String get actNone => 'Nothing';
+
+  @override
+  String get settingsGestures => 'Message gestures';
+
+  @override
+  String get swipeRightT => 'Swipe a message right';
+
+  @override
+  String get swipeLeftT => 'Swipe a message left';
+
+  @override
+  String get doubleTapT => 'Double-tap a message';
+
+  @override
+  String get notifSoundT => 'Notification sound';
+
+  @override
+  String get notifVibrateT => 'Vibrate';
+
+  @override
+  String get notifPreviewT => 'Show message text in notifications';
+
+  @override
+  String get homeSectionsT => 'Sections on the main screen';
+
+  @override
+  String get textSizeT => 'Text size';
+
+  @override
+  String get bubbleRadiusT => 'Bubble roundness';
+
+  @override
+  String get ghostPauseTitle => 'Pause Ghost';
+
+  @override
+  String get ghostPauseHint =>
+      'Peek normally for a while, then Ghost comes back by itself';
+
+  @override
+  String ghostPausedUntil(String t) {
+    return 'Ghost is paused until $t';
+  }
+
+  @override
+  String ghostPauseMin(String m) {
+    return '$m min';
+  }
+
+  @override
+  String get ghostResume => 'Resume now';
+
+  @override
+  String get ghostManualRead =>
+      'Tip: long-press a message and choose \"Mark read up to here\" to send read receipts on purpose while Ghost is on.';
+
+  @override
+  String get tabEmoji => 'Emoji';
+
+  @override
+  String get tabStickers => 'Stickers';
+
+  @override
+  String get holdToRecord => 'Hold to record, release to send';
+
+  @override
+  String get slideToCancel => '‹ Slide to cancel';
+
+  @override
+  String get releaseToCancel => 'Release to cancel';
+
+  @override
+  String get recordingLocked => 'Recording… tap send when done';
 }

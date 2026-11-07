@@ -22,7 +22,7 @@ Future<void> showStickerPicker(BuildContext context, TelegramGateway gw,
         padding: const EdgeInsets.all(8),
         child: SizedBox(
           height: MediaQuery.of(context).size.height * 0.5,
-          child: _Picker(gw: gw, onPick: (s) {
+          child: StickerGrid(gw: gw, onPick: (s) {
             Navigator.of(context).pop();
             onPick(s);
           }),
@@ -32,19 +32,22 @@ Future<void> showStickerPicker(BuildContext context, TelegramGateway gw,
   );
 }
 
-class _Picker extends StatefulWidget {
-  const _Picker({required this.gw, required this.onPick});
+/// Sticker sets (or only GIFs when [gifOnly]) as a grid with set tabs.
+class StickerGrid extends StatefulWidget {
+  const StickerGrid(
+      {super.key, required this.gw, required this.onPick, this.gifOnly = false});
   final TelegramGateway gw;
   final void Function(StickerItem) onPick;
+  final bool gifOnly;
 
   @override
-  State<_Picker> createState() => _PickerState();
+  State<StickerGrid> createState() => _PickerState();
 }
 
-class _PickerState extends State<_Picker> {
-  late final Future<List<StickerSetInfo>> _sets = widget.gw
-      .stickerSets()
-      .then((l) => [const StickerSetInfo(-1, 'GIF'), ...l]);
+class _PickerState extends State<StickerGrid> {
+  late final Future<List<StickerSetInfo>> _sets = widget.gifOnly
+      ? Future.value([const StickerSetInfo(-1, 'GIF')])
+      : widget.gw.stickerSets();
   int _sel = 0;
   Future<List<StickerItem>>? _items;
   List<StickerSetInfo> _list = const [];

@@ -1126,4 +1126,154 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get sectionEmpty => 'القسم فاضي. اضغط مطولاً على شات عشان تضيفه هنا.';
+
+  @override
+  String get gateTooMany => 'محاولات كتير. استنى 30 ثانية.';
+
+  @override
+  String get gateWrong => 'الكود غلط';
+
+  @override
+  String get gateEnterCode => 'اكتب الكود';
+
+  @override
+  String get pinKindWord => 'كلمة / باسورد';
+
+  @override
+  String pinKindDigits(String n) {
+    return '$n أرقام';
+  }
+
+  @override
+  String pinLenErr(String n) {
+    return 'الكود لازم يكون $n أرقام بالظبط';
+  }
+
+  @override
+  String get pinMismatch => 'الكودين مش متطابقين';
+
+  @override
+  String get pinConfirm => 'كرر الكود';
+
+  @override
+  String get pinOff => 'مقفول';
+
+  @override
+  String get hiddenPin => 'كود خاص (PIN أو كلمة)';
+
+  @override
+  String get hiddenLockExit => 'اقفل أول ما أخرج';
+
+  @override
+  String get hiddenLockExitHint => 'يطلب البصمة / الكود كل مرة تفتح';
+
+  @override
+  String get mFab => 'ضغطة مطولة على زرار القلم';
+
+  @override
+  String get mSwipe => 'امسح على العنوان يمين وشمال';
+
+  @override
+  String get mSwipeHint => 'حرّك صباعك يمين وشمال على العنوان فوق';
+
+  @override
+  String get sectUnread => 'غير مقروء';
+
+  @override
+  String get unpinAll => 'شيل كل التثبيتات';
+
+  @override
+  String get savedToSaved => 'اتحفظت في الرسائل المحفوظة';
+
+  @override
+  String get saveToSaved => 'احفظ في الرسائل المحفوظة';
+
+  @override
+  String get markReadHere => 'علّم كمقروء لحد هنا';
+
+  @override
+  String get markedReadMsg => 'اتعلّمت كمقروءة';
+
+  @override
+  String get actReact => '👍 إعجاب';
+
+  @override
+  String get actHeart => '❤️ قلب';
+
+  @override
+  String get actMenu => 'افتح القايمة';
+
+  @override
+  String get actNone => 'ولا حاجة';
+
+  @override
+  String get settingsGestures => 'سحب وضغط الرسايل';
+
+  @override
+  String get swipeRightT => 'اسحب الرسالة يمين';
+
+  @override
+  String get swipeLeftT => 'اسحب الرسالة شمال';
+
+  @override
+  String get doubleTapT => 'دوس مرتين على الرسالة';
+
+  @override
+  String get notifSoundT => 'صوت الاشعارات';
+
+  @override
+  String get notifVibrateT => 'اهتزاز';
+
+  @override
+  String get notifPreviewT => 'اعرض نص الرسالة في الاشعار';
+
+  @override
+  String get homeSectionsT => 'أقسام الشاشة الرئيسية';
+
+  @override
+  String get textSizeT => 'حجم الخط';
+
+  @override
+  String get bubbleRadiusT => 'استدارة الرسايل';
+
+  @override
+  String get ghostPauseTitle => 'إيقاف الجوست مؤقتاً';
+
+  @override
+  String get ghostPauseHint => 'تتصرف عادي لفترة وبعدين الجوست يرجع لوحده';
+
+  @override
+  String ghostPausedUntil(String t) {
+    return 'الجوست واقف لحد $t';
+  }
+
+  @override
+  String ghostPauseMin(String m) {
+    return '$m دقيقة';
+  }
+
+  @override
+  String get ghostResume => 'كمّل دلوقتي';
+
+  @override
+  String get ghostManualRead =>
+      'نصيحة: اضغط مطولاً على رسالة واختار \"علّم كمقروء لحد هنا\" عشان تبعت القراءة بإرادتك والجوست شغال.';
+
+  @override
+  String get tabEmoji => 'إيموجي';
+
+  @override
+  String get tabStickers => 'ستيكرز';
+
+  @override
+  String get holdToRecord => 'اضغط مطولاً للتسجيل وسيب للإرسال';
+
+  @override
+  String get slideToCancel => '‹ اسحب للإلغاء';
+
+  @override
+  String get releaseToCancel => 'سيب للإلغاء';
+
+  @override
+  String get recordingLocked => 'بيسجل… اضغط إرسال لما تخلّص';
 }

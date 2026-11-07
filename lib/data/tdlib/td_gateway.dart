@@ -1219,20 +1219,78 @@ class TdlibGateway implements TelegramGateway {
   }
 
   @override
-  Future<void> toggleReaction(int chatId, int messageId, String emoji,
-      {required bool on}) async {
+  Future<List<ChatMessage>> pinnedMessages(int chatId) async {
     try {
-      await _td.request({
-        '@type': on ? 'addMessageReaction' : 'removeMessageReaction',
+      final r = await _td.request({
+        '@type': 'searchChatMessages',
+        'chat_id': chatId,
+        'query': '',
+        'from_message_id': 0,
+        'offset': 0,
+        'limit': 50,
+        'filter': {'@type': 'searchMessagesFilterPinned'},
+      });
+      final list = [
+        for (final m in (r['messages'] as List? ?? const []).whereType<Map>())
+          _parseMessage(Map<String, dynamic>.from(m))
+      ]..sort((a, b) => b.id.compareTo(a.id));
+      return list;
+    } on TdError {
+      return const [];
+    }
+  }
+
+  @override
+  Future<List<String>> availableReactions(int chatId, int messageId) async {
+    try {
+      final r = await _td.request({
+        '@type': 'getMessageAvailableReactions',
         'chat_id': chatId,
         'message_id': messageId,
-        'reaction_type': {'@type': 'reactionTypeEmoji', 'emoji': emoji},
-        if (on) 'is_big': false,
-        if (on) 'update_recent_reactions': true,
+        'row_size': 8,
       });
+      final out = <String>[];
+      for (final key in const ['top_reactions', 'recent_reactions', 'popular_reactions']) {
+        for (final a in (r[key] as List? ?? const []).whereType<Map>()) {
+          final t = a['type'] as Map?;
+          if (t?['@type'] != 'reactionTypeEmoji' || a['needs_premium'] == true) continue;
+          final e = (t!['emoji'] ?? '').toString();
+          if (e.isNotEmpty && !out.contains(e)) out.add(e);
+        }
+      }
+      return out;
     } on TdError {
-      // reaction rejected by the server (e.g. not allowed in this chat)
+      return const [];
     }
+  }
+
+  @override
+  Future<void> toggleReaction(int chatId, int messageId, String emoji,
+      {required bool on}) async {
+    await _td.request({
+      '@type': on ? 'addMessageReaction' : 'removeMessageReaction',
+      'chat_id': chatId,
+      'message_id': messageId,
+      'reaction_type': {'@type': 'reactionTypeEmoji', 'emoji': emoji},
+      if (on) 'is_big': false,
+      if (on) 'update_recent_reactions': true,
+    });
+    // Show it right away; the server update then replaces this.
+    _patchMessage(chatId, messageId, (m) {
+      // The server update may already have arrived: then there is nothing to do.
+      if (on == m.myReactions.contains(emoji)) return m;
+      final counts = Map<String, int>.of(m.reactions);
+      final mine = Set<String>.of(m.myReactions);
+      if (on) {
+        counts[emoji] = (counts[emoji] ?? 0) + 1;
+        mine.add(emoji);
+      } else {
+        final n = (counts[emoji] ?? 1) - 1;
+        n <= 0 ? counts.remove(emoji) : counts[emoji] = n;
+        mine.remove(emoji);
+      }
+      return m.copyWith(reactions: counts, myReactions: mine);
+    });
   }
 
   @override
@@ -2067,6 +2125,10 @@ class TdlibGateway implements TelegramGateway {
       'force_read': true,
     });
   }
+
+  @override
+  Future<void> markReadManual(int chatId, List<int> messageIds) =>
+      markRead(chatId, messageIds);
 
   @override
   Future<void> sendTyping(int chatId) async => _td.fire({

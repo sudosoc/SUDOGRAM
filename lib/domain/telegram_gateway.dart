@@ -188,5 +188,14 @@ abstract class TelegramGateway {
   /// Shared media of a chat. [filter]: photo, video, document, audio, voice, link.
   Future<List<ChatMessage>> sharedMedia(int chatId, String filter);
 
+  /// Marks messages read on purpose (works even while Ghost is on).
+  Future<void> markReadManual(int chatId, List<int> messageIds);
+
+  /// All pinned messages of the chat, newest first.
+  Future<List<ChatMessage>> pinnedMessages(int chatId);
+
+  /// Emoji reactions that may be used on this message (server decides).
+  Future<List<String>> availableReactions(int chatId, int messageId);
+
   Future<void> dispose();
 }

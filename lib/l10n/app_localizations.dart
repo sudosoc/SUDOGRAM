@@ -2257,6 +2257,288 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'القسم فاضي. اضغط مطولاً على شات عشان تضيفه هنا.'**
   String get sectionEmpty;
+
+  /// No description provided for @gateTooMany.
+  ///
+  /// In ar, this message translates to:
+  /// **'محاولات كتير. استنى 30 ثانية.'**
+  String get gateTooMany;
+
+  /// No description provided for @gateWrong.
+  ///
+  /// In ar, this message translates to:
+  /// **'الكود غلط'**
+  String get gateWrong;
+
+  /// No description provided for @gateEnterCode.
+  ///
+  /// In ar, this message translates to:
+  /// **'اكتب الكود'**
+  String get gateEnterCode;
+
+  /// No description provided for @pinKindWord.
+  ///
+  /// In ar, this message translates to:
+  /// **'كلمة / باسورد'**
+  String get pinKindWord;
+
+  /// No description provided for @pinKindDigits.
+  ///
+  /// In ar, this message translates to:
+  /// **'{n} أرقام'**
+  String pinKindDigits(String n);
+
+  /// No description provided for @pinLenErr.
+  ///
+  /// In ar, this message translates to:
+  /// **'الكود لازم يكون {n} أرقام بالظبط'**
+  String pinLenErr(String n);
+
+  /// No description provided for @pinMismatch.
+  ///
+  /// In ar, this message translates to:
+  /// **'الكودين مش متطابقين'**
+  String get pinMismatch;
+
+  /// No description provided for @pinConfirm.
+  ///
+  /// In ar, this message translates to:
+  /// **'كرر الكود'**
+  String get pinConfirm;
+
+  /// No description provided for @pinOff.
+  ///
+  /// In ar, this message translates to:
+  /// **'مقفول'**
+  String get pinOff;
+
+  /// No description provided for @hiddenPin.
+  ///
+  /// In ar, this message translates to:
+  /// **'كود خاص (PIN أو كلمة)'**
+  String get hiddenPin;
+
+  /// No description provided for @hiddenLockExit.
+  ///
+  /// In ar, this message translates to:
+  /// **'اقفل أول ما أخرج'**
+  String get hiddenLockExit;
+
+  /// No description provided for @hiddenLockExitHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'يطلب البصمة / الكود كل مرة تفتح'**
+  String get hiddenLockExitHint;
+
+  /// No description provided for @mFab.
+  ///
+  /// In ar, this message translates to:
+  /// **'ضغطة مطولة على زرار القلم'**
+  String get mFab;
+
+  /// No description provided for @mSwipe.
+  ///
+  /// In ar, this message translates to:
+  /// **'امسح على العنوان يمين وشمال'**
+  String get mSwipe;
+
+  /// No description provided for @mSwipeHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'حرّك صباعك يمين وشمال على العنوان فوق'**
+  String get mSwipeHint;
+
+  /// No description provided for @sectUnread.
+  ///
+  /// In ar, this message translates to:
+  /// **'غير مقروء'**
+  String get sectUnread;
+
+  /// No description provided for @unpinAll.
+  ///
+  /// In ar, this message translates to:
+  /// **'شيل كل التثبيتات'**
+  String get unpinAll;
+
+  /// No description provided for @savedToSaved.
+  ///
+  /// In ar, this message translates to:
+  /// **'اتحفظت في الرسائل المحفوظة'**
+  String get savedToSaved;
+
+  /// No description provided for @saveToSaved.
+  ///
+  /// In ar, this message translates to:
+  /// **'احفظ في الرسائل المحفوظة'**
+  String get saveToSaved;
+
+  /// No description provided for @markReadHere.
+  ///
+  /// In ar, this message translates to:
+  /// **'علّم كمقروء لحد هنا'**
+  String get markReadHere;
+
+  /// No description provided for @markedReadMsg.
+  ///
+  /// In ar, this message translates to:
+  /// **'اتعلّمت كمقروءة'**
+  String get markedReadMsg;
+
+  /// No description provided for @actReact.
+  ///
+  /// In ar, this message translates to:
+  /// **'👍 إعجاب'**
+  String get actReact;
+
+  /// No description provided for @actHeart.
+  ///
+  /// In ar, this message translates to:
+  /// **'❤️ قلب'**
+  String get actHeart;
+
+  /// No description provided for @actMenu.
+  ///
+  /// In ar, this message translates to:
+  /// **'افتح القايمة'**
+  String get actMenu;
+
+  /// No description provided for @actNone.
+  ///
+  /// In ar, this message translates to:
+  /// **'ولا حاجة'**
+  String get actNone;
+
+  /// No description provided for @settingsGestures.
+  ///
+  /// In ar, this message translates to:
+  /// **'سحب وضغط الرسايل'**
+  String get settingsGestures;
+
+  /// No description provided for @swipeRightT.
+  ///
+  /// In ar, this message translates to:
+  /// **'اسحب الرسالة يمين'**
+  String get swipeRightT;
+
+  /// No description provided for @swipeLeftT.
+  ///
+  /// In ar, this message translates to:
+  /// **'اسحب الرسالة شمال'**
+  String get swipeLeftT;
+
+  /// No description provided for @doubleTapT.
+  ///
+  /// In ar, this message translates to:
+  /// **'دوس مرتين على الرسالة'**
+  String get doubleTapT;
+
+  /// No description provided for @notifSoundT.
+  ///
+  /// In ar, this message translates to:
+  /// **'صوت الاشعارات'**
+  String get notifSoundT;
+
+  /// No description provided for @notifVibrateT.
+  ///
+  /// In ar, this message translates to:
+  /// **'اهتزاز'**
+  String get notifVibrateT;
+
+  /// No description provided for @notifPreviewT.
+  ///
+  /// In ar, this message translates to:
+  /// **'اعرض نص الرسالة في الاشعار'**
+  String get notifPreviewT;
+
+  /// No description provided for @homeSectionsT.
+  ///
+  /// In ar, this message translates to:
+  /// **'أقسام الشاشة الرئيسية'**
+  String get homeSectionsT;
+
+  /// No description provided for @textSizeT.
+  ///
+  /// In ar, this message translates to:
+  /// **'حجم الخط'**
+  String get textSizeT;
+
+  /// No description provided for @bubbleRadiusT.
+  ///
+  /// In ar, this message translates to:
+  /// **'استدارة الرسايل'**
+  String get bubbleRadiusT;
+
+  /// No description provided for @ghostPauseTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'إيقاف الجوست مؤقتاً'**
+  String get ghostPauseTitle;
+
+  /// No description provided for @ghostPauseHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'تتصرف عادي لفترة وبعدين الجوست يرجع لوحده'**
+  String get ghostPauseHint;
+
+  /// No description provided for @ghostPausedUntil.
+  ///
+  /// In ar, this message translates to:
+  /// **'الجوست واقف لحد {t}'**
+  String ghostPausedUntil(String t);
+
+  /// No description provided for @ghostPauseMin.
+  ///
+  /// In ar, this message translates to:
+  /// **'{m} دقيقة'**
+  String ghostPauseMin(String m);
+
+  /// No description provided for @ghostResume.
+  ///
+  /// In ar, this message translates to:
+  /// **'كمّل دلوقتي'**
+  String get ghostResume;
+
+  /// No description provided for @ghostManualRead.
+  ///
+  /// In ar, this message translates to:
+  /// **'نصيحة: اضغط مطولاً على رسالة واختار \"علّم كمقروء لحد هنا\" عشان تبعت القراءة بإرادتك والجوست شغال.'**
+  String get ghostManualRead;
+
+  /// No description provided for @tabEmoji.
+  ///
+  /// In ar, this message translates to:
+  /// **'إيموجي'**
+  String get tabEmoji;
+
+  /// No description provided for @tabStickers.
+  ///
+  /// In ar, this message translates to:
+  /// **'ستيكرز'**
+  String get tabStickers;
+
+  /// No description provided for @holdToRecord.
+  ///
+  /// In ar, this message translates to:
+  /// **'اضغط مطولاً للتسجيل وسيب للإرسال'**
+  String get holdToRecord;
+
+  /// No description provided for @slideToCancel.
+  ///
+  /// In ar, this message translates to:
+  /// **'‹ اسحب للإلغاء'**
+  String get slideToCancel;
+
+  /// No description provided for @releaseToCancel.
+  ///
+  /// In ar, this message translates to:
+  /// **'سيب للإلغاء'**
+  String get releaseToCancel;
+
+  /// No description provided for @recordingLocked.
+  ///
+  /// In ar, this message translates to:
+  /// **'بيسجل… اضغط إرسال لما تخلّص'**
+  String get recordingLocked;
 }
 
 class _AppLocalizationsDelegate

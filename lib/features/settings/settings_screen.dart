@@ -8,6 +8,7 @@ import '../../l10n/app_localizations.dart';
 import '../chat/avatar.dart';
 import '../chat/wallpapers.dart';
 import '../downloads/keep_alive.dart';
+import '../home/hidden_gate.dart';
 import '../home/hidden_screen.dart';
 import '../rules/rules_screen.dart';
 import '../tools/tools_screens.dart';
@@ -60,6 +61,56 @@ class SettingsScreen extends ConsumerWidget {
           onTap: () => _push(context, b),
         );
 
+    String actLabel(String a) => switch (a) {
+          'reply' => l.reply,
+          'forward' => l.forward,
+          'copy' => l.copy,
+          'react' => l.actReact,
+          'heart' => l.actHeart,
+          'pin' => l.pin,
+          'select' => l.select,
+          'delete' => l.delete,
+          'share' => l.share,
+          'save' => l.saveToSaved,
+          'menu' => l.actMenu,
+          _ => l.actNone,
+        };
+    Widget actionTile(IconData i, String title, String key, String current,
+            {List<String> options = const [
+              'reply', 'forward', 'copy', 'react', 'heart', 'pin', 'select',
+              'delete', 'share', 'save', 'menu', 'none'
+            ]}) =>
+        ListTile(
+          leading: Icon(i),
+          title: Text(title),
+          trailing: PopupMenuButton<String>(
+            initialValue: current,
+            onSelected: (v) => c.setX(key, v),
+            itemBuilder: (_) => [
+              for (final o in options)
+                PopupMenuItem(value: o, child: Text(actLabel(o))),
+            ],
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Text(actLabel(current),
+                  style: TextStyle(color: GlassScope.of(context).accent)),
+              const Icon(Icons.arrow_drop_down),
+            ]),
+          ),
+        );
+    Widget slider(IconData i, String title, double value, double min, double max,
+            int div, String key, String Function(double) fmt) =>
+        ListTile(
+          leading: Icon(i),
+          title: Text('$title  ${fmt(value)}'),
+          subtitle: Slider(
+            value: value.clamp(min, max),
+            min: min,
+            max: max,
+            divisions: div,
+            onChanged: (v) => c.setX(key, v),
+          ),
+        );
+
     final name = me == null
         ? ''
         : '${me.firstName} ${me.lastName}'.trim();
@@ -110,8 +161,7 @@ class SettingsScreen extends ConsumerWidget {
             title: Text(l.hiddenSettings),
             trailing: const Icon(Icons.chevron_right, size: 20),
             onTap: () async {
-              final ok = await ref.read(vaultUnlockProvider.notifier).unlock(
-                  reason: l.vaultAuthReason, requireAuth: true);
+              final ok = await requireHiddenAuth(context, ref);
               if (ok && context.mounted) {
                 _push(context, (_) => const HiddenSettingsScreen());
               }
@@ -208,11 +258,26 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
           SwitchListTile(
+            secondary: const Icon(Icons.view_carousel_outlined),
+            title: Text(l.homeSectionsT),
+            value: s.homeSections,
+            onChanged: (v) => c.setX('homeSections', v),
+          ),
+          slider(Icons.format_size, l.textSizeT, s.textScale, 0.8, 1.4, 12,
+              'textScale', (v) => '${(v * 100).round()}%'),
+          slider(Icons.rounded_corner, l.bubbleRadiusT, s.bubbleRadius, 4, 28, 12,
+              'bubbleRadius', (v) => v.round().toString()),
+          SwitchListTile(
             secondary: const Icon(Icons.speed),
             title: Text(l.performanceMode),
             value: s.performanceMode,
             onChanged: c.setPerformanceMode,
           ),
+        ]),
+        group(l.settingsGestures, [
+          actionTile(Icons.swipe_right_alt, l.swipeRightT, 'swipeRight', s.swipeRight),
+          actionTile(Icons.swipe_left_alt, l.swipeLeftT, 'swipeLeft', s.swipeLeft),
+          actionTile(Icons.touch_app_outlined, l.doubleTapT, 'doubleTap', s.doubleTap),
         ]),
         group(l.notificationsTitle, [
           SwitchListTile(
@@ -224,6 +289,24 @@ class SettingsScreen extends ConsumerWidget {
               c.setNotifications(v);
               if (v && !await backgroundAllowed()) await requestBackground();
             },
+          ),
+          SwitchListTile(
+            secondary: const Icon(Icons.volume_up_outlined),
+            title: Text(l.notifSoundT),
+            value: s.notifSound,
+            onChanged: (v) => c.setX('notifSound', v),
+          ),
+          SwitchListTile(
+            secondary: const Icon(Icons.vibration),
+            title: Text(l.notifVibrateT),
+            value: s.notifVibrate,
+            onChanged: (v) => c.setX('notifVibrate', v),
+          ),
+          SwitchListTile(
+            secondary: const Icon(Icons.subject),
+            title: Text(l.notifPreviewT),
+            value: s.notifPreview,
+            onChanged: (v) => c.setX('notifPreview', v),
           ),
         ]),
         group(l.settingsTools, [

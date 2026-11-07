@@ -34,11 +34,13 @@ void main() {
     expect(again.read(settingsProvider).ghostGlobal, isFalse);
   });
 
-  test('empty folders disappear and alias can be cleared', () async {
+  test('your own sections stay when empty; alias can be cleared', () async {
     final c = await make();
     final s = c.read(settingsProvider.notifier);
     s.toggleInFolder('A', 1);
     s.toggleInFolder('A', 1);
+    expect(c.read(settingsProvider).folders['A'], isEmpty);
+    s.deleteFolder('A');
     expect(c.read(settingsProvider).folders, isEmpty);
     s.setAlias(1, 'x');
     s.setAlias(1, '  ');

@@ -27,7 +27,6 @@ import 'package:share_plus/share_plus.dart';
 import 'package:video_player/video_player.dart';
 import 'package:geolocator/geolocator.dart';
 import 'wallpapers.dart';
-import 'sticker_picker.dart';
 import 'package:lottie/lottie.dart';
 import 'info_screen.dart';
 import 'voice_player.dart';
@@ -36,6 +35,7 @@ import 'contact_card.dart';
 import '../home/chat_actions.dart';
 import '../settings/ghost_screen.dart';
 import 'status_text.dart';
+import 'emoji_panel.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key, required this.chat});
@@ -107,7 +107,101 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   List<MentionCandidate> _mentions = const [];
   List<ChatMessage>? _hits;
-  ChatMessage? _pinned;
+  List<ChatMessage> _pins = const [];
+  int _pinIdx = 0;
+  final _pinBarKey = GlobalKey();
+  bool _emojiOpen = false;
+  final _focus = FocusNode();
+  late final _area = ref.read(hiddenAreaProvider.notifier);
+  bool _inHiddenArea = false;
+
+  /// The pinned message currently shown in the bar.
+  ChatMessage? get _pinned =>
+      _pins.isEmpty ? null : _pins[_pinIdx.clamp(0, _pins.length - 1)];
+
+  Future<void> _loadPins() async {
+    var list = await _gateway.pinnedMessages(widget.chat.id);
+    if (list.isEmpty) {
+      final one = await _gateway.pinnedMessage(widget.chat.id);
+      if (one != null) list = [one];
+    }
+    if (!mounted) return;
+    setState(() {
+      _pins = list;
+      _pinIdx = 0;
+    });
+  }
+
+  /// Tap on the bar: jump to the shown pin, then move to the one before it.
+  void _pinBarTap() {
+    final p = _pinned;
+    if (p == null) return;
+    _jumpTo(p.id);
+    if (_pins.length > 1) {
+      setState(() => _pinIdx = (_pinIdx + 1) % _pins.length);
+    }
+  }
+
+  /// Long-press: drop-down list of every pinned message.
+  Future<void> _pinMenu() async {
+    final l = AppLocalizations.of(context);
+    final box = _pinBarKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || _pins.isEmpty) return;
+    final top = box.localToGlobal(Offset.zero);
+    final size = MediaQuery.of(context).size;
+    final choice = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+          16, top.dy + box.size.height, 16, size.height - top.dy - box.size.height),
+      constraints: BoxConstraints(maxWidth: size.width - 32, minWidth: size.width - 32),
+      items: [
+        for (final m in _pins)
+          PopupMenuItem<String>(
+            value: 'jump:${m.id}',
+            child: Row(children: [
+              const Icon(Icons.push_pin_outlined, size: 18),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(m.text.isNotEmpty ? m.text : kindLabel(l, m.kind),
+                    maxLines: 2, overflow: TextOverflow.ellipsis),
+              ),
+              if (widget.chat.canSend || widget.chat.type == ChatType.private)
+                IconButton(
+                  tooltip: l.unpin,
+                  icon: const Icon(Icons.close, size: 18),
+                  onPressed: () => Navigator.of(context).pop('unpin:${m.id}'),
+                ),
+            ]),
+          ),
+        if (_pins.length > 1 &&
+            (widget.chat.canSend || widget.chat.type == ChatType.private))
+          PopupMenuItem<String>(
+            value: 'unpinall',
+            child: Row(children: [
+              const Icon(Icons.layers_clear_outlined,
+                  size: 18, color: GlassTokens.ringDanger),
+              const SizedBox(width: 10),
+              Text(l.unpinAll,
+                  style: const TextStyle(color: GlassTokens.ringDanger)),
+            ]),
+          ),
+      ],
+    );
+    if (choice == null || !mounted) return;
+    if (choice.startsWith('jump:')) {
+      _jumpTo(int.parse(choice.substring(5)));
+    } else if (choice.startsWith('unpin:')) {
+      await _safe(() => _gateway.pinMessage(widget.chat.id,
+          int.parse(choice.substring(6)),
+          pin: false));
+      await _loadPins();
+    } else if (choice == 'unpinall') {
+      for (final m in _pins.toList()) {
+        await _safe(() => _gateway.pinMessage(widget.chat.id, m.id, pin: false));
+      }
+      await _loadPins();
+    }
+  }
   int _lastReadSig = 0;
 
   @override
@@ -117,16 +211,26 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _notifier.openChat = widget.chat.id;
     _c.text = DraftStore.get(widget.chat.id);
     _scroll.addListener(_onScroll);
-    _gateway.pinnedMessage(widget.chat.id).then((m) {
-      if (mounted) setState(() => _pinned = m);
+    _loadPins();
+    _c.addListener(_onCtl);
+    _focus.addListener(() {
+      if (_focus.hasFocus && _emojiOpen) setState(() => _emojiOpen = false);
     });
+    _inHiddenArea = ref.read(settingsProvider).hiddenChats.contains(widget.chat.id);
+    if (_inHiddenArea) Future.microtask(_area.enter);
     _gateway.messageTextLimit().then((v) {
       if (mounted) setState(() => _limit = v);
     });
   }
 
+  void _onCtl() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
+    if (_inHiddenArea) Future.microtask(_area.leave);
+    _focus.dispose();
     _gateway.closeChat(widget.chat.id);
     if (_notifier.openChat == widget.chat.id) _notifier.openChat = null;
     DraftStore.set(widget.chat.id, _editing == null ? _c.text : '');
@@ -451,6 +555,40 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   int _recSeconds = 0;
   Timer? _recTimer;
   String? _recPath;
+  bool _recLocked = false;
+  bool _recCancel = false;
+  Future<void>? _recStart;
+
+  void _micDown() {
+    _recLocked = false;
+    _recCancel = false;
+    HapticFeedback.mediumImpact();
+    _recStart = _startRecording();
+  }
+
+  void _micMove(LongPressMoveUpdateDetails d) {
+    if (_recLocked || !_recording) return;
+    final o = d.offsetFromOrigin;
+    if (o.dy < -90) {
+      HapticFeedback.selectionClick();
+      setState(() {
+        _recLocked = true;
+        _recCancel = false;
+      });
+      return;
+    }
+    final rtl = Directionality.of(context) == TextDirection.rtl;
+    final cancel = rtl ? o.dx > 100 : o.dx < -100;
+    if (cancel != _recCancel) setState(() => _recCancel = cancel);
+  }
+
+  Future<void> _micUp({bool cancel = false}) async {
+    await _recStart;
+    if (!mounted || _recLocked) return;
+    final c = cancel || _recCancel;
+    _recCancel = false;
+    if (_recording) await _stopRecording(send: !c);
+  }
 
   Future<void> _startRecording() async {
     final l = AppLocalizations.of(context);
@@ -488,7 +626,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     } catch (_) {
       path = null;
     }
-    if (mounted) setState(() => _recording = false);
+    if (mounted) {
+      setState(() {
+        _recording = false;
+        _recLocked = false;
+        _recCancel = false;
+      });
+    }
     if (!send || path == null || secs < 1) {
       if (path != null) {
         try {
@@ -524,6 +668,82 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
   }
 
+  void _toggleEmoji() {
+    if (_emojiOpen) {
+      setState(() => _emojiOpen = false);
+      _focus.requestFocus();
+    } else {
+      FocusScope.of(context).unfocus();
+      setState(() => _emojiOpen = true);
+    }
+  }
+
+  /// Adds / removes a reaction; the reason is shown if the server refuses.
+  Future<void> _react(ChatMessage m, String e) async {
+    final live = (ref.read(messagesProvider(widget.chat.id)).value ??
+            const <ChatMessage>[])
+        .where((x) => x.id == m.id)
+        .firstOrNull;
+    final have = (live ?? m).myReactions.contains(e);
+    await _safe(() => _gateway.toggleReaction(widget.chat.id, m.id, e, on: !have));
+  }
+
+  /// Runs one of the configurable gesture actions on [m].
+  Future<void> _gesture(String action, ChatMessage m) async {
+    final l = AppLocalizations.of(context);
+    final chats = ref.read(chatsProvider).value ?? const <ChatSummary>[];
+    switch (action) {
+      case 'reply':
+        if (widget.chat.canSend && !m.deletedByPeer) {
+          setState(() {
+            _replyTo = m;
+            _editing = null;
+          });
+          _focus.requestFocus();
+        }
+      case 'forward':
+        if (widget.chat.type != ChatType.secret && !m.deletedByPeer) {
+          _pickForward(m, chats);
+        }
+      case 'copy':
+        if (m.text.isNotEmpty) {
+          Clipboard.setData(ClipboardData(text: m.text));
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(l.copied)));
+        }
+      case 'react':
+        _react(m, '👍');
+      case 'heart':
+        _react(m, '❤️');
+      case 'pin':
+        final unpin = _pins.any((p) => p.id == m.id);
+        await _safe(() => _gateway.pinMessage(widget.chat.id, m.id, pin: !unpin));
+        await _loadPins();
+      case 'select':
+        setState(() => _selected.add(m.id));
+      case 'delete':
+        _confirmDelete(m);
+      case 'share':
+        _share([m]);
+      case 'save':
+        await _saveToSaved([m]);
+      case 'menu':
+        _actions(m);
+    }
+  }
+
+  Future<void> _saveToSaved(List<ChatMessage> ms) async {
+    final l = AppLocalizations.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    await _safe(() async {
+      final saved = await _gateway.savedMessages();
+      if (saved == null) return;
+      await _gateway.forwardMessages(
+          saved.id, widget.chat.id, [for (final m in ms) m.id]);
+      messenger.showSnackBar(SnackBar(content: Text(l.savedToSaved)));
+    });
+  }
+
   void _actions(ChatMessage m) {
     final l = AppLocalizations.of(context);
     final chats = ref.read(chatsProvider).value ?? const <ChatSummary>[];
@@ -546,28 +766,40 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
             if (!m.deletedByPeer)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  for (final e in const ['👍', '❤️', '😂', '😮', '😢', '🙏', '🔥'])
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        _gateway.toggleReaction(widget.chat.id, m.id, e,
-                            on: !m.myReactions.contains(e));
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: m.myReactions.contains(e)
-                              ? Colors.white24
-                              : null,
-                        ),
-                        child: Text(e, style: const TextStyle(fontSize: 24)),
-                      ),
-                    ),
-                ],
+              SizedBox(
+                height: 52,
+                child: FutureBuilder<List<String>>(
+                  future: _gateway.availableReactions(widget.chat.id, m.id),
+                  builder: (_, snap) {
+                    final list = (snap.data?.isNotEmpty ?? false)
+                        ? snap.data!
+                        : const ['👍', '❤️', '😂', '😮', '😢', '🙏', '🔥'];
+                    return ListView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      children: [
+                        for (final e in list)
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.of(context).pop();
+                              _react(m, e);
+                            },
+                            child: Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 3),
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: m.myReactions.contains(e)
+                                    ? Colors.white24
+                                    : null,
+                              ),
+                              child: Text(e, style: const TextStyle(fontSize: 26)),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
               ),
             if (widget.chat.canSend && !m.deletedByPeer)
               item(Icons.reply, l.reply, () => setState(() {
@@ -602,13 +834,29 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             if (!m.deletedByPeer &&
                 (widget.chat.type == ChatType.private || widget.chat.canSend))
               item(
-                  _pinned?.id == m.id ? Icons.push_pin : Icons.push_pin_outlined,
-                  _pinned?.id == m.id ? l.unpin : l.pin, () async {
-                final unpin = _pinned?.id == m.id;
+                  _pins.any((p) => p.id == m.id)
+                      ? Icons.push_pin
+                      : Icons.push_pin_outlined,
+                  _pins.any((p) => p.id == m.id) ? l.unpin : l.pin, () async {
+                final unpin = _pins.any((p) => p.id == m.id);
                 await _safe(() => _gateway.pinMessage(widget.chat.id, m.id,
                     pin: !unpin));
-                final p = await _gateway.pinnedMessage(widget.chat.id);
-                if (mounted) setState(() => _pinned = p);
+                await _loadPins();
+              }),
+            if (!m.deletedByPeer)
+              item(Icons.bookmark_add_outlined, l.saveToSaved, () => _saveToSaved([m])),
+            if (!m.outgoing &&
+                ref.read(settingsProvider).blocksRead(widget.chat.id))
+              item(Icons.done_all, l.markReadHere, () {
+                final all = ref.read(messagesProvider(widget.chat.id)).value ??
+                    const <ChatMessage>[];
+                final ids = [
+                  for (final x in all)
+                    if (!x.outgoing && x.id <= m.id) x.id
+                ];
+                _gateway.markReadManual(widget.chat.id, ids.take(100).toList());
+                ScaffoldMessenger.of(context)
+                    .showSnackBar(SnackBar(content: Text(l.markedReadMsg)));
               }),
             if (!m.deletedByPeer)
               item(Icons.delete_outline, l.delete, () => _confirmDelete(m),
@@ -1037,7 +1285,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final msgs = ref.watch(messagesProvider(widget.chat.id));
     final ghost = ref.watch(settingsProvider).ghostFor(widget.chat.id);
     final wall = wallpapers[ref.watch(settingsProvider).wallpaper.clamp(0, wallpapers.length - 1)];
-    return Scaffold(
+    return PopScope(
+      canPop: !_emojiOpen,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) setState(() => _emojiOpen = false);
+      },
+      child: Scaffold(
       backgroundColor: Colors.transparent,
       body: DecoratedBox(
         decoration: BoxDecoration(gradient: wall),
@@ -1171,28 +1424,42 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               ),
             if (_pinned != null && !_searching)
               GestureDetector(
-                onTap: () => _jumpTo(_pinned!.id),
+                onTap: _pinBarTap,
+                onLongPress: _pinMenu,
                 child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
-                child: GlassSurface(
-                  radius: 14,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  child: Row(children: [
-                    const Icon(Icons.push_pin, size: 16),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                          _pinned!.text.isNotEmpty
-                              ? _pinned!.text
-                              : kindLabel(l, _pinned!.kind),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 13)),
-                    ),
-                  ]),
+                  key: _pinBarKey,
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+                  child: GlassSurface(
+                    radius: 14,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    child: Row(children: [
+                      const Icon(Icons.push_pin, size: 16),
+                      const SizedBox(width: 8),
+                      if (_pins.length > 1)
+                        Padding(
+                          padding: const EdgeInsetsDirectional.only(end: 8),
+                          child: Text(
+                              '${(_pinIdx % _pins.length) + 1}/${_pins.length}',
+                              style: TextStyle(
+                                  fontSize: 12,
+                                  color: GlassScope.of(context).accent)),
+                        ),
+                      Expanded(
+                        child: Text(
+                            _pinned!.text.isNotEmpty
+                                ? _pinned!.text
+                                : kindLabel(l, _pinned!.kind),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 13)),
+                      ),
+                      if (_pins.length > 1)
+                        const Icon(Icons.keyboard_arrow_down, size: 18),
+                    ]),
+                  ),
                 ),
-              )),
+              ),
             if (ghost)
               Padding(
                 padding: const EdgeInsets.only(bottom: 4),
@@ -1235,8 +1502,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           ),
                         KeyedSubtree(
                           key: _keys.putIfAbsent(m.id, GlobalKey.new),
-                          child: _Bubble(
+                          child: _SwipeToAct(
+                            enabled: _selected.isEmpty,
+                            right: ref.read(settingsProvider).swipeRight,
+                            left: ref.read(settingsProvider).swipeLeft,
+                            onAction: (a) => _gesture(a, m),
+                            child: _Bubble(
                           m: m,
+                          radius: ref.read(settingsProvider).bubbleRadius,
+                          onDoubleTap: () => _gesture(
+                              ref.read(settingsProvider).doubleTap, m),
                           onJump: () => _jumpTo(m.replyToId),
                           showSender: widget.chat.type == ChatType.group &&
                               !m.outgoing,
@@ -1256,7 +1531,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                 ? _selected.remove(m.id)
                                 : _selected.add(m.id);
                           }),
-                        )),
+                        ))),
                       ]);
                     },
                   );
@@ -1345,60 +1620,109 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   radius: 26,
                   padding: const EdgeInsets.symmetric(
                       horizontal: 14, vertical: 4),
-                  child: _recording
-                      ? Row(children: [
-                          IconButton(
-                            icon: const Icon(Icons.delete_outline),
-                            onPressed: () => _stopRecording(send: false),
+                  child: Row(children: [
+                    if (!_recording)
+                      IconButton(
+                        tooltip: l.attach,
+                        icon: const Icon(Icons.attach_file),
+                        onPressed: _attachSheet,
+                      ),
+                    if (!_recording)
+                      IconButton(
+                        tooltip: l.stickers,
+                        icon: Icon(_emojiOpen
+                            ? Icons.keyboard_alt_outlined
+                            : Icons.emoji_emotions_outlined),
+                        onPressed: _toggleEmoji,
+                      ),
+                    if (!_recording)
+                      Expanded(
+                        child: TextField(
+                          controller: _c,
+                          focusNode: _focus,
+                          minLines: 1,
+                          maxLines: 6,
+                          onChanged: (v) {
+                            _onChanged(v);
+                            setState(() {});
+                          },
+                          decoration: InputDecoration(
+                            hintText: l.typeMessage,
+                            border: InputBorder.none,
+                            filled: false,
                           ),
+                        ),
+                      )
+                    else
+                      Expanded(
+                        child: Row(children: [
+                          if (_recLocked)
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline,
+                                  color: GlassTokens.ringDanger),
+                              onPressed: () => _stopRecording(send: false),
+                            )
+                          else
+                            const SizedBox(width: 12),
                           const Icon(Icons.fiber_manual_record,
                               size: 14, color: GlassTokens.ringDanger),
                           const SizedBox(width: 6),
                           Text(
-                              '${l.recording} ${_recSeconds ~/ 60}:${(_recSeconds % 60).toString().padLeft(2, '0')}'),
-                          const Spacer(),
-                          IconButton(
-                            icon: const Icon(Icons.send_rounded),
-                            onPressed: () => _stopRecording(send: true),
+                              '${_recSeconds ~/ 60}:${(_recSeconds % 60).toString().padLeft(2, '0')}'),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              _recLocked
+                                  ? l.recordingLocked
+                                  : _recCancel
+                                      ? l.releaseToCancel
+                                      : l.slideToCancel,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  fontSize: 13,
+                                  color: _recCancel
+                                      ? GlassTokens.ringDanger
+                                      : GlassTokens.textSecondary),
+                            ),
                           ),
-                        ])
-                      : Row(children: [
-                    IconButton(
-                      tooltip: l.attach,
-                      icon: const Icon(Icons.attach_file),
-                      onPressed: _attachSheet,
-                    ),
-                    Expanded(
-                      child: TextField(
-                        controller: _c,
-                        minLines: 1,
-                        maxLines: 6,
-                        onChanged: (v) {
-                          _onChanged(v);
-                          setState(() {});
-                        },
-                        decoration: InputDecoration(
-                          hintText: l.typeMessage,
-                          border: InputBorder.none,
-                          filled: false,
+                          if (!_recLocked)
+                            const Icon(Icons.lock_outline,
+                                size: 16, color: GlassTokens.textSecondary),
+                        ]),
+                      ),
+                    if (_recLocked)
+                      IconButton(
+                        tooltip: l.send,
+                        icon: const Icon(Icons.send_rounded),
+                        onPressed: () => _stopRecording(send: true),
+                      )
+                    else if (_c.text.trim().isEmpty && _editing == null)
+                      GestureDetector(
+                        key: const ValueKey('mic'),
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => ScaffoldMessenger.of(context)
+                            .showSnackBar(SnackBar(
+                                content: Text(l.holdToRecord),
+                                duration: const Duration(seconds: 1))),
+                        onLongPressStart: (_) => _micDown(),
+                        onLongPressMoveUpdate: _micMove,
+                        onLongPressEnd: (_) => _micUp(),
+                        onLongPressCancel: () => _micUp(cancel: true),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          width: _recording ? 54 : 44,
+                          height: _recording ? 54 : 44,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: _recording
+                                ? (_recCancel
+                                    ? GlassTokens.ringDanger
+                                    : GlassScope.of(context).accent)
+                                : Colors.transparent,
+                          ),
+                          child: Icon(_recording ? Icons.mic : Icons.mic_none),
                         ),
-                      ),
-                    ),
-                    if (_c.text.trim().isEmpty && _editing == null)
-                      IconButton(
-                        tooltip: l.stickers,
-                        icon: const Icon(Icons.emoji_emotions_outlined),
-                        onPressed: () => showStickerPicker(context, _gateway,
-                            onPick: (st) => _safe(
-                                () => st.gif
-                                ? _gateway.sendGif(widget.chat.id, st)
-                                : _gateway.sendSticker(widget.chat.id, st))),
-                      ),
-                    if (_c.text.trim().isEmpty && _editing == null)
-                      IconButton(
-                        tooltip: l.kindVoice,
-                        icon: const Icon(Icons.mic_none),
-                        onPressed: _startRecording,
                       )
                     else
                       GestureDetector(
@@ -1411,13 +1735,30 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       ),
                   ]),
                 ),
+                if (_emojiOpen && widget.chat.canSend)
+                  SizedBox(
+                    height: 300,
+                    child: EmojiPanel(
+                      gw: _gateway,
+                      controller: _c,
+                      onChanged: () {
+                        if (mounted) setState(() {});
+                      },
+                      onPick: (st) {
+                        setState(() => _emojiOpen = false);
+                        _safe(() => st.gif
+                            ? _gateway.sendGif(widget.chat.id, st)
+                            : _gateway.sendSticker(widget.chat.id, st));
+                      },
+                    ),
+                  ),
               ]),
             ),
           ],
         ),
       ),
       ),
-    );
+    ));
   }
 }
 
@@ -1431,6 +1772,8 @@ class _Bubble extends StatelessWidget {
     required this.onVote,
     required this.onTapSelect,
     required this.onJump,
+    this.onDoubleTap,
+    this.radius = 18,
     this.selected = false,
     this.selecting = false,
     this.forwardLabel,
@@ -1449,6 +1792,8 @@ class _Bubble extends StatelessWidget {
   final VoidCallback onLongPress;
   final VoidCallback onTapSelect;
   final VoidCallback onJump;
+  final VoidCallback? onDoubleTap;
+  final double radius;
   final bool selected;
   final bool selecting;
 
@@ -1476,6 +1821,7 @@ class _Bubble extends StatelessWidget {
           : AlignmentDirectional.centerStart,
       child: GestureDetector(
         onTap: selecting ? onTapSelect : null,
+        onDoubleTap: selecting ? null : onDoubleTap,
         onLongPress: selecting ? onTapSelect : onLongPress,
         child: Container(
           margin: const EdgeInsets.symmetric(vertical: 3),
@@ -1487,7 +1833,7 @@ class _Bubble extends StatelessWidget {
           decoration: sticker
               ? null
               : BoxDecoration(
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(radius),
                   color: m.outgoing
                       ? accent.withValues(alpha: 0.35)
                       : Colors.white.withValues(alpha: GlassTokens.fill),
@@ -1827,6 +2173,110 @@ class _PollView extends StatelessWidget {
                 : l.votesCount('${poll.total}'),
             style: const TextStyle(
                 fontSize: 11, color: GlassTokens.textTertiary)),
+      ]),
+    );
+  }
+}
+
+
+/// Drag a message sideways to run a configurable action (reply, forward…).
+class _SwipeToAct extends StatefulWidget {
+  const _SwipeToAct({
+    required this.child,
+    required this.right,
+    required this.left,
+    required this.onAction,
+    this.enabled = true,
+  });
+
+  final Widget child;
+  final String right;
+  final String left;
+  final void Function(String) onAction;
+  final bool enabled;
+
+  @override
+  State<_SwipeToAct> createState() => _SwipeToActState();
+}
+
+class _SwipeToActState extends State<_SwipeToAct> {
+  double _dx = 0;
+  bool _fired = false;
+  static const _trigger = 56.0;
+
+  static IconData _icon(String a) => switch (a) {
+        'reply' => Icons.reply,
+        'forward' => Icons.shortcut,
+        'copy' => Icons.copy,
+        'react' => Icons.thumb_up_outlined,
+        'heart' => Icons.favorite_border,
+        'pin' => Icons.push_pin_outlined,
+        'select' => Icons.check_circle_outline,
+        'delete' => Icons.delete_outline,
+        'share' => Icons.ios_share,
+        'save' => Icons.bookmark_add_outlined,
+        'menu' => Icons.more_horiz,
+        _ => Icons.block,
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    if (!widget.enabled || (widget.right == 'none' && widget.left == 'none')) {
+      return widget.child;
+    }
+    final progress = (_dx.abs() / _trigger).clamp(0.0, 1.0);
+    final act = _dx > 0 ? widget.right : widget.left;
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onHorizontalDragUpdate: (d) {
+        var next = _dx + d.delta.dx;
+        if (next > 0 && widget.right == 'none') next = 0;
+        if (next < 0 && widget.left == 'none') next = 0;
+        next = next.clamp(-90.0, 90.0);
+        if (next.abs() >= _trigger && !_fired) {
+          _fired = true;
+          HapticFeedback.selectionClick();
+        } else if (next.abs() < _trigger) {
+          _fired = false;
+        }
+        setState(() => _dx = next);
+      },
+      onHorizontalDragEnd: (_) {
+        final a = _dx >= _trigger
+            ? widget.right
+            : _dx <= -_trigger
+                ? widget.left
+                : null;
+        setState(() {
+          _dx = 0;
+          _fired = false;
+        });
+        if (a != null && a != 'none') widget.onAction(a);
+      },
+      onHorizontalDragCancel: () => setState(() {
+        _dx = 0;
+        _fired = false;
+      }),
+      child: Stack(alignment: AlignmentDirectional.center, children: [
+        if (_dx != 0)
+          Positioned.fill(
+            child: Align(
+              alignment: _dx > 0 ? Alignment.centerLeft : Alignment.centerRight,
+              child: Opacity(
+                opacity: progress,
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 12),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withValues(alpha: 0.15),
+                  ),
+                  child: Icon(_icon(act), size: 20),
+                ),
+              ),
+            ),
+          ),
+        Transform.translate(offset: Offset(_dx, 0), child: widget.child),
       ]),
     );
   }

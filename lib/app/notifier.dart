@@ -37,6 +37,9 @@ class MessageNotifier {
     required Set<int> privateIds,
     required String hiddenBody,
     Set<int> silentIds = const {},
+    bool sound = true,
+    bool vibrate = true,
+    bool preview = true,
   }) {
     final first = _lastUnread.isEmpty;
     for (final c in chats) {
@@ -49,13 +52,19 @@ class MessageNotifier {
       _plugin.show(
         c.id.abs() % 2000000000,
         hidden ? 'SUDOGRAM' : c.title,
-        hidden ? hiddenBody : (c.lastText.isEmpty ? '…' : c.lastText),
-        const NotificationDetails(
+        hidden || !preview
+            ? hiddenBody
+            : (c.lastText.isEmpty ? '…' : c.lastText),
+        NotificationDetails(
           android: AndroidNotificationDetails(
-            'sudogram_messages',
+            // Channel settings are fixed once created, so each combination
+            // of sound / vibration gets its own channel.
+            'sudogram_messages_${sound ? 1 : 0}${vibrate ? 1 : 0}',
             'Messages',
             importance: Importance.high,
             priority: Priority.high,
+            playSound: sound,
+            enableVibration: vibrate,
           ),
         ),
       );

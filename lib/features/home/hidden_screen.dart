@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
@@ -7,6 +8,7 @@ import '../../core/theme/glass.dart';
 import '../../domain/models.dart';
 import '../../l10n/app_localizations.dart';
 import 'chat_actions.dart';
+import 'hidden_gate.dart';
 import 'home_screen.dart';
 
 /// All hidden chats in one place ("Telegram inside Telegram"): sections for
@@ -23,6 +25,25 @@ class _HiddenChatsScreenState extends ConsumerState<HiddenChatsScreen> {
   String _section = 'all';
   bool _searching = false;
   String _q = '';
+  late final _area = ref.read(hiddenAreaProvider.notifier);
+  late final _vault = ref.read(vaultUnlockProvider.notifier);
+  late final bool _lockOnExit = ref.read(settingsProvider).hiddenLockOnExit;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(_area.enter);
+  }
+
+  @override
+  void dispose() {
+    // Closing the hidden area locks it again (asks for auth next time).
+    Future.microtask(() {
+      _area.leave();
+      if (_lockOnExit) _vault.lock();
+    });
+    super.dispose();
+  }
 
   bool _inSection(ChatSummary c, AppSettings s) {
     if (_section == 'all') return true;
@@ -83,11 +104,6 @@ class _HiddenChatsScreenState extends ConsumerState<HiddenChatsScreen> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    ref.listen<bool>(vaultUnlockProvider, (_, open) {
-      if (!open && Navigator.of(context).canPop()) {
-        Navigator.of(context).popUntil((r) => r.isFirst);
-      }
-    });
     final settings = ref.watch(settingsProvider);
     final c = ref.read(settingsProvider.notifier);
     final all = ref.watch(chatsProvider).value ?? const <ChatSummary>[];
@@ -273,6 +289,8 @@ class HiddenSettingsScreen extends ConsumerWidget {
             method('title', Icons.touch_app_outlined, l.mTitle),
             method('ghost', Icons.visibility_off_outlined, l.mGhost),
             method('settings', Icons.tune, l.mSettings),
+            method('fab', Icons.edit_outlined, l.mFab),
+            method('swipe', Icons.swipe, l.mSwipe, sub: l.mSwipeHint),
             method('code', Icons.password, l.mCode,
                 sub: s.hiddenCode.isEmpty ? null : '•' * s.hiddenCode.length),
             if (methods.contains('code'))
@@ -292,7 +310,40 @@ class HiddenSettingsScreen extends ConsumerWidget {
               secondary: const Icon(Icons.fingerprint),
               title: Text(l.hiddenRequireAuth),
               value: s.hiddenAuth,
-              onChanged: (v) => c.setX('hiddenAuth', v),
+              onChanged: (v) {
+                if (!v && !s.hasHiddenPin) {
+                  // never leave the hidden chats without any protection by accident
+                  c.setX('hiddenAuth', false);
+                  return;
+                }
+                c.setX('hiddenAuth', v);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.pin_outlined),
+              title: Text(l.hiddenPin),
+              subtitle: Text(s.hasHiddenPin
+                  ? (s.hiddenPinKind == 'text'
+                      ? l.pinKindWord
+                      : l.pinKindDigits(s.hiddenPinKind))
+                  : l.pinOff),
+              trailing: s.hasHiddenPin
+                  ? IconButton(
+                      icon: const Icon(Icons.delete_outline),
+                      onPressed: () {
+                        c.setX('hiddenPinHash', null);
+                        c.setX('hiddenPinSalt', null);
+                      },
+                    )
+                  : null,
+              onTap: () => _setPin(context, ref),
+            ),
+            SwitchListTile(
+              secondary: const Icon(Icons.lock_clock_outlined),
+              title: Text(l.hiddenLockExit),
+              subtitle: Text(l.hiddenLockExitHint),
+              value: s.hiddenLockOnExit,
+              onChanged: (v) => c.setX('hiddenLockOnExit', v),
             ),
             SwitchListTile(
               secondary: const Icon(Icons.subject),
@@ -349,6 +400,98 @@ class HiddenSettingsScreen extends ConsumerWidget {
         ),
       ]),
     );
+  }
+
+  Future<void> _setPin(BuildContext context, WidgetRef ref) async {
+    final l = AppLocalizations.of(context);
+    final c = ref.read(settingsProvider.notifier);
+    var kind = ref.read(settingsProvider).hiddenPinKind;
+    final a = TextEditingController();
+    final b = TextEditingController();
+    String? err;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dctx) => StatefulBuilder(
+        builder: (dctx, setS) {
+          final digits = kind != 'text';
+          final len = int.tryParse(kind) ?? 0;
+          return AlertDialog(
+            title: Text(l.hiddenPin),
+            content: SingleChildScrollView(
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Wrap(spacing: 6, children: [
+                  for (final k in const ['4', '6', '8', '10', 'text'])
+                    ChoiceChip(
+                      label: Text(k == 'text' ? l.pinKindWord : k),
+                      selected: kind == k,
+                      onSelected: (_) => setS(() {
+                        kind = k;
+                        a.clear();
+                        b.clear();
+                        err = null;
+                      }),
+                    ),
+                ]),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: a,
+                  obscureText: true,
+                  keyboardType: digits ? TextInputType.number : TextInputType.text,
+                  inputFormatters: digits
+                      ? [FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(len)]
+                      : null,
+                  decoration: InputDecoration(hintText: l.gateEnterCode),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: b,
+                  obscureText: true,
+                  keyboardType: digits ? TextInputType.number : TextInputType.text,
+                  inputFormatters: digits
+                      ? [FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(len)]
+                      : null,
+                  decoration: InputDecoration(hintText: l.pinConfirm),
+                ),
+                if (err != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: Text(err!,
+                        style: const TextStyle(color: GlassTokens.ringDanger)),
+                  ),
+              ]),
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () => Navigator.pop(dctx, false),
+                  child: Text(l.cancelAction)),
+              TextButton(
+                onPressed: () {
+                  final v = a.text;
+                  if (digits ? v.length != len : v.length < 4) {
+                    setS(() => err = digits ? l.pinLenErr('$len') : l.hiddenCodeHint);
+                    return;
+                  }
+                  if (v != b.text) {
+                    setS(() => err = l.pinMismatch);
+                    return;
+                  }
+                  Navigator.pop(dctx, true);
+                },
+                child: Text(l.vaultSave),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    if (ok == true) {
+      final salt = newSalt();
+      c.setX('hiddenPinSalt', salt);
+      c.setX('hiddenPinKind', kind);
+      c.setX('hiddenPinHash', hashPin(salt, a.text));
+    }
   }
 
   Future<void> _askCode(BuildContext context, WidgetRef ref,

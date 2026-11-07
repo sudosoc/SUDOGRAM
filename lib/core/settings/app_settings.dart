@@ -77,8 +77,18 @@ class AppSettings {
   bool? chatHidesRead(int id) => _parts['$id:read'] as bool?;
   bool? chatHidesTyping(int id) => _parts['$id:typing'] as bool?;
 
+  /// Ghost can be paused for a while ("peek mode").
+  DateTime? get ghostPausedUntil {
+    final ms = x['ghostPauseUntil'] as int?;
+    return ms == null ? null : DateTime.fromMillisecondsSinceEpoch(ms);
+  }
+
+  bool get ghostPaused =>
+      ghostPausedUntil?.isAfter(DateTime.now()) ?? false;
+
   bool _ghostOn(int id) =>
-      ghostFor(id) || (ghostForceHidden && hiddenChats.contains(id));
+      !ghostPaused &&
+      (ghostFor(id) || (ghostForceHidden && hiddenChats.contains(id)));
 
   /// True when we must NOT send read receipts for this chat.
   bool blocksRead(int id) =>
@@ -87,7 +97,27 @@ class AppSettings {
       _ghostOn(id) && (chatHidesTyping(id) ?? ghostTyping);
 
   /// True when we must not appear online.
-  bool get hidesOnline => ghostGlobal && ghostOnline;
+  bool get hidesOnline => ghostGlobal && ghostOnline && !ghostPaused;
+
+  // ---- Message gestures
+  /// Actions: reply, forward, copy, react, heart, pin, select, delete,
+  /// share, save, menu, none.
+  String get swipeRight => x['swipeRight'] as String? ?? 'reply';
+  String get swipeLeft => x['swipeLeft'] as String? ?? 'forward';
+  String get doubleTap => x['doubleTap'] as String? ?? 'heart';
+
+  // ---- Notifications
+  bool get notifSound => x['notifSound'] as bool? ?? true;
+  bool get notifVibrate => x['notifVibrate'] as bool? ?? true;
+  bool get notifPreview => x['notifPreview'] as bool? ?? true;
+
+  // ---- Chat look
+  double get bubbleRadius => (x['bubbleRadius'] as num?)?.toDouble() ?? 18;
+
+  bool get homeSections => x['homeSections'] as bool? ?? true;
+
+  /// Text size multiplier for the whole app.
+  double get textScale => (x['textScale'] as num?)?.toDouble() ?? 1.0;
 
   // ---- Home title ------------------------------------------------------
   /// 0 = app name, 1 = my @username, 2 = nothing.
@@ -102,6 +132,14 @@ class AppSettings {
   String get hiddenCode => x['hiddenCode'] as String? ?? '';
   bool get hiddenAuth => x['hiddenAuth'] as bool? ?? true;
   bool get hiddenPreview => x['hiddenPreview'] as bool? ?? true;
+  /// Own passcode for hidden chats (salted hash; kind = 4/6/8/10/text).
+  String get hiddenPinHash => x['hiddenPinHash'] as String? ?? '';
+  String get hiddenPinSalt => x['hiddenPinSalt'] as String? ?? '';
+  String get hiddenPinKind => x['hiddenPinKind'] as String? ?? '4';
+  bool get hasHiddenPin => hiddenPinHash.isNotEmpty;
+
+  /// Lock again as soon as the hidden area is closed.
+  bool get hiddenLockOnExit => x['hiddenLockOnExit'] as bool? ?? true;
   bool get hiddenSections => x['hiddenSections'] as bool? ?? true;
 
   /// 0 = generic "New message", 1 = no notification at all.
@@ -375,7 +413,28 @@ class SettingsController extends Notifier<AppSettings> {
     final map = {for (final e in state.folders.entries) e.key: Set<int>.of(e.value)};
     final set = map.putIfAbsent(name, () => <int>{});
     set.contains(chatId) ? set.remove(chatId) : set.add(chatId);
-    if (set.isEmpty) map.remove(name);
+    _set(state.copyWith(folders: map));
+  }
+
+  void addFolder(String name) {
+    final map = {for (final e in state.folders.entries) e.key: Set<int>.of(e.value)};
+    map.putIfAbsent(name, () => <int>{});
+    _set(state.copyWith(folders: map));
+  }
+
+  void renameFolder(String from, String to) {
+    final map = <String, Set<int>>{};
+    for (final e in state.folders.entries) {
+      map[e.key == from ? to : e.key] = Set<int>.of(e.value);
+    }
+    _set(state.copyWith(folders: map));
+  }
+
+  void deleteFolder(String name) {
+    final map = {
+      for (final e in state.folders.entries)
+        if (e.key != name) e.key: Set<int>.of(e.value)
+    };
     _set(state.copyWith(folders: map));
   }
 
