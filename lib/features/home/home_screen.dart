@@ -13,6 +13,7 @@ import '../chat/contacts_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
+import '../chat/chat_extras.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../core/device_perms.dart';
 import '../../core/media_save.dart';
@@ -284,6 +285,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            const ConnectionBanner(),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
               child: Row(

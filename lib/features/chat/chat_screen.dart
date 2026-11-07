@@ -15,6 +15,11 @@ import '../home/home_screen.dart' show kindLabel;
 
 import 'dart:io';
 
+import 'chat_extras.dart';
+import 'code_block.dart';
+
+import '../../core/code_markup.dart';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
@@ -980,6 +985,25 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       await _gateway.editText(widget.chat.id, editing.id, text);
       return;
     }
+    if (text.length > _limit && ref.read(settingsProvider).longAsFile) {
+      try {
+        final dir = Directory('${(await getApplicationSupportDirectory()).path}/outbox');
+        await dir.create(recursive: true);
+        final n = DateTime.now();
+        String two(int v) => v.toString().padLeft(2, '0');
+        final f = File('${dir.path}/message_${n.year}${two(n.month)}${two(n.day)}_${two(n.hour)}${two(n.minute)}.txt');
+        await f.writeAsString(text);
+        final first = text.trim().split('\n').first;
+        await _gateway.sendMedia(
+          widget.chat.id,
+          [f.path],
+          caption: first.length > 100 ? '${first.substring(0, 100)}…' : first,
+        );
+        return;
+      } catch (_) {
+        // fall through to normal splitting
+      }
+    }
     final parts = SmartSplitter.split(text, SplitOptions(maxLength: _limit));
     for (var i = 0; i < parts.length; i++) {
       // strictly in order; only the first part carries the reply
@@ -1056,6 +1080,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         if (widget.chat.type != ChatType.secret && !m.deletedByPeer) {
           _pickForward(m, chats);
         }
+      case 'translate':
+        if (m.text.trim().isNotEmpty) showTranslateSheet(context, m.text);
       case 'copy':
         if (m.text.isNotEmpty) {
           Clipboard.setData(ClipboardData(text: m.text));
@@ -1179,6 +1205,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   ScaffoldMessenger.of(context)
                       .showSnackBar(SnackBar(content: Text(l.copied)));
                 }),
+              if (m.text.trim().isNotEmpty)
+                item(Icons.translate, context.t('Translate', 'ترجمة'),
+                    () => showTranslateSheet(context, m.text)),
               if (m.outgoing && m.kind == MessageKind.text && !m.deletedByPeer)
                 item(Icons.edit_outlined, l.edit, () {
                   setState(() {
@@ -2113,6 +2142,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           child: SafeArea(
             child: Column(
               children: [
+                const ConnectionBanner(),
                 if (_selected.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
@@ -3031,7 +3061,7 @@ class _Bubble extends StatelessWidget {
                 if (showText && !(sticker && m.text.isEmpty))
                   (m.kind == MessageKind.text && _emojiOnly(m.text))
                       ? Text(m.text, style: const TextStyle(fontSize: 46))
-                      : _LinkText(text: text, color: accent),
+                      : _body(m, text, accent),
                 if (m.file != null && m.kind == MessageKind.voice)
                   VoicePlayer(
                     file: m.file!,
@@ -3252,10 +3282,35 @@ class _WebmStickerState extends State<_WebmSticker> {
 }
 
 /// Message text with tappable links and highlighted @mentions.
+Widget _body(ChatMessage m, String text, Color accent) {
+  var t = text;
+  var ents = m.ents;
+  if (ents.isEmpty && text.contains('`')) {
+    final p = parseCode(text);
+    t = p.text;
+    ents = p.ents;
+  }
+  if (ents.isEmpty) {
+    return _LinkText(text: t, color: accent);
+  }
+  final parts = codeAwareBody(
+    t,
+    ents,
+    (piece, inline) => _LinkText(text: piece, color: accent, inline: inline),
+  );
+  if (parts.isEmpty) return _LinkText(text: t, color: accent);
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    mainAxisSize: MainAxisSize.min,
+    children: parts,
+  );
+}
+
 class _LinkText extends StatefulWidget {
-  const _LinkText({required this.text, required this.color});
+  const _LinkText({required this.text, required this.color, this.inline = const []});
   final String text;
   final Color color;
+  final List<TextEnt> inline;
 
   @override
   State<_LinkText> createState() => _LinkTextState();
@@ -3284,6 +3339,37 @@ class _LinkTextState extends State<_LinkText> {
     final out = <InlineSpan>[];
     var last = 0;
     final re = RegExp(r'(https?://[^\s]+)|(@\w{3,32})');
+    if (widget.inline.isNotEmpty) {
+      var l = 0;
+      for (final e in widget.inline) {
+        if (e.offset < l) continue;
+        if (e.offset > l) out.add(TextSpan(text: text.substring(l, e.offset)));
+        out.add(WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: GestureDetector(
+            onLongPress: () {
+              Clipboard.setData(ClipboardData(text: text.substring(e.offset, e.offset + e.length)));
+              notice(context, context.t('Copied', 'تم النسخ'), kind: NoticeKind.success);
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E1E1E),
+                borderRadius: BorderRadius.circular(5),
+              ),
+              child: Text(
+                text.substring(e.offset, e.offset + e.length),
+                style: const TextStyle(
+                    fontFamily: 'monospace', fontSize: 13, color: Color(0xFFCE9178)),
+              ),
+            ),
+          ),
+        ));
+        l = e.offset + e.length;
+      }
+      if (l < text.length) out.add(TextSpan(text: text.substring(l)));
+      return Text.rich(TextSpan(children: out));
+    }
     for (final m in re.allMatches(text)) {
       if (m.start > last) {
         out.add(TextSpan(text: text.substring(last, m.start)));
@@ -3398,12 +3484,14 @@ class _SwipeToAct extends StatefulWidget {
 class _SwipeToActState extends State<_SwipeToAct> {
   double _dx = 0;
   bool _fired = false;
+  bool _snap = false;
   static const _trigger = 56.0;
 
   static IconData _icon(String a) => switch (a) {
     'reply' => Icons.reply,
     'forward' => Icons.shortcut,
     'copy' => Icons.copy,
+    'translate' => Icons.translate,
     'react' => Icons.thumb_up_outlined,
     'heart' => Icons.favorite_border,
     'pin' => Icons.push_pin_outlined,
@@ -3424,6 +3512,7 @@ class _SwipeToActState extends State<_SwipeToAct> {
     final act = _dx > 0 ? widget.right : widget.left;
     return GestureDetector(
       behavior: HitTestBehavior.translucent,
+      onHorizontalDragStart: (_) => setState(() => _snap = false),
       onHorizontalDragUpdate: (d) {
         var next = _dx + d.delta.dx;
         if (next > 0 && widget.right == 'none') next = 0;
@@ -3444,6 +3533,7 @@ class _SwipeToActState extends State<_SwipeToAct> {
             ? widget.left
             : null;
         setState(() {
+          _snap = true;
           _dx = 0;
           _fired = false;
         });
@@ -3469,14 +3559,21 @@ class _SwipeToActState extends State<_SwipeToAct> {
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.white.withValues(alpha: 0.15),
+                      color: _fired
+                          ? GlassScope.of(context).accent.withValues(alpha: 0.85)
+                          : Colors.white.withValues(alpha: 0.15),
                     ),
                     child: SIcon(_icon(act), size: 20),
                   ),
                 ),
               ),
             ),
-          Transform.translate(offset: Offset(_dx, 0), child: widget.child),
+          AnimatedContainer(
+            duration: _snap ? const Duration(milliseconds: 180) : Duration.zero,
+            curve: Curves.easeOut,
+            transform: Matrix4.translationValues(_dx, 0, 0),
+            child: widget.child,
+          ),
         ],
       ),
     );

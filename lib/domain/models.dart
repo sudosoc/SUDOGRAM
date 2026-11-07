@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import '../core/code_markup.dart';
+
 /// Risk level shown as a colored ring around a chat avatar.
 /// `none` means no assessment exists (the ring is not drawn).
 enum RiskLevel { none, safe, caution, danger }
@@ -155,8 +157,10 @@ class ChatMessage {
     this.sendState = 0,
     this.mini,
     this.loc,
+    this.ents = const [],
   });
 
+  final List<TextEnt> ents;
   final int id;
   final int chatId;
   final String text;
@@ -221,6 +225,7 @@ class ChatMessage {
     int? sendState,
     LocationData? loc,
     String? emoji,
+    List<TextEnt>? ents,
   }) {
     return ChatMessage(
       id: id ?? this.id,
@@ -247,6 +252,7 @@ class ChatMessage {
       sendState: sendState ?? this.sendState,
       mini: mini,
       loc: loc ?? this.loc,
+      ents: ents ?? this.ents,
     );
   }
 }

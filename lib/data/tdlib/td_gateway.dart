@@ -1,3 +1,4 @@
+import '../../core/code_markup.dart';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -293,6 +294,13 @@ class TdlibGateway implements TelegramGateway {
           'video': file,
           'supports_streaming': true,
         },
+        'caption': cap,
+      };
+    }
+    if (!const {'jpg', 'jpeg', 'png', 'webp', 'heic', 'bmp'}.contains(ext)) {
+      return {
+        '@type': 'inputMessageDocument',
+        'document': {'@type': 'inputDocument', 'document': file},
         'caption': cap,
       };
     }
@@ -702,6 +710,11 @@ class TdlibGateway implements TelegramGateway {
   DateTime _time(Object? seconds) =>
       DateTime.fromMillisecondsSinceEpoch(asInt(seconds) * 1000);
 
+  List<TextEnt> _msgEnts(Map? content) {
+    if (content == null) return const [];
+    return entsFromTd(content['text'] ?? content['caption']);
+  }
+
   ({MessageKind kind, String text}) _content(Map? content) {
     if (content == null) return (kind: MessageKind.other, text: '');
     String caption() =>
@@ -937,6 +950,7 @@ class TdlibGateway implements TelegramGateway {
       },
       mini: _mini(m['content'] as Map?),
       loc: _loc(m['content'] as Map?),
+      ents: _msgEnts(m['content'] as Map?),
       poll: _poll(m['content'] as Map?),
       link: _link(m['content'] as Map?),
       contact: _contact(m['content'] as Map?),
@@ -1124,6 +1138,7 @@ class TdlibGateway implements TelegramGateway {
         kind: content.kind,
         file: att,
         loc: loc,
+        ents: _msgEnts(nc),
       ),
     );
   }
@@ -1170,7 +1185,7 @@ class TdlibGateway implements TelegramGateway {
         },
       'input_message_content': {
         '@type': 'inputMessageText',
-        'text': {'@type': 'formattedText', 'text': text},
+        'text': toFormattedText(text),
       },
     });
   }
@@ -1259,7 +1274,7 @@ class TdlibGateway implements TelegramGateway {
       'message_id': messageId,
       'input_message_content': {
         '@type': 'inputMessageText',
-        'text': {'@type': 'formattedText', 'text': text},
+        'text': toFormattedText(text),
       },
     });
   }
