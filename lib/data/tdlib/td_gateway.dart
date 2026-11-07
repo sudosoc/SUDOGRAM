@@ -1643,19 +1643,35 @@ class TdlibGateway implements TelegramGateway {
   @override
   Future<void> leaveChat(int chatId) async {
     final c = _chats[chatId];
-    if (c != null && (c.type == ChatType.group || c.type == ChatType.channel)) {
+    final group = c != null && (c.type == ChatType.group || c.type == ChatType.channel);
+    if (group) {
       try {
         await _td.request({'@type': 'leaveChat', 'chat_id': chatId});
       } on TdError {
         // already left
       }
     }
-    await _td.request({
-      '@type': 'deleteChatHistory',
-      'chat_id': chatId,
-      'remove_from_chat_list': true,
-      'revoke': false,
-    });
+    try {
+      await _td.request({
+        '@type': 'deleteChatHistory',
+        'chat_id': chatId,
+        'remove_from_chat_list': true,
+        'revoke': false,
+      });
+    } on TdError {
+      // Channels and public supergroups cannot be deleted "only for me";
+      // after leaving, hide the chat from the list instead.
+      if (!group) rethrow;
+      try {
+        await _td.request({
+          '@type': 'addChatToList',
+          'chat_id': chatId,
+          'chat_list': {'@type': 'chatListArchive'},
+        });
+      } on TdError {
+        // leaving already succeeded
+      }
+    }
   }
 
   @override
