@@ -15,9 +15,10 @@ import 'account_screens.dart';
 import 'accounts_screen.dart';
 import 'applock_screen.dart';
 import 'chats_settings.dart';
+import '../tools/premium_hub.dart';
 import '../tools/tools_hub.dart';
+import 'login_email.dart';
 import 'appearance_screen.dart';
-import 'customize_screen.dart';
 import 'notif_screen.dart';
 import 'devices_screen.dart';
 import 'ghost_screen.dart';
@@ -90,6 +91,7 @@ class SettingsScreen extends ConsumerWidget {
                   AvatarCircle(
                     title: name.isEmpty ? 'S' : name,
                     photo: me?.avatar,
+                    chatId: me?.id,
                     size: 64,
                   ),
                   const SizedBox(width: 14),
@@ -128,6 +130,13 @@ class SettingsScreen extends ConsumerWidget {
           group(l.settingsAccount, [
             nav(Icons.shield_outlined, l.privacy, (_) => const PrivacyScreen()),
             nav(Icons.password, l.twoStep, (_) => const TwoStepScreen()),
+            nav(
+              Icons.alternate_email,
+              context.t('Login e-mail', 'إيميل الدخول'),
+              (_) => const LoginEmailScreen(),
+              sub: context.t('Where sign-in codes can be sent',
+                  'اللي بيتبعتله كود الدخول'),
+            ),
             nav(Icons.devices_other, l.devices, (_) => const DevicesScreen()),
             nav(Icons.block, l.blocked, (_) => const BlockedScreen()),
             nav(
@@ -168,31 +177,23 @@ class SettingsScreen extends ConsumerWidget {
             ),
             nav(Icons.lock_outline, l.vault, (_) => const VaultScreen()),
           ]),
-          group(context.t('Look & feel', 'المظهر والسلوك'), [
-            nav(
-              Icons.chat_outlined,
-              l.settingsChats,
-              (_) => const ChatsSettingsScreen(),
-              sub: context.t(
-                'Themes, gestures, language',
-                'ثيمات، إيماءات، لغة',
-              ),
-            ),
+          group(context.t('Appearance', 'المظهر'), [
             nav(
               Icons.palette_outlined,
-              context.t('Themes & look', 'الثيمات والمظهر'),
+              context.t('Appearance', 'المظهر'),
               (_) => const AppearanceScreen(),
-              sub: context.t('12 themes, glass, bottom bar',
-                  '12 ثيم، زجاج، شريط سفلي'),
-            ),
-            nav(
-              Icons.dashboard_customize_outlined,
-              context.t('Customization', 'التخصيص'),
-              (_) => const CustomizeScreen(),
               sub: context.t(
-                'Home, chat list, chat Pro',
-                'الهوم، القائمة، الشات Pro',
+                'Themes, glass, home, chat list, header, bubbles, bottom bar',
+                'ثيمات، زجاج، هوم، قائمة، هيدر، فقاعات، شريط سفلي',
               ),
+            ),
+          ]),
+          group(context.t('Chats & notifications', 'الشاتات والإشعارات'), [
+            nav(
+              Icons.chat_outlined,
+              context.t('Chat behaviour', 'سلوك الشات'),
+              (_) => const ChatsSettingsScreen(),
+              sub: context.t('Gestures, sending, language', 'إيماءات، إرسال، لغة'),
             ),
             nav(
               Icons.notifications_outlined,
@@ -201,6 +202,17 @@ class SettingsScreen extends ConsumerWidget {
               sub: s.notifications
                   ? context.t('On', 'شغالة')
                   : context.t('Off', 'مقفولة'),
+            ),
+          ]),
+          group(context.t('Power features', 'مزايا متقدمة'), [
+            nav(
+              Icons.auto_awesome_outlined,
+              context.t('Power features', 'مزايا متقدمة'),
+              (_) => const PremiumHubScreen(),
+              sub: context.t(
+                'Proxy, storage, auto-download, export, bulk tools…',
+                'بروكسي، تخزين، تحميل تلقائي، تصدير، أدوات جماعية…',
+              ),
             ),
           ]),
           group(l.settingsTools, [

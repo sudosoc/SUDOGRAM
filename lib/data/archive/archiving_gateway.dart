@@ -374,6 +374,10 @@ class ArchivingGateway implements TelegramGateway {
       _inner.commonGroups(userId);
 
   @override
+  Future<Map<String, dynamic>> tdRaw(Map<String, dynamic> request) =>
+      _inner.tdRaw(request);
+
+  @override
   Future<void> forwardMessages(int toChatId, int fromChatId, List<int> ids) =>
       _inner.forwardMessages(toChatId, fromChatId, ids);
   @override

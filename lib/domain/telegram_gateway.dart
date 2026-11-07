@@ -231,6 +231,10 @@ abstract class TelegramGateway {
   Future<List<ChatMessage>> sharedMedia(int chatId, String filter);
 
   /// Marks messages read on purpose (works even while Ghost is on).
+  /// Sends any TDLib request and returns its JSON answer. Throws with TDLib's
+  /// own message on failure. Used by features that need no dedicated method.
+  Future<Map<String, dynamic>> tdRaw(Map<String, dynamic> request);
+
   /// Marks the whole chat as read (even in Ghost mode: it is a manual action).
   Future<void> markChatRead(int chatId);
 

@@ -175,6 +175,10 @@ class _Recorder implements TelegramGateway {
   Future<List<ChatSummary>> commonGroups(int userId) async => const [];
 
   @override
+  Future<Map<String, dynamic>> tdRaw(Map<String, dynamic> request) async =>
+      const {};
+
+  @override
   bool get isDemo => true;
   @override
   Stream<AuthState> get authState => const Stream.empty();

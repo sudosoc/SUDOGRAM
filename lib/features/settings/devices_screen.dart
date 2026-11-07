@@ -73,8 +73,8 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
     if (!mounted) return;
     final okMsg = context.t('Session terminated', 'تم إنهاء الجلسة');
     final freshMsg = context.t(
-      'Telegram only lets you end sessions older than 24 hours.',
-      'تليجرام بيسمح بإنهاء الجلسات الأقدم من 24 ساعة بس.',
+      'Telegram blocks ending other sessions until THIS app has been signed in for 24 hours.',
+      'تليجرام بيمنع إنهاء الجلسات التانية لحد ما التطبيق ده يكمّل 24 ساعة من تسجيل دخوله.',
     );
     final failMsg = context.t('Could not terminate', 'مقدرش ينهيها');
     try {
@@ -105,7 +105,12 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
       await ref.read(gatewayProvider).terminateOtherSessions();
       _toast(okMsg);
     } catch (e) {
-      _toast('$e');
+      if (!mounted) return;
+      _toast('$e'.contains('FRESH')
+          ? context.t(
+              'Telegram blocks this until this app has been signed in for 24 hours.',
+              'تليجرام بيمنع ده لحد ما التطبيق يكمّل 24 ساعة من تسجيل دخوله.')
+          : '$e');
     }
     await _load();
   }
@@ -230,6 +235,9 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
     }
   }
 
+  String _hm(DateTime t) =>
+      '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
   String _ago(DateTime t) {
     final d = DateTime.now().difference(t);
     if (d.inMinutes < 2) return context.t('online', 'متصل');
@@ -337,9 +345,17 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
     ),
   );
 
-  bool _fresh(DeviceSession d) =>
-      d.loggedIn != null &&
-      DateTime.now().difference(d.loggedIn!) < const Duration(hours: 24);
+  /// Telegram's rule: other sessions can be ended only once the CURRENT
+  /// session is 24 h old (FRESH_RESET_AUTHORISATION_FORBIDDEN).
+  DateTime? get _unlockAt {
+    final cur = _list?.where((d) => d.current).firstOrNull;
+    final t = cur?.loggedIn;
+    if (t == null) return null;
+    final at = t.add(const Duration(hours: 24));
+    return at.isAfter(DateTime.now()) ? at : null;
+  }
+
+  bool _fresh(DeviceSession d) => _unlockAt != null;
 
   @override
   Widget build(BuildContext context) {
@@ -350,7 +366,7 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
       leading: Icon(_icon(d)),
       title: Text(d.app.isEmpty ? d.device : d.app),
       subtitle: Text(
-        '${d.device}\n${d.country} ${d.ip} · ${_ago(d.lastActive)}${!d.current && _fresh(d) ? context.t(' · can be ended after 24 h', ' · تقدر تنهيها بعد 24 ساعة') : ''}',
+        '${d.device}\n${d.country} ${d.ip} · ${_ago(d.lastActive)}',
         style: const TextStyle(color: GlassTokens.textSecondary),
       ),
       isThreeLine: true,
@@ -360,8 +376,8 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
           : _fresh(d)
           ? Tooltip(
               message: context.t(
-                'Telegram lets you end this session after 24 hours',
-                'تليجرام بيسمح بإنهاء الجلسة دي بعد 24 ساعة',
+                'Locked until this app is 24 h old',
+                'مقفول لحد ما التطبيق ده يكمّل 24 ساعة',
               ),
               child: const Icon(Icons.lock_clock, color: GlassTokens.textTertiary),
             )
@@ -389,6 +405,24 @@ class _DevicesScreenState extends ConsumerState<DevicesScreen> {
                 padding: const EdgeInsets.only(bottom: 90),
                 children: [
                   if (_error != null) Text(_error!),
+                  if (_unlockAt != null)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                      child: GlassSurface(
+                        radius: 16,
+                        padding: const EdgeInsets.all(12),
+                        child: Row(children: [
+                          const Icon(Icons.lock_clock),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(context.t(
+                              'Telegram lets you end other sessions only after this app has been signed in for 24 h. Available at ${_hm(_unlockAt!)}. Until then you can still end sessions from the official app.',
+                              'تليجرام بيسمح بإنهاء الجلسات التانية بعد 24 ساعة من دخول التطبيق ده. هتبقى متاحة الساعة ${_hm(_unlockAt!)}. لحد وقتها تقدر تنهيها من تطبيق تليجرام الأصلي.',
+                            )),
+                          ),
+                        ]),
+                      ),
+                    ),
                   _head(context.t('This device', 'الجهاز ده')),
                   for (final d in cur) tile(d),
                   if (others.isNotEmpty) ...[

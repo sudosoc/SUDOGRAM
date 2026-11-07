@@ -9,7 +9,6 @@ import '../../core/theme/glass.dart';
 import '../chat/contacts_screen.dart';
 import '../settings/accounts_screen.dart';
 import '../settings/appearance_screen.dart';
-import '../settings/customize_screen.dart';
 import '../settings/devices_screen.dart';
 import '../settings/ghost_screen.dart';
 import '../settings/privacy_screen.dart';
@@ -109,12 +108,6 @@ final barCatalog = <BarItem>[
     Icons.palette_sharp,
     Icons.palette
   ], () => const AppearanceScreen()),
-  BarItem('customize', 'Customize', 'التخصيص', const [
-    Icons.dashboard_customize_outlined,
-    Icons.dashboard_customize_rounded,
-    Icons.dashboard_customize_sharp,
-    Icons.dashboard_customize
-  ], () => const CustomizeScreen()),
 ];
 
 BarItem? barItemById(String id) {

@@ -164,6 +164,36 @@ class AppSettings {
   double get cornerScale => ((x['cornerScale'] as num?) ?? 1).toDouble();
   bool get bgBlobs => x['bgBlobs'] as bool? ?? true;
 
+  // ---- Personal tools
+  String get quickReaction => x['quickReaction'] as String? ?? '👍';
+  List<String> get quickReplies =>
+      [for (final e in (x['quickReplies'] as List? ?? const [])) e.toString()];
+  String get notes => x['notes'] as String? ?? '';
+  bool get dndOn => x['dndOn'] as bool? ?? false;
+  int get dndFrom => ((x['dndFrom'] as num?) ?? 23 * 60).toInt();
+  int get dndTo => ((x['dndTo'] as num?) ?? 7 * 60).toInt();
+
+  /// True while the do-not-disturb window is running.
+  bool get dndActive {
+    if (!dndOn) return false;
+    final n = DateTime.now();
+    final m = n.hour * 60 + n.minute;
+    return dndFrom <= dndTo ? (m >= dndFrom && m < dndTo) : (m >= dndFrom || m < dndTo);
+  }
+
+  // ---- Chat header
+  bool get hdrAvatar => x['hdrAvatar'] as bool? ?? true;
+  double get hdrAvatarSize => ((x['hdrAvatarSize'] as num?) ?? 38).toDouble();
+  bool get hdrStatus => x['hdrStatus'] as bool? ?? true;
+  bool get hdrCenter => x['hdrCenter'] as bool? ?? false;
+  double get hdrNameSize => ((x['hdrNameSize'] as num?) ?? 16).toDouble();
+  bool get hdrBold => x['hdrBold'] as bool? ?? true;
+  bool get hdrGhost => x['hdrGhost'] as bool? ?? true;
+  bool get hdrCompact => x['hdrCompact'] as bool? ?? false;
+
+  /// glass | solid | transparent
+  String get hdrStyle => x['hdrStyle'] as String? ?? 'glass';
+
   // ---- Bottom bar
   bool get barOn => x['barOn'] as bool? ?? true;
   List<String> get barItems => [

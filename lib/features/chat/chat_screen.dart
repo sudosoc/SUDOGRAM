@@ -1629,11 +1629,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
                     child: GlassSurface(
-                      blur: true,
+                      blur: ref.watch(settingsProvider).hdrStyle == 'glass',
                       radius: 22,
-                      padding: const EdgeInsets.symmetric(
+                      fill: switch (ref.watch(settingsProvider).hdrStyle) {
+                        'solid' => 0.34,
+                        'transparent' => 0.0,
+                        _ => GlassTokens.fill,
+                      },
+                      border: ref.watch(settingsProvider).hdrStyle == 'transparent'
+                          ? 0
+                          : GlassTokens.border,
+                      padding: EdgeInsets.symmetric(
                         horizontal: 6,
-                        vertical: 4,
+                        vertical: ref.watch(settingsProvider).hdrCompact ? 0 : 4,
                       ),
                       child: Row(
                         children: [
@@ -1700,20 +1708,24 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                               onTap: _openInfo,
                               child: Row(
                                 children: [
-                                  AvatarCircle(
-                                    title: widget.chat.title,
-                                    photo: widget.chat.avatar,
-                                    chatId: widget.chat.id,
-                                    shape: ref
-                                        .watch(settingsProvider)
-                                        .chatAvatarShape,
-                                    size: 38,
-                                  ),
-                                  const SizedBox(width: 10),
+                                  if (ref.watch(settingsProvider).hdrAvatar) ...[
+                                    AvatarCircle(
+                                      title: widget.chat.title,
+                                      photo: widget.chat.avatar,
+                                      chatId: widget.chat.id,
+                                      shape: ref
+                                          .watch(settingsProvider)
+                                          .chatAvatarShape,
+                                      size: ref.watch(settingsProvider).hdrAvatarSize,
+                                    ),
+                                    const SizedBox(width: 10),
+                                  ],
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                          ref.watch(settingsProvider).hdrCenter
+                                              ? CrossAxisAlignment.center
+                                              : CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           ref
@@ -1722,11 +1734,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                               widget.chat.title,
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 16,
+                                          style: TextStyle(
+                                            fontWeight: ref.watch(settingsProvider).hdrBold
+                                                ? FontWeight.w700
+                                                : FontWeight.w500,
+                                            fontSize: ref.watch(settingsProvider).hdrNameSize,
                                           ),
                                         ),
+                                        if (ref.watch(settingsProvider).hdrStatus)
                                         StreamBuilder<ChatStatus>(
                                           stream: _gateway.watchChatStatus(
                                             widget.chat.id,
@@ -1762,6 +1777,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                               ),
                             ),
                           ),
+                          if (ref.watch(settingsProvider).hdrGhost)
                           Tooltip(
                             message: l.chatControls,
                             child: IconButton(

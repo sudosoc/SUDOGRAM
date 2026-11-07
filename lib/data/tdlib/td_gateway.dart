@@ -437,6 +437,13 @@ class TdlibGateway implements TelegramGateway {
           AuthStep.waitQr,
           qrLink: (s['link'] ?? '').toString(),
         );
+      case 'authorizationStateWaitEmailAddress':
+        _auth.value = const AuthState(AuthStep.waitEmail);
+      case 'authorizationStateWaitEmailCode':
+        final ci = s['code_info'] as Map?;
+        _auth.value = AuthState(AuthStep.waitEmailCode,
+            codeLength: asInt(ci?['length']) > 0 ? asInt(ci?['length']) : 6,
+            emailPattern: (ci?['email_address_pattern'] ?? '').toString());
       case 'authorizationStateWaitPassword':
         _auth.value = const AuthState(AuthStep.waitPassword);
       case 'authorizationStateReady':
@@ -1877,7 +1884,23 @@ class TdlibGateway implements TelegramGateway {
         // optional
       }
       final names = (u['usernames'] as Map?)?['active_usernames'] as List?;
-      final small = (u['profile_photo'] as Map?)?['small'] as Map?;
+      var small = (u['profile_photo'] as Map?)?['small'] as Map?;
+      if (small != null &&
+          (small['local'] as Map?)?['is_downloading_completed'] != true) {
+        // Fetch the real current photo now so the card never shows a stale one.
+        try {
+          small = Map<String, dynamic>.from(await _td.request({
+            '@type': 'downloadFile',
+            'file_id': asInt(small['id']),
+            'priority': 32,
+            'offset': 0,
+            'limit': 0,
+            'synchronous': true,
+          }));
+        } on TdError {
+          // keep the placeholder
+        }
+      }
       return ProfileInfo(
         id: id,
         firstName: (u['first_name'] ?? '').toString(),
@@ -2569,6 +2592,15 @@ class TdlibGateway implements TelegramGateway {
       return out;
     } on TdError {
       return const [];
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> tdRaw(Map<String, dynamic> request) async {
+    try {
+      return Map<String, dynamic>.from(await _td.request(request));
+    } on TdError catch (e) {
+      throw StateError(e.message);
     }
   }
 

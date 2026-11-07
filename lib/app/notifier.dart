@@ -14,12 +14,22 @@ class MessageNotifier {
   /// Chat currently on screen: never notified.
   int? openChat;
 
+  /// Called with the chat id when a message notification is tapped.
+  void Function(int chatId)? onOpen;
+
+  /// Chats that must never be opened from a notification tap.
+  Set<int> noOpen = const {};
+
   Future<void> init() async {
     try {
       await _plugin.initialize(
         const InitializationSettings(
           android: AndroidInitializationSettings('@mipmap/ic_launcher'),
         ),
+        onDidReceiveNotificationResponse: (r) {
+          final id = int.tryParse(r.payload ?? '');
+          if (id != null) onOpen?.call(id);
+        },
       );
       await _plugin
           .resolvePlatformSpecificImplementation<
@@ -47,7 +57,9 @@ class MessageNotifier {
     Map<String, Map<String, dynamic>> perChat = const {},
     bool locked = false,
     String Function(int n)? countBody,
+    Set<int> noOpen = const {},
   }) {
+    this.noOpen = noOpen;
     final first = _lastUnread.isEmpty;
     for (final c in chats) {
       final before = _lastUnread[c.id];
@@ -90,6 +102,7 @@ class MessageNotifier {
             vibrationPattern: _pattern(vib),
           ),
         ),
+        payload: noOpen.contains(c.id) ? null : '${c.id}',
       );
     }
   }

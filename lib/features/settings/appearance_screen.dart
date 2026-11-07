@@ -7,6 +7,8 @@ import '../../core/theme/glass.dart';
 import '../../core/theme/presets.dart';
 import '../chat/avatar.dart';
 import '../home/bottom_bar.dart';
+import 'chats_settings.dart';
+import 'customize_screen.dart';
 import 'widgets.dart';
 
 /// Themes, glass look and bottom bar — every option has a live preview.
@@ -15,7 +17,7 @@ class AppearanceScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => STabbedPage(
-        title: context.t('Themes & look', 'الثيمات والمظهر'),
+        title: context.t('Appearance', 'المظهر'),
         tabs: [
           STab(context.t('Themes', 'الثيمات'), Icons.palette_outlined,
               (c) => const _ThemesTab(),
@@ -23,6 +25,10 @@ class AppearanceScreen extends StatelessWidget {
           STab(context.t('Glass', 'الزجاج'), Icons.blur_on,
               (c) => const _GlassTab(),
               preview: (c) => const _MiniApp()),
+          ...customizeTabs(context),
+          STab(context.t('Wallpaper & text', 'الخلفية والنص'), Icons.wallpaper,
+              (c) => const WallpaperTextTab(),
+              preview: (c) => const ChatPreviewMock()),
           STab(context.t('Bottom bar', 'الشريط السفلي'), Icons.view_agenda_outlined,
               (c) => const _BarTab(),
               preview: (c) => const _MiniApp()),

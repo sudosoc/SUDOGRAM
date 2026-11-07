@@ -371,6 +371,10 @@ class MockGateway implements TelegramGateway {
   Future<List<ChatSummary>> commonGroups(int userId) async => const [];
 
   @override
+  Future<Map<String, dynamic>> tdRaw(Map<String, dynamic> request) async =>
+      const {};
+
+  @override
   Future<void> forwardMessages(
     int toChatId,
     int fromChatId,

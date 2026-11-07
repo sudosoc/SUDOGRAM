@@ -33,11 +33,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   int _resendLeft = 0;
   Timer? _qrTimer;
   Timer? _tick;
+  final _email = TextEditingController();
+  final _emailCode = TextEditingController();
 
   AuthStep _view(AuthState a) =>
       _forcePhone &&
           (a.step == AuthStep.waitCode ||
               a.step == AuthStep.waitPassword ||
+              a.step == AuthStep.waitEmail ||
+              a.step == AuthStep.waitEmailCode ||
               a.step == AuthStep.waitQr)
       ? AuthStep.waitPhone
       : a.step;
@@ -47,6 +51,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       setState(() => _forcePhone = false);
     } else if (a.step == AuthStep.waitCode ||
         a.step == AuthStep.waitPassword ||
+        a.step == AuthStep.waitEmail ||
+        a.step == AuthStep.waitEmailCode ||
         a.step == AuthStep.waitQr) {
       setState(() => _forcePhone = true);
     } else if (ref.read(settingsProvider).accounts.length > 1) {
@@ -62,6 +68,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _forcePhone ||
       a.step == AuthStep.waitCode ||
       a.step == AuthStep.waitPassword ||
+      a.step == AuthStep.waitEmail ||
+      a.step == AuthStep.waitEmailCode ||
       a.step == AuthStep.waitQr ||
       ref.read(settingsProvider).accounts.length > 1;
 
@@ -72,6 +80,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     _phone.dispose();
     _code.dispose();
     _pass.dispose();
+    _email.dispose();
+    _emailCode.dispose();
     _codeFocus.dispose();
     super.dispose();
   }
@@ -109,6 +119,101 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     await _run(() => ref.read(gatewayProvider).submitCode(v));
     if (mounted) _code.clear();
   }
+
+  Future<void> _rawStep(Map<String, dynamic> req) async {
+    setState(() {
+      _busy = true;
+      _localError = null;
+    });
+    try {
+      await ref.read(gatewayProvider).tdRaw(req);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _localError = '$e'.replaceFirst('Bad state: ', ''));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Widget _emailView() => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(context.t('Add your e-mail', 'ضيف إيميلك'),
+              style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 8),
+          Text(
+            context.t(
+                'Telegram asks for a login e-mail for this account. It will send the sign-in code there.',
+                'تليجرام طالب إيميل دخول للحساب ده. هيبعت كود الدخول عليه.'),
+            style: const TextStyle(color: GlassTokens.textSecondary),
+          ),
+          const SizedBox(height: 14),
+          TextField(
+            controller: _email,
+            keyboardType: TextInputType.emailAddress,
+            autofocus: true,
+            decoration: const InputDecoration(hintText: 'name@gmail.com'),
+            onSubmitted: (_) => _sendEmail(),
+          ),
+          const SizedBox(height: 12),
+          FilledButton(
+            onPressed: _busy ? null : _sendEmail,
+            child: Text(context.t('Send code', 'ابعت الكود')),
+          ),
+        ],
+      );
+
+  Future<void> _sendEmail() => _rawStep({
+        '@type': 'setAuthenticationEmailAddress',
+        'email_address': _email.text.trim(),
+      });
+
+  Widget _emailCodeView(AuthState a) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(context.t('Check your e-mail', 'شوف الإيميل'),
+              style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 8),
+          Text(
+            context.t(
+                'We sent a ${a.codeLength}-digit code to ${a.emailPattern}.',
+                'بعتنا كود من ${a.codeLength} أرقام على ${a.emailPattern}.'),
+            style: const TextStyle(color: GlassTokens.textSecondary),
+          ),
+          const SizedBox(height: 14),
+          TextField(
+            controller: _emailCode,
+            keyboardType: TextInputType.number,
+            autofocus: true,
+            maxLength: a.codeLength,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 26, letterSpacing: 6),
+            onChanged: (v) {
+              if (v.trim().length == a.codeLength && !_busy) {
+                _rawStep({
+                  '@type': 'checkAuthenticationEmailCode',
+                  'code': {
+                    '@type': 'emailAddressAuthenticationCode',
+                    'code': v.trim(),
+                  },
+                });
+              }
+            },
+          ),
+          TextButton(
+            onPressed: _busy
+                ? null
+                : () => _rawStep({
+                      '@type': 'resendAuthenticationCode',
+                      'reason': {'@type': 'resendCodeReasonUserRequest'},
+                    }),
+            child: Text(context.t('Resend code', 'إعادة إرسال الكود')),
+          ),
+        ],
+      );
 
   Future<void> _sendPass() async {
     final v = _pass.text;
@@ -236,6 +341,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               AuthStep.waitCode => _codeView(auth),
                               AuthStep.waitPassword => _passView(),
                               AuthStep.waitQr => _qrView(auth),
+                              AuthStep.waitEmail => _emailView(),
+                              AuthStep.waitEmailCode => _emailCodeView(auth),
                               _ => _phoneView(),
                             },
                           ),

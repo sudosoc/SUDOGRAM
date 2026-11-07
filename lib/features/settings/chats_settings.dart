@@ -7,63 +7,13 @@ import '../../core/theme/glass.dart';
 import '../chat/wallpapers.dart';
 import 'widgets.dart';
 
-const _accents = [
-  0xFF4F46E5,
-  0xFF06B6D4,
-  0xFF22C55E,
-  0xFFF59E0B,
-  0xFFEC4899,
-  0xFFEF4444,
-  0xFF7C3AED,
-  0xFF0EA5E9,
-  0xFF14B8A6,
-  0xFFF97316,
-  0xFFA3E635,
-  0xFFE11D48,
-];
-
-class _Theme {
-  const _Theme(
-    this.en,
-    this.ar,
-    this.accent,
-    this.wall,
-    this.style,
-    this.radius,
-  );
-  final String en;
-  final String ar;
-  final int accent;
-  final int wall;
-  final String style;
-  final double radius;
-}
-
-const _themes = [
-  _Theme('Midnight', 'منتصف الليل', 0xFF4F46E5, 5, 'glass', 18),
-  _Theme('Ocean', 'المحيط', 0xFF06B6D4, 1, 'gradient', 20),
-  _Theme('Aurora', 'الشفق', 0xFF22C55E, 3, 'glass', 22),
-  _Theme('Sunset', 'الغروب', 0xFFF97316, 11, 'gradient', 20),
-  _Theme('Rose', 'وردي', 0xFFEC4899, 4, 'gradient', 24),
-  _Theme('Royal', 'ملكي', 0xFF7C3AED, 7, 'solid', 16),
-  _Theme('Crimson', 'قرمزي', 0xFFEF4444, 9, 'solid', 12),
-  _Theme('Pitch black', 'أسود تام', 0xFF38BDF8, 6, 'outline', 14),
-  _Theme('Forest', 'الغابة', 0xFF14B8A6, 12, 'glass', 18),
-  _Theme('Graphite', 'جرافيت', 0xFFA3E635, 13, 'solid', 10),
-];
-
 class ChatsSettingsScreen extends StatelessWidget {
   const ChatsSettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context) => STabbedPage(
-    title: context.t('Chats', 'الشاتات'),
+    title: context.t('Chat behaviour', 'سلوك الشات'),
     tabs: [
-      STab(
-        context.t('Appearance', 'المظهر'),
-        Icons.palette_outlined,
-        (c) => const _Appearance(),
-      ),
       STab(
         context.t('Gestures', 'الإيماءات'),
         Icons.swipe,
@@ -74,8 +24,8 @@ class ChatsSettingsScreen extends StatelessWidget {
   );
 }
 
-class _Appearance extends ConsumerWidget {
-  const _Appearance();
+class WallpaperTextTab extends ConsumerWidget {
+  const WallpaperTextTab({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -83,100 +33,6 @@ class _Appearance extends ConsumerWidget {
     final c = ref.read(settingsProvider.notifier);
     return Column(
       children: [
-        SGroup(
-          title: context.t('Themes', 'الثيمات'),
-          children: [
-            SizedBox(
-              height: 108,
-              child: ListView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.all(12),
-                children: [
-                  for (final t in _themes)
-                    GestureDetector(
-                      onTap: () {
-                        c.setAccent(Color(t.accent));
-                        c.setWallpaper(t.wall);
-                        c.setX('bubbleStyle', t.style);
-                        c.setX('bubbleRadius', t.radius);
-                      },
-                      child: Container(
-                        width: 88,
-                        margin: const EdgeInsetsDirectional.only(end: 10),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          gradient: wallpapers[t.wall],
-                          color: wallpapers[t.wall] == null
-                              ? Colors.white12
-                              : null,
-                          border: Border.all(
-                            color: s.accent == t.accent && s.wallpaper == t.wall
-                                ? Colors.white
-                                : Colors.white24,
-                            width: s.accent == t.accent && s.wallpaper == t.wall
-                                ? 2.5
-                                : 1,
-                          ),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              width: 44,
-                              height: 18,
-                              decoration: BoxDecoration(
-                                color: Color(t.accent),
-                                borderRadius: BorderRadius.circular(
-                                  t.radius / 2,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              context.t(t.en, t.ar),
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        SGroup(
-          title: context.t('Accent color', 'اللون الأساسي'),
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(14),
-              child: Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  for (final a in _accents)
-                    GestureDetector(
-                      onTap: () => c.setAccent(Color(a)),
-                      child: Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Color(a),
-                          border: Border.all(
-                            color: s.accent == a
-                                ? Colors.white
-                                : Colors.white24,
-                            width: s.accent == a ? 2.5 : 1,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ],
-        ),
         SGroup(
           title: context.t('Chat background', 'خلفية الشات'),
           children: [

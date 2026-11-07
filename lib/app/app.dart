@@ -16,6 +16,7 @@ import '../l10n/app_localizations.dart';
 import '../features/downloads/keep_alive.dart';
 import '../features/rules/rules_controller.dart';
 import 'providers.dart';
+import '../features/chat/chat_screen.dart';
 import '../features/home/hidden_gate.dart';
 
 /// Lets the lock overlay pop everything back to the home screen.
@@ -64,7 +65,17 @@ class _SudogramAppState extends ConsumerState<SudogramApp>
         keepConnected: () => ref.read(settingsProvider).notifications,
         idleText: _ar() ? 'متصل' : 'Connected',
       )..init();
-      ref.read(notifierProvider).init();
+      final nt = ref.read(notifierProvider);
+      nt.onOpen = (id) {
+        final nav = rootNavKey.currentState;
+        if (nav == null || nt.openChat == id) return;
+        final chat = (ref.read(chatsProvider).value ?? const <ChatSummary>[])
+            .where((c) => c.id == id)
+            .firstOrNull;
+        if (chat == null) return;
+        nav.push(MaterialPageRoute<void>(builder: (_) => ChatScreen(chat: chat)));
+      };
+      nt.init();
     });
   }
 
@@ -149,7 +160,8 @@ class _SudogramAppState extends ConsumerState<SudogramApp>
           .read(notifierProvider)
           .onChats(
             chats,
-            enabled: st.notifications,
+            noOpen: st.hiddenChats,
+            enabled: st.notifications && !st.dndActive,
             privateIds: st.ghostNotifGeneric
                 ? {
                     ...st.hiddenChats,
@@ -225,6 +237,8 @@ class _Root extends ConsumerWidget {
     if (step == AuthStep.waitPhone ||
         step == AuthStep.waitCode ||
         step == AuthStep.waitPassword ||
+        step == AuthStep.waitEmail ||
+        step == AuthStep.waitEmailCode ||
         step == AuthStep.waitQr) {
       return const LoginScreen();
     }

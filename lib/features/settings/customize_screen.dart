@@ -14,19 +14,25 @@ class CustomizeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) => STabbedPage(
         title: context.t('Customization', 'التخصيص'),
-        tabs: [
+        tabs: customizeTabs(context),
+      );
+}
+
+/// Home, chat list, chat header and bubble tabs (used by Appearance).
+List<STab> customizeTabs(BuildContext context) => [
           STab(context.t('Top bar', 'الشريط العلوي'), Icons.web_asset,
               (c) => const _BarTab(),
               preview: (c) => const _HomePreview()),
           STab(context.t('Chat list', 'قائمة الشاتات'), Icons.view_list_outlined,
               (c) => const _ListTab(),
               preview: (c) => const _HomePreview()),
+          STab(context.t('Chat header', 'هيدر الشات'), Icons.vertical_align_top,
+              (c) => const _HeaderTab(),
+              preview: (c) => const _HeaderPreview()),
           STab(context.t('Chat Pro', 'الشات Pro'), Icons.chat_bubble_outline,
               (c) => const _ChatTab(),
-              preview: (c) => const _ChatPreview()),
-        ],
-      );
-}
+              preview: (c) => const ChatPreviewMock()),
+];
 
 Map<String, String> _shapes(BuildContext c, {bool hidden = false}) => {
       'circle': c.t('Circle', 'دايرة'),
@@ -173,8 +179,8 @@ class _HomePreview extends ConsumerWidget {
   }
 }
 
-class _ChatPreview extends ConsumerWidget {
-  const _ChatPreview();
+class ChatPreviewMock extends ConsumerWidget {
+  const ChatPreviewMock({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -540,5 +546,142 @@ BoxDecoration _previewDeco(AppSettings s, Color accent, bool out) {
           borderRadius: shape,
           color: out ? accent.withValues(alpha: .35) : Colors.white.withValues(alpha: .08),
           border: Border.all(color: Colors.white24));
+  }
+}
+
+class _HeaderPreview extends ConsumerWidget {
+  const _HeaderPreview();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = ref.watch(settingsProvider);
+    final accent = GlassScope.of(context).accent;
+    return _PreviewFrame(
+      child: GlassSurface(
+        blur: false,
+        radius: 22,
+        fill: switch (s.hdrStyle) {
+          'solid' => 0.34,
+          'transparent' => 0.0,
+          _ => GlassTokens.fill,
+        },
+        border: s.hdrStyle == 'transparent' ? 0 : GlassTokens.border,
+        padding: EdgeInsets.symmetric(horizontal: 6, vertical: s.hdrCompact ? 0 : 4),
+        child: Row(children: [
+          const IconButton(
+              onPressed: null,
+              icon: BackButtonIcon()),
+          if (s.hdrAvatar) ...[
+            AvatarCircle(
+                title: 'Sudo', shape: s.chatAvatarShape, size: s.hdrAvatarSize),
+            const SizedBox(width: 10),
+          ],
+          Expanded(
+            child: Column(
+                crossAxisAlignment: s.hdrCenter
+                    ? CrossAxisAlignment.center
+                    : CrossAxisAlignment.start,
+                children: [
+                  Text(context.t('Sudo Friend', 'صاحبي'),
+                      style: TextStyle(
+                          fontSize: s.hdrNameSize,
+                          fontWeight: s.hdrBold ? FontWeight.w700 : FontWeight.w500)),
+                  if (s.hdrStatus)
+                    Text(context.t('online', 'متصل'),
+                        style: TextStyle(fontSize: 12, color: accent)),
+                ]),
+          ),
+          if (s.hdrGhost)
+            const Icon(Icons.visibility_off_outlined, color: GlassTokens.ghost),
+          const IconButton(onPressed: null, icon: Icon(Icons.more_vert)),
+        ]),
+      ),
+    );
+  }
+}
+
+class _HeaderTab extends ConsumerWidget {
+  const _HeaderTab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = ref.watch(settingsProvider);
+    return Column(children: [
+      SGroup(title: context.t('Name & photo', 'الاسم والصورة'), children: [
+        SwitchRow(
+            icon: Icons.account_circle_outlined,
+            title: context.t('Show photo', 'إظهار الصورة'),
+            hint: context.t('The contact photo at the left of the title.',
+                'صورة الشخص جنب العنوان.'),
+            keyName: 'hdrAvatar',
+            value: s.hdrAvatar),
+        if (s.hdrAvatar)
+          SliderRow(
+              icon: Icons.photo_size_select_large,
+              title: context.t('Photo size', 'حجم الصورة'),
+              keyName: 'hdrAvatarSize',
+              value: s.hdrAvatarSize,
+              min: 26,
+              max: 56,
+              divisions: 15,
+              fmt: (v) => '${v.round()}'),
+        SliderRow(
+            icon: Icons.format_size,
+            title: context.t('Name size', 'حجم الاسم'),
+            keyName: 'hdrNameSize',
+            value: s.hdrNameSize,
+            min: 13,
+            max: 24,
+            divisions: 11,
+            fmt: (v) => '${v.round()}'),
+        SwitchRow(
+            icon: Icons.format_bold,
+            title: context.t('Bold name', 'اسم عريض'),
+            keyName: 'hdrBold',
+            value: s.hdrBold),
+        SwitchRow(
+            icon: Icons.format_align_center,
+            title: context.t('Centre the text', 'توسيط النص'),
+            hint: context.t('Put the name and status in the middle of the bar.',
+                'الاسم والحالة في نص الشريط.'),
+            keyName: 'hdrCenter',
+            value: s.hdrCenter),
+        SwitchRow(
+            icon: Icons.circle_outlined,
+            title: context.t('Status line', 'سطر الحالة'),
+            hint: context.t('"online", "typing…", last seen, member count.',
+                '"متصل" و"بيكتب…" وآخر ظهور وعدد الأعضاء.'),
+            keyName: 'hdrStatus',
+            value: s.hdrStatus),
+      ]),
+      SGroup(title: context.t('Bar', 'الشريط'), children: [
+        ChoiceRow(
+            icon: Icons.web_asset,
+            title: context.t('Style', 'النمط'),
+            hint: context.t('Frosted glass, a solid tint, or no background at all.',
+                'زجاج مغبّش، أو لون مصمت، أو من غير خلفية.'),
+            keyName: 'hdrStyle',
+            current: s.hdrStyle,
+            options: {
+              'glass': context.t('Glass', 'زجاجي'),
+              'solid': context.t('Solid', 'مصمت'),
+              'transparent': context.t('Transparent', 'شفاف'),
+            }),
+        SwitchRow(
+            icon: Icons.compress,
+            title: context.t('Compact', 'مضغوط'),
+            hint: context.t('Less padding so the chat gets more room.',
+                'مسافات أقل عشان الشات ياخد مساحة أكبر.'),
+            keyName: 'hdrCompact',
+            value: s.hdrCompact),
+        SwitchRow(
+            icon: Icons.visibility_off_outlined,
+            title: context.t('Ghost button', 'زر الشبح'),
+            hint: context.t('The eye that controls Ghost mode for this chat.',
+                'العين اللي بتتحكم في الشبح للشات ده.'),
+            keyName: 'hdrGhost',
+            value: s.hdrGhost),
+      ]),
+    ]);
   }
 }

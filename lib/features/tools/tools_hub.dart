@@ -14,6 +14,7 @@ import '../../core/theme/glass.dart';
 import '../rules/rules_screen.dart';
 import '../settings/qr_tools.dart';
 import '../settings/widgets.dart';
+import 'premium_hub.dart';
 import 'tools_screens.dart';
 
 class ToolsHubScreen extends ConsumerWidget {
@@ -35,6 +36,10 @@ class ToolsHubScreen extends ConsumerWidget {
         title: context.t('Tools', 'الأدوات'),
         children: [
           SGroup(title: context.t('Telegram tools', 'أدوات تليجرام'), children: [
+            _t(context, Icons.auto_awesome_outlined, 'Power features', 'مزايا متقدمة',
+                'Proxy, storage, auto-download, export chat, bulk tools and more.',
+                'بروكسي وتخزين وتحميل تلقائي وتصدير شات وأدوات جماعية وأكتر.',
+                () => const PremiumHubScreen()),
             ListTile(
               leading: const Icon(Icons.done_all),
               title: Text(context.t('Mark all chats as read', 'تعليم كل الشاتات كمقروءة')),
@@ -76,7 +81,7 @@ class ToolsHubScreen extends ConsumerWidget {
                 'Encrypted private storage.', 'تخزين خاص مشفّر.',
                 () => const VaultScreen()),
           ]),
-          SGroup(title: context.t('Utilities', 'أدوات مساعدة'), children: [
+          SGroup(title: context.t('Extra utilities', 'أدوات إضافية'), children: [
             _t(context, Icons.qr_code_scanner, 'QR reader', 'قارئ QR',
                 'Scan with the camera or read a code from a photo.',
                 'امسح بالكاميرا أو اقرأ كود من صورة.',

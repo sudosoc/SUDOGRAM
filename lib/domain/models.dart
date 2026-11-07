@@ -276,6 +276,8 @@ enum AuthStep {
   waitCode,
   waitPassword,
   waitQr,
+  waitEmail,
+  waitEmailCode,
   ready,
   closed,
 }
@@ -287,7 +289,11 @@ class AuthState {
       this.codeLength = 5,
       this.codeType = 'telegram',
       this.nextType,
-      this.resendIn = 0});
+      this.resendIn = 0,
+      this.emailPattern = ''});
+
+  /// Masked login e-mail (a***@gmail.com) while waiting for its code.
+  final String emailPattern;
 
   /// telegram | sms | call | flash | missed | fragment | other
   final String codeType;
@@ -298,7 +304,8 @@ class AuthState {
       codeLength: codeLength,
       codeType: codeType,
       nextType: nextType,
-      resendIn: resendIn);
+      resendIn: resendIn,
+      emailPattern: emailPattern);
 
   /// How the code can be re-sent (null = cannot).
   final String? nextType;
