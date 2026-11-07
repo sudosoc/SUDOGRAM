@@ -31,6 +31,31 @@ class MainActivity : FlutterFragmentActivity() {
                             runOnUiThread { result.error("save", e.toString(), null) }
                         }
                     }.start()
+                } else if (call.method == "exitReasons") {
+                    val out = ArrayList<Map<String, Any?>>()
+                    if (android.os.Build.VERSION.SDK_INT >= 30) {
+                        try {
+                            val am = getSystemService(android.content.Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+                            for (r in am.getHistoricalProcessExitReasons(packageName, 0, 12)) {
+                                out.add(mapOf(
+                                    "time" to r.timestamp,
+                                    "reason" to r.reason,
+                                    "status" to r.status,
+                                    "importance" to r.importance,
+                                    "desc" to (r.description ?: ""),
+                                ))
+                            }
+                        } catch (e: Throwable) {}
+                    }
+                    result.success(out)
+                } else if (call.method == "openBatterySettings") {
+                    try {
+                        startActivity(android.content.Intent(android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS)
+                            .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+                        result.success(true)
+                    } catch (e: Throwable) {
+                        result.success(false)
+                    }
                 } else if (call.method == "encodeOpus") {
                     val src = call.argument<String>("src") ?: ""
                     val dst = call.argument<String>("dst") ?: ""

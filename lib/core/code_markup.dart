@@ -30,7 +30,10 @@ final _styles = <String, RegExp>{
 
 /// Turns ```lang ... ``` blocks and `inline` code in typed text into
 /// Telegram-style entities, removing the markers from the text.
-ParsedText parseCode(String input) {
+ParsedText parseCode(String input, {bool auto = true}) {
+  if (auto && !input.contains('```') && looksLikeCode(input)) {
+    return ParsedText(input, [TextEnt(0, input.length, true)]);
+  }
   if (!input.contains('`') &&
       !input.contains('**') &&
       !input.contains('__') &&
@@ -154,4 +157,42 @@ List<TextEnt> entsFromTd(Object? formatted) {
   }
   out.sort((a, b) => a.offset.compareTo(b.offset));
   return out;
+}
+
+// ------------------------------------------------ automatic code detection
+
+final _codeLine = <RegExp>[
+  RegExp(r'[;{}]\s*$'),
+  RegExp(r'^\s*(def|class|import|from\s+\S+\s+import|function|const|let|var|public|private|protected|static|return|elif|else\s*:|try\s*:|except|catch|finally|while|for|if|switch|case|namespace|using|package|fn|func|#include|#define|@\w+)\b.*[:({;]\s*$'),
+  RegExp(r'^\s*(import|from|using|package|#include)\s+[\w."<>/ ,*]+;?\s*$'),
+  RegExp(r'^\s*[\w.\[\]]+\s*(=|\+=|-=|\*=|/=|:=|==|!=)\s*\S'),
+  RegExp(r'\b[A-Za-z_][\w.]*\([^()]*\)\s*[;:{]?\s*$'),
+  RegExp(r'^\s*(//|/\*|\*/|#!|--\s)'),
+  RegExp(r'^\s*(\$|#)\s+\S+'),
+  RegExp(r'</?[A-Za-z][\w-]*[^>]*>'),
+  RegExp(r'=>|->|::|&&|\|\||\+\+|--'),
+  RegExp(r'^\s*(sudo|apt|pip|npm|git|cd|ls|chmod|curl|wget|docker|nmap|python3?|echo|cat|grep|ssh)\s+\S+'),
+];
+
+/// Heuristic: does this multi-line message look like source code?
+bool looksLikeCode(String t) {
+  if (t.length < 12 || t.length > 20000) return false;
+  final lines = t.split('\n').where((l) => l.trim().isNotEmpty).toList();
+  if (lines.length < 2) return false;
+  var letters = 0, arabic = 0;
+  for (final r in t.runes) {
+    if (r >= 0x0600 && r <= 0x06FF) {
+      arabic++;
+      letters++;
+    } else if ((r >= 0x41 && r <= 0x5A) || (r >= 0x61 && r <= 0x7A)) {
+      letters++;
+    }
+  }
+  if (letters > 0 && arabic / letters > 0.25) return false;
+  var code = 0;
+  for (final l in lines) {
+    final indented = l.startsWith('    ') || l.startsWith('\t');
+    if (_codeLine.any((r) => r.hasMatch(l)) || (indented && code > 0)) code++;
+  }
+  return code / lines.length >= 0.6;
 }

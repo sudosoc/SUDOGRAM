@@ -38,33 +38,34 @@ class WallpaperTextTab extends ConsumerWidget {
         SGroup(
           title: context.t('Chat background', 'خلفية الشات'),
           children: [
-            Padding(
-              padding: const EdgeInsets.all(14),
-              child: Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  for (var i = 0; i < wallpapers.length; i++)
-                    GestureDetector(
-                      onTap: () => c.setWallpaper(i),
-                      child: Container(
-                        width: 46,
-                        height: 64,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          gradient: wallpapers[i],
-                          color: wallpapers[i] == null ? Colors.white12 : null,
-                          border: Border.all(
-                            color: s.wallpaper == i
-                                ? Colors.white
-                                : Colors.white24,
-                            width: s.wallpaper == i ? 2.5 : 1,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
+            ListTile(
+              leading: const SIcon(Icons.wallpaper_outlined),
+              title: Text(context.t('Default background for all chats', 'خلفية كل الشاتات')),
+              subtitle: Text(context.t('Love, mystery, cars, motorcycles, hackers…', 'حب، غموض، سيارات، موتوسيكلات، هاكرز…')),
+              trailing: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: SizedBox(
+                  width: 30,
+                  height: 44,
+                  child: s.wallFor(-1).isEmpty ? const ColoredBox(color: Colors.white12) : wallImage(s.wallFor(-1), cacheWidth: 120),
+                ),
               ),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const WallpaperPicker())),
+            ),
+          ],
+        ),
+        SGroup(
+          title: context.t('Chat colors (independent of theme)', 'ألوان الشات (مستقلة عن الثيم)'),
+          children: [
+            _ColorRow(
+              title: context.t('My messages', 'رسايلي'),
+              value: s.chatOut,
+              onPick: (v) => c.setX('chatOut', v),
+            ),
+            _ColorRow(
+              title: context.t('Their messages', 'رسايل الطرف التاني'),
+              value: s.chatIn,
+              onPick: (v) => c.setX('chatIn', v),
             ),
           ],
         ),
@@ -511,6 +512,56 @@ class MediaDownloadsScreen extends ConsumerWidget {
             'Tip: long-press any photo, video, file or voice note in a chat → "Save to device".',
             'تلميحة: اضغط مطولًا على أي صورة أو فيديو أو ملف أو ريكورد في الشات ← "حفظ على الجهاز".')),
       ],
+    );
+  }
+}
+
+
+class _ColorRow extends StatelessWidget {
+  const _ColorRow({required this.title, required this.value, required this.onPick});
+  final String title;
+  final int? value;
+  final void Function(int?) onPick;
+  static const _cols = [
+    0xFF2AABEE, 0xFF7C4DFF, 0xFFE91E63, 0xFFFF5252, 0xFFFF9800,
+    0xFFFFC107, 0xFF4CAF50, 0xFF00BFA5, 0xFF1F2745, 0xFF263238, 0xFF3E2723, 0xFF000000,
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              ChoiceChip(
+                label: Text(context.t('Follow theme', 'زي الثيم')),
+                selected: value == null,
+                onSelected: (_) => onPick(null),
+              ),
+              for (final c in _cols)
+                GestureDetector(
+                  onTap: () => onPick(c),
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: Color(c),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: value == c ? Colors.white : Colors.white24, width: value == c ? 3 : 1),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

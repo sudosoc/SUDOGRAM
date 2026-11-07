@@ -14,6 +14,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
 import '../chat/chat_extras.dart';
+import 'setup_screen.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../core/device_perms.dart';
 import '../../core/media_save.dart';
@@ -162,6 +163,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     MediaEvents.onDownloaded =
         (m) => autoSaveIfWanted(ref.read(settingsProvider), m);
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // Give the first frame / connection a moment so dialogs never race it.
+      await Future<void>.delayed(const Duration(milliseconds: 700));
+      if (!mounted) return;
+      final done = await setupAlreadyDone();
+      if (!mounted) return;
+      if (!done) {
+        await Navigator.of(context).push<bool>(
+          MaterialPageRoute(fullscreenDialog: true, builder: (_) => const SetupScreen()),
+        );
+        if (!mounted) return;
+        if (await Permission.contacts.isGranted) {
+          try {
+            await syncPhoneContacts(ref.read(gatewayProvider));
+          } catch (_) {}
+        }
+        return;
+      }
       await _askBackground();
       await _askDevicePerms();
     });
@@ -728,7 +746,11 @@ class ChatRow extends ConsumerWidget {
           case 'mute':
             gw.setMuted(chat.id, !chat.muted);
           case 'read':
-            gw.markUnread(chat.id, chat.unread == 0 && !chat.markedUnread);
+            if (chat.unread > 0 || chat.markedUnread) {
+              gw.markChatRead(chat.id);
+            } else {
+              gw.markUnread(chat.id, true);
+            }
           case 'hide':
             cfg.setHidden(chat.id, !hidden);
           default:

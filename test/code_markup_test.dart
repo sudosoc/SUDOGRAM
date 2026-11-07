@@ -3,6 +3,7 @@ import 'package:sudogram/core/code_markup.dart';
 
 void main() {
   styleTests();
+  autoTests();
   test('fenced block becomes a pre-code entity', () {
     final p = parseCode('hi\n```dart\nvoid main() {}\n```\nbye');
     expect(p.text, 'hi\nvoid main() {}\nbye');
@@ -33,5 +34,16 @@ void styleTests() {
     expect(styles, {'bold', 'italic', 'strike', 'spoiler'});
     final bold = p.ents.firstWhere((e) => e.style == 'bold');
     expect(p.text.substring(bold.offset, bold.offset + bold.length), 'bold it');
+  });
+}
+
+void autoTests() {
+  test('plain code is detected, prose is not', () {
+    expect(looksLikeCode('name = "SUDOSOC"\n\nprint(f"Welcome to {name}!")\nprint("Cyber Security Starts Here.")'), true);
+    expect(looksLikeCode('def hello():\n    print("SUDOSOC")'), true);
+    expect(looksLikeCode('int main() {\n  return 0;\n}'), true);
+    expect(looksLikeCode('hello there\nhow are you doing today\nsee you soon'), false);
+    expect(looksLikeCode('ازيك يا صاحبي\nعامل ايه النهاردة'), false);
+    expect(looksLikeCode('print("x")'), false);
   });
 }

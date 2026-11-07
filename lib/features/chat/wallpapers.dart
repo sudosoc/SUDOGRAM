@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../core/settings/app_settings.dart';
+import '../../core/i18n/tr.dart';
+import '../../core/theme/glass.dart';
+import '../settings/widgets.dart';
 
 /// Chat background presets; index 0 = none (the app's own background).
 const List<LinearGradient?> wallpapers = [
@@ -69,3 +75,194 @@ const List<LinearGradient?> wallpapers = [
     colors: [Color(0xFF232526), Color(0xFF414345)],
   ),
 ];
+
+
+/// One built-in picture wallpaper (assets/wallpapers, one jpg per id).
+class WallItem {
+  const WallItem(this.id, this.cat);
+  final String id;
+  final String cat;
+}
+
+const wallCats = <String, List<String>>{
+  'love': ['Love', 'حب'],
+  'mystery': ['Mystery', 'غموض'],
+  'cars': ['Cars', 'سيارات'],
+  'moto': ['Motorcycles', 'موتوسيكلات'],
+  'hacker': ['Hackers', 'هاكرز'],
+  'gradient': ['Gradients', 'ألوان'],
+};
+
+final wallCatalog = <WallItem>[
+  for (final e in const {
+    'love': 6,
+    'mystery': 6,
+    'cars': 6,
+    'moto': 6,
+    'hacker': 6,
+  }.entries)
+    for (var i = 1; i <= e.value; i++) WallItem('${e.key}_$i', e.key),
+  for (var i = 1; i < wallpapers.length; i++) WallItem('g$i', 'gradient'),
+];
+
+LinearGradient? _grad(String id) {
+  if (id.length > 1 && id.startsWith('g')) {
+    final i = int.tryParse(id.substring(1));
+    if (i != null && i > 0 && i < wallpapers.length) return wallpapers[i];
+  }
+  return null;
+}
+
+/// Image/gradient for a wallpaper id as a widget (thumbnail or full).
+Widget wallImage(String id, {int? cacheWidth}) {
+  final g = _grad(id);
+  if (g != null) return DecoratedBox(decoration: BoxDecoration(gradient: g));
+  return Image.asset(
+    'assets/wallpapers/$id.jpg',
+    fit: BoxFit.cover,
+    cacheWidth: cacheWidth,
+    gaplessPlayback: true,
+    errorBuilder: (_, _, _) => const SizedBox.shrink(),
+  );
+}
+
+/// Chat backdrop: wallpaper (if any) + dim layer, with [child] on top.
+class WallBackdrop extends StatelessWidget {
+  const WallBackdrop({super.key, required this.id, required this.dim, required this.child});
+  final String id;
+  final double dim;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (id.isEmpty || id == 'none') return child;
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        wallImage(id, cacheWidth: 900),
+        if (_grad(id) == null)
+          ColoredBox(color: Colors.black.withValues(alpha: dim.clamp(0.0, 0.8))),
+        child,
+      ],
+    );
+  }
+}
+
+Future<void> pickChatWallpaper(BuildContext context, WidgetRef ref, int chatId) =>
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => WallpaperPicker(chatId: chatId)),
+    );
+
+/// Picker page. [chatId] == null edits the default for all chats.
+class WallpaperPicker extends ConsumerStatefulWidget {
+  const WallpaperPicker({super.key, this.chatId});
+  final int? chatId;
+  @override
+  ConsumerState<WallpaperPicker> createState() => _WallpaperPickerState();
+}
+
+class _WallpaperPickerState extends ConsumerState<WallpaperPicker> {
+  String _cat = 'love';
+
+  @override
+  Widget build(BuildContext context) {
+    final s = ref.watch(settingsProvider);
+    final c = ref.read(settingsProvider.notifier);
+    final per = widget.chatId != null;
+    final cur = per
+        ? (s.chatWall['${widget.chatId}'] as String? ?? '')
+        : (s.wallId.isNotEmpty ? s.wallId : (s.wallpaper > 0 ? 'g${s.wallpaper}' : ''));
+    void pick(String id) {
+      if (per) {
+        final m = Map<String, dynamic>.of(s.chatWall);
+        if (id.isEmpty) {
+          m.remove('${widget.chatId}');
+        } else {
+          m['${widget.chatId}'] = id;
+        }
+        c.setX('chatWall', m);
+      } else {
+        c.setX('wallId', id.isEmpty ? null : id);
+        if (s.wallpaper != 0) c.setWallpaper(0);
+      }
+    }
+
+    final w = (MediaQuery.of(context).size.width - 32 - 20) / 3;
+    final items = wallCatalog.where((e) => e.cat == _cat).toList();
+    Widget tile(String id, {required String label}) {
+      final sel = cur == id;
+      return GestureDetector(
+        onTap: () => pick(id),
+        child: Container(
+          width: w,
+          height: w * 1.9,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: sel ? Colors.white : Colors.white24, width: sel ? 2.5 : 1),
+            color: Colors.white10,
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (id.isEmpty || id == 'none')
+                Center(child: Text(label, textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: GlassTokens.textSecondary)))
+              else
+                wallImage(id, cacheWidth: 300),
+              if (sel)
+                const Positioned(top: 6, right: 6, child: CircleAvatar(radius: 11, backgroundColor: Colors.white, child: Icon(Icons.check, size: 16, color: Colors.black))),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return SPage(
+      title: per ? context.t('Chat background', 'خلفية الشات') : context.t('Default background', 'الخلفية الافتراضية'),
+      children: [
+        SizedBox(
+          height: 48,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            children: [
+              for (final e in wallCats.entries)
+                Padding(
+                  padding: const EdgeInsetsDirectional.only(end: 8),
+                  child: ChoiceChip(
+                    label: Text(context.isAr ? e.value[1] : e.value[0]),
+                    selected: _cat == e.key,
+                    onSelected: (_) => setState(() => _cat = e.key),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          child: Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              tile('', label: per ? context.t('Use default', 'الافتراضية') : context.t('None', 'بدون')),
+              if (per) tile('none', label: context.t('No background', 'بدون خلفية')),
+              for (final e in items) tile(e.id, label: ''),
+            ],
+          ),
+        ),
+        SGroup(children: [
+          SliderRow(
+            icon: Icons.brightness_6_outlined,
+            title: context.t('Darken background', 'تعتيم الخلفية'),
+            keyName: 'wallDim',
+            value: s.wallDim,
+            min: 0,
+            max: .7,
+            divisions: 14,
+            fmt: (v) => '${(v * 100).round()}%',
+          ),
+        ]),
+      ],
+    );
+  }
+}

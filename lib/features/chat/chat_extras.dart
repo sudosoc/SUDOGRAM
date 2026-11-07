@@ -450,3 +450,105 @@ class FormatBar extends StatelessWidget {
     );
   }
 }
+
+// ------------------------------------------------------- glass menu
+
+class MenuEntry {
+  const MenuEntry(this.value, this.icon, this.label, {this.danger = false}) : divider = false;
+  const MenuEntry.divider()
+      : value = '',
+        icon = Icons.circle,
+        label = '',
+        danger = false,
+        divider = true;
+  final String value;
+  final IconData icon;
+  final String label;
+  final bool danger;
+  final bool divider;
+}
+
+/// Glass bottom sheet used instead of the stock popup menu.
+void showMenuSheet(
+  BuildContext context,
+  String title,
+  List<MenuEntry> entries,
+  Future<void> Function(String) onSelect,
+) {
+  final accent = GlassScope.of(context).accent;
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    builder: (sheet) => Padding(
+      padding: const EdgeInsets.all(12),
+      child: GlassSurface(
+        blur: true,
+        radius: 28,
+        padding: const EdgeInsets.fromLTRB(8, 10, 8, 8),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.78),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(
+              width: 38,
+              height: 4,
+              decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(4)),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+              child: Row(children: [
+                Expanded(
+                  child: Text(title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                ),
+              ]),
+            ),
+            Flexible(
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  for (final e in entries)
+                    if (e.divider)
+                      Divider(height: 10, color: Colors.white.withValues(alpha: 0.1))
+                    else
+                      InkWell(
+                        borderRadius: BorderRadius.circular(16),
+                        onTap: () {
+                          Navigator.of(sheet).pop();
+                          onSelect(e.value);
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+                          child: Row(children: [
+                            Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: (e.danger ? GlassTokens.ringDanger : accent).withValues(alpha: 0.15),
+                              ),
+                              child: SIcon(e.icon,
+                                  size: 19, color: e.danger ? GlassTokens.ringDanger : accent),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Text(e.label,
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    color: e.danger ? GlassTokens.ringDanger : null,
+                                  )),
+                            ),
+                          ]),
+                        ),
+                      ),
+                ],
+              ),
+            ),
+          ]),
+        ),
+      ),
+    ),
+  );
+}

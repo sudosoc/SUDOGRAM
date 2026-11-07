@@ -58,8 +58,10 @@ class DownloadKeepAlive {
       iosNotificationOptions: const IOSNotificationOptions(),
       foregroundTaskOptions: ForegroundTaskOptions(
         eventAction: ForegroundTaskEventAction.nothing(),
-        allowWakeLock: true,
-        allowWifiLock: true,
+        // No wake/wifi locks: with the battery exemption the connection
+        // survives, and idle drain stays low.
+        allowWakeLock: false,
+        allowWifiLock: false,
       ),
     );
     _inited = true;

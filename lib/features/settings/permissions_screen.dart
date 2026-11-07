@@ -3,6 +3,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../../core/i18n/tr.dart';
 import '../../core/ui/icon_styles.dart';
+import 'diagnostics_screen.dart';
 import 'widgets.dart';
 
 /// What the app needs, why, and whether it was granted.
@@ -88,6 +89,17 @@ class PermissionsScreenState extends State<PermissionsScreen>
                         ),
                       ),
               ),
+          ]),
+          SGroup(children: [
+            ListTile(
+              leading: const SIcon(Icons.battery_saver_outlined),
+              title: Text(context.t('Battery & stability', 'البطارية والاستقرار')),
+              subtitle: SHint(context.t('Background exemption and the "why did it close" report.',
+                  'استثناء الخلفية وتقرير "ليه اتقفل".')),
+              trailing: const SIcon(Icons.chevron_right, size: 20),
+              onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => const DiagnosticsScreen())),
+            ),
           ]),
         ],
       );

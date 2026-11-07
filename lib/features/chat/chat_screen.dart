@@ -420,6 +420,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     }
   }
 
+  /// After sending, always return to the newest message.
+  void _toBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scroll.hasClients) {
+        _scroll.animateTo(0,
+            duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
+      }
+    });
+    if (_highlight != null && mounted) setState(() => _highlight = null);
+  }
+
   final Map<int, ChatMessage> _replyCache = {};
   final Set<int> _replyAsked = {};
 
@@ -463,8 +474,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     } catch (_) {}
   }
 
-  Future<void> _sendPaths(List<String> paths) =>
-      _safe(() => _gateway.sendMedia(widget.chat.id, paths));
+  Future<void> _sendPaths(List<String> paths) {
+    _toBottom();
+    return _safe(() => _gateway.sendMedia(widget.chat.id, paths));
+  }
 
   Future<void> _pickGallery() async {
     final picked = await ImagePicker().pickMultipleMedia();
@@ -995,6 +1008,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       }
       return;
     }
+    _toBottom();
     await _safe(() => _gateway.sendVoice(widget.chat.id, path!, secs));
   }
 
@@ -1052,6 +1066,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       _editing = null;
       _replyTo = null;
     });
+    if (editing == null) _toBottom();
     if (editing != null) {
       await _gateway.editText(widget.chat.id, editing.id, text);
       return;
@@ -1876,32 +1891,13 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final s = ref.watch(settingsProvider);
     final isPrivate = chat.type == ChatType.private;
     final hidden = s.hiddenChats.contains(chat.id);
-    PopupMenuItem<String> item(
+    MenuEntry item(
       String v,
       IconData i,
       String t, {
       bool danger = false,
-    }) => PopupMenuItem(
-      value: v,
-      child: Row(
-        children: [
-          SIcon(i, size: 20, color: danger ? GlassTokens.ringDanger : null),
-          const SizedBox(width: 12),
-          Flexible(
-            child: Text(
-              t,
-              style: danger
-                  ? const TextStyle(color: GlassTokens.ringDanger)
-                  : null,
-            ),
-          ),
-        ],
-      ),
-    );
-    return PopupMenuButton<String>(
-      tooltip: l.more,
-      icon: const SIcon(Icons.more_vert),
-      onSelected: (v) async {
+    }) => MenuEntry(v, i, t, danger: danger);
+    Future<void> select(String v) async {
         final sc = ref.read(settingsProvider.notifier);
         switch (v) {
           case 'info':
@@ -1937,6 +1933,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             showChatActions(context, ref, chat);
           case 'ghost':
             _ghostSheet();
+          case 'wallpaper':
+            pickChatWallpaper(context, ref, chat.id);
           case 'top':
             if (_scroll.hasClients) {
               _scroll.animateTo(_scroll.position.maxScrollExtent,
@@ -1973,9 +1971,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             );
             if (ok) nav.pop();
         }
-      },
-      itemBuilder: (_) => [
+    }
+
+    final entries = <MenuEntry>[
         item('info', Icons.account_circle_outlined, l.menuProfile),
+        item('wallpaper', Icons.wallpaper_outlined, context.t('Chat background', 'خلفية الشات')),
         item('search', Icons.search, l.searchInChat),
         item('media', Icons.perm_media_outlined, l.menuMedia),
         item(
@@ -2008,7 +2008,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         item('delmine', Icons.delete_sweep_outlined, context.t('Delete all my messages', 'حذف كل رسايلي'), danger: true),
         item('copyid', Icons.tag, context.t('Copy chat ID', 'نسخ معرّف الشات')),
         item('archive', Icons.archive_outlined, l.archiveChat),
-        const PopupMenuDivider(),
+        const MenuEntry.divider(),
         item(
           'clear',
           Icons.cleaning_services_outlined,
@@ -2024,7 +2024,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               : l.leaveChat,
           danger: true,
         ),
-      ],
+      ];
+    return IconButton(
+      tooltip: l.more,
+      icon: const SIcon(Icons.more_vert),
+      onPressed: () => showMenuSheet(context, chat.title, entries, select),
     );
   }
 
@@ -2196,11 +2200,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final l = AppLocalizations.of(context);
     final msgs = ref.watch(messagesProvider(widget.chat.id));
     final ghost = ref.watch(settingsProvider).ghostFor(widget.chat.id);
-    final wall =
-        wallpapers[ref
-            .watch(settingsProvider)
-            .wallpaper
-            .clamp(0, wallpapers.length - 1)];
+    final st = ref.watch(settingsProvider);
+    final wallId = st.wallFor(widget.chat.id);
     return PopScope(
       canPop: !_emojiOpen,
       onPopInvokedWithResult: (didPop, _) {
@@ -2208,8 +2209,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       },
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        body: DecoratedBox(
-          decoration: BoxDecoration(gradient: wall),
+        body: WallBackdrop(
+          id: wallId,
+          dim: st.wallDim,
           child: SafeArea(
             child: Column(
               children: [
@@ -2924,6 +2926,17 @@ class _Bubble extends StatelessWidget {
   final bool selecting;
 
   BoxDecoration _decoration(Color accent) {
+    final d = _baseDecoration(accent);
+    final inc = ps.chatIn;
+    if (m.outgoing || inc == null || ps.bubbleStyle == 'outline') return d;
+    return BoxDecoration(
+      borderRadius: d.borderRadius,
+      color: Color(inc).withValues(alpha: .92),
+      border: d.border,
+    );
+  }
+
+  BoxDecoration _baseDecoration(Color accent) {
     final r = Radius.circular(radius);
     const tail = Radius.circular(4);
     final shape = ps.chatTail
@@ -2992,7 +3005,7 @@ class _Bubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    final accent = GlassScope.of(context).accent;
+    final accent = ps.chatOut != null ? Color(ps.chatOut!) : GlassScope.of(context).accent;
     final isVisual =
         m.kind == MessageKind.photo ||
         m.kind == MessageKind.sticker ||
@@ -3101,6 +3114,8 @@ class _Bubble extends StatelessWidget {
                 if (isVisual)
                   GestureDetector(
                     onTap: onOpen,
+                    onDoubleTap: selecting ? null : onDoubleTap,
+                    onLongPress: selecting ? onTapSelect : onLongPress,
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(sticker ? 0 : 12),
                       child:
@@ -3391,7 +3406,7 @@ class _WebmStickerState extends State<_WebmSticker> {
 Widget _body(ChatMessage m, String text, Color accent) {
   var t = text;
   var ents = m.ents;
-  if (ents.isEmpty && text.contains('`')) {
+  if (ents.isEmpty && m.kind == MessageKind.text && m.text.isNotEmpty) {
     final p = parseCode(text);
     t = p.text;
     ents = p.ents;

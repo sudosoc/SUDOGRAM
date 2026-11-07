@@ -63,6 +63,22 @@ class AppSettings {
   bool ghostFor(int chatId) => ghostOverrides[chatId] ?? ghostGlobal;
 
   // ---- Ghost details -------------------------------------------------
+  // ---- chat appearance (independent from the theme)
+  String get wallId => x['wallId'] as String? ?? '';
+  double get wallDim => (x['wallDim'] as num?)?.toDouble() ?? 0.25;
+  Map<String, dynamic> get chatWall =>
+      (x['chatWall'] as Map?)?.cast<String, dynamic>() ?? const {};
+  int? get chatOut => (x['chatOut'] as num?)?.toInt();
+  int? get chatIn => (x['chatIn'] as num?)?.toInt();
+
+  /// Resolved background id for [chatId]: per-chat -> global -> legacy gradient.
+  String wallFor(int chatId) {
+    final per = chatWall['$chatId'] as String?;
+    if (per != null && per.isNotEmpty) return per;
+    if (wallId.isNotEmpty) return wallId;
+    return wallpaper > 0 ? 'g$wallpaper' : '';
+  }
+
   bool get ghostRead => x['ghostRead'] as bool? ?? true;
   bool get ghostTyping => x['ghostTyping'] as bool? ?? true;
   bool get ghostOnline => x['ghostOnline'] as bool? ?? true;
